@@ -27,6 +27,9 @@ void setup() {
   eepromRestoreConfig(0);
   initializeEncoder(15, 18, 34);
   initializeDisplay();
+  initializeDallasSensors();
+  initializeMax6675Sensors();
+  
   Serial.println("inited the encoder");
 }
 

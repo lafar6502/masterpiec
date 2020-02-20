@@ -1,8 +1,5 @@
 #ifndef _BOILER_CONTROL_H_INCLUDED_
 #define _BOILER_CONTROL_H_INCLUDED_
-//
-// blower, feeder, pump control logic and global variables
-//
 
 void setPumpOn(uint8_t num);
 void setPumpOff(uint8_t num);
@@ -24,4 +21,3 @@ uint8_t getCurrentBlowerPower();
 
 
 #endif
-
