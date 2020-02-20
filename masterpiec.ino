@@ -139,6 +139,10 @@ void podtrzymanieStateLoop() {
   
 }
 
+void updatePumpStatus() {
+  
+}
+
 void eepromRestoreConfig(uint8_t slot) {
   
 }
