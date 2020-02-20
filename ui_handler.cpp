@@ -15,38 +15,56 @@ volatile uint32_t _hbCountSinceLastEvent = 0;
 bool _idleReported = false;
 int _lastButtonState = LOW;
 bool _holdReported = false;
-void uiHeartbeatProc() {
+
+void uiHeartbeatProc() 
+{
   _hbCountSinceLastEvent++;
   unsigned char result = _rot.process();
-  if (result == DIR_CW) {
+  if (result == DIR_CW) 
+  {
     _encoderPos++;
     _idleReported = false;
     processUIEvent(UI_EV_UP, 1);
-  } else if (result == DIR_CCW) {
+  } 
+  else if (result == DIR_CCW) 
+  {
     _encoderPos--;
     _idleReported = false;
     processUIEvent(UI_EV_DOWN, -1);
   }
   
-  if (_encButtonPin != 0) {
+  if (result != DIR_NONE) {
+    
+  }
+  
+  if (_encButtonPin != 0) 
+  {
     int v = digitalRead(_encButtonPin);
     uint32_t c = _hbCountSinceLastEvent;
-    if (v != _lastButtonState) {
-      _lastButtonState = v;
-      if (v == LOW) {
+    if (v != _lastButtonState) 
+    {
+      _holdReported = false;
+      if (v == LOW) 
+      {
         processUIEvent(UI_EV_BTNRELEASE, 0);
-      } else if (v == HIGH) {
-        _holdReported = false;
+      } 
+      else if (v == HIGH) 
+      {
         processUIEvent(UI_EV_BTNPRESS, 0);
       }
-    } else {
-      if (!_holdReported && c > 3000) {
+    } 
+    else 
+    {
+      if (!_holdReported && v == HIGH && c > 3000) 
+      {
         _holdReported = true;
         processUIEvent(UI_EV_BTNHOLD, 0);
       }
     }
+    _lastButtonState = v;
   }
-  if (_hbCountSinceLastEvent > 5000 && !_idleReported) {
+  
+  if (_hbCountSinceLastEvent > 5000 && !_idleReported && _lastButtonState == LOW) {
     processUIEvent(UI_EV_IDLE, 0);
     _idleReported = true;
   }
@@ -81,9 +99,11 @@ void initializeDisplay() {
 void processUIEvent(uint8_t event, int8_t arg) 
 {
   _hbCountSinceLastEvent = 0;
+  if (event != UI_EV_IDLE) _idleReported = false;
+  
   Serial.print("ev:");
   Serial.print(event);
-  Serial.print("enc:");
+  Serial.print(" enc:");
   Serial.println(getEncoderPos());
 }
 

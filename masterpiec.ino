@@ -35,13 +35,24 @@ void setup() {
 
 void loop() {
   uint64_t m = millis();
-  // put your main code here, to run repeatedly:
-  updateView();
-  
+  refreshSensorReadings();
+  processSensorValues();  //wciagamy odczyty sensorów do zmiennych programu
+  standardBurnLoop();     //procedura kontroli spalania
+  updateView();           //aktualizacja ui
+  int m2 = millis();
+  int d = 100 - (m2 - m);
+  if (d > 0) 
+  {
+    delay(d);
+  }
+  else 
+  {
+    Serial.print("zabrakło mi ms ");
+    Serial.println(-d);  
+  }
 }
 
 
-TSTATE g_BurnState = STATE_UNDEFINED;
 //czas wejscia w bieżący stan, ms
 unsigned long g_CurStateStart = 0;
 uint16_t  g_CurStateStartC10 = 0; //temp pieca w momencie wejscia w bież. stan.
@@ -53,10 +64,10 @@ TControlConfiguration g_CurrentConfig;
 //to nasza procedura aktualizacji stanu hardware-u
 //wolana cyklicznie.
 void standardBurnLoop() {
-  readSensorValues();
+  
   burningProc();
   updatePumpStatus();
-  requestSensorUpdate();
+  
 }
 
 void burningProc() 
@@ -132,8 +143,23 @@ void eepromRestoreConfig(uint8_t slot) {
   
 }
 
+float g_AktTempZadana = 0; //aktualnie zadana temperatura pieca (która może być wyższa od temp. zadanej w konfiguracji bo np grzejemy CWU)
+float g_TempCO;
+float g_TempCWU; 
+float g_TempPowrot;  //akt. temp. powrotu
+float g_TempSpaliny; //akt. temp. spalin
+float g_TempPodajnik;
+TSTATE g_BurnState = STATE_UNDEFINED;  //aktualny stan grzania
+bool   g_TermostatStop;  //true - termostat pokojowy kazał zaprzestać grzania
+float g_TempZewn; //aktualna temp. zewn
 
-
+void processSensorValues() {
+  g_TempCO = getLastDallasValue(TSENS_BOILER);
+  g_TempCWU = getLastDallasValue(TSENS_CWU);
+  g_TempPowrot = getLastDallasValue(TSENS_RETURN);
+  g_TempPodajnik = getLastDallasValue(TSENS_FEEDER);
+  g_TempSpaliny = getLastThermocoupleValue(T2SENS_EXHAUST);
+}
 
 
 const TBurnTransition  BURN_TRANSITIONS[]  = 

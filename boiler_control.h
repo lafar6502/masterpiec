@@ -1,6 +1,8 @@
 #ifndef _BOILER_CONTROL_H_INCLUDED_
 #define _BOILER_CONTROL_H_INCLUDED_
 
+#include "global_variables.h"
+
 void setPumpOn(uint8_t num);
 void setPumpOff(uint8_t num);
 bool isPumpOn(uint8_t num);

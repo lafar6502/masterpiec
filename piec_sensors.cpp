@@ -10,7 +10,7 @@
 #define SO_PIN 50
 
 struct TDallasSensor {
-  DeviceAddress addr;
+  DeviceAddress Addr;
   float LastValue;
   int   LastReadMs;
   bool  Active;
@@ -46,6 +46,7 @@ void initializeDallasSensors() {
   Serial.println(" devices.");
   Serial.println("");
   DeviceAddress tmp;
+  sensors.setWaitForConversion(false);  
   Serial.println("dallas requesting temp");
   int m = millis();
   sensors.requestTemperatures();
@@ -55,11 +56,16 @@ void initializeDallasSensors() {
     Serial.print(i+1);
     Serial.print(". ");
     sensors.getAddress(tmp, i);
+    sensors.setResolution(tmp, 10);
     float tempC = sensors.getTempC(tmp);
     Serial.print("T=");
     Serial.print(tempC);
     Serial.print(" : ");
     printAddress(tmp);
+    memcpy(g_dallasSensors[i].Addr, tmp, 8);
+    g_dallasSensors[i].Active = true;
+    g_dallasSensors[i].LastValue = tempC;
+    g_dallasSensors[i].LastReadMs = m;
   }
   int m2 = millis() - m;
   Serial.print("Dallas scan done. time ms: ");
@@ -85,4 +91,54 @@ void initializeMax6675Sensors()
       Serial.println(m2);
     }
   }
+}
+
+
+void refreshSensorReadings() {
+  int m0 = millis();
+  for(int i=0; i<sizeof(g_dallasSensors) / sizeof(TDallasSensor); i++) {
+    if (g_dallasSensors[i].Active) {
+      g_dallasSensors[i].LastValue = sensors.getTempC(g_dallasSensors[i].Addr);
+      g_dallasSensors[i].LastReadMs = m0;
+    }
+  }
+
+  for (int i=0; i<sizeof(g_thermocouples)/sizeof(TThermocoupleSensor); i++) 
+  {
+    if (g_thermocouples[i].Sensor != NULL) 
+    {
+      g_thermocouples[i].LastValue = g_thermocouples[i].Sensor->readCelsius();
+      g_thermocouples[i].LastReadMs = m0;
+    }
+  }
+  
+  sensors.requestTemperatures();
+  int m2 = millis();
+  Serial.print("sensors read. t:");
+  Serial.print(m2 - m0);
+  Serial.print(", t0:");
+  Serial.println(g_dallasSensors[0].LastValue);
+}
+
+bool isDallasEnabled(uint8_t idx) 
+{
+  if (idx >= sizeof(g_dallasSensors) / sizeof(TDallasSensor)) return false;
+  return g_dallasSensors[idx].Active;
+}
+
+bool isThermocoupleEnabled(uint8_t idx)
+{
+    if (idx >= sizeof(g_thermocouples)/sizeof(TThermocoupleSensor)) return false;
+    return g_thermocouples[idx].Sensor != NULL;
+}
+
+float getLastDallasValue(uint8_t idx) {
+  if (idx >= sizeof(g_dallasSensors) / sizeof(TDallasSensor)) return 0.0;
+  return g_dallasSensors[idx].LastValue;
+}
+
+float getLastThermocoupleValue(uint8_t idx)
+{
+    if (idx >= sizeof(g_thermocouples)/sizeof(TThermocoupleSensor)) return false;
+    return g_thermocouples[idx].Sensor == NULL ? 0.0 : g_thermocouples[idx].LastValue;
 }
