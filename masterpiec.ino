@@ -1,5 +1,6 @@
 #include "masterpiec.h"
 #include <assert.h>
+#include "ui_handler.h"
 
 /**
  * struktura programu
@@ -19,15 +20,17 @@
 void setup() {
   //initialize interrupts etc
   //initialize hardware
-  
+  Serial.begin(9600);
   // put your setup code here, to run once:
   eepromRestoreConfig(0);
-  
+  initializeEncoder(15, 18, 34);
+  initializeDisplay();
+  Serial.println("inited the encoder");
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-
+  updateView();
 }
 
 

@@ -138,12 +138,6 @@ void eepromSaveConfig(uint8_t configSlot);
 void eepromResetConfig(uint8_t configSlot);
 
 
-//zdarzenia ui
-#define UI_EV_DOWN 2   //w lewo (dodatkowy parametr = increment)
-#define UI_EV_UP 3     //w prawo (dodatkowy parametry = increment)
-#define UI_EV_BTNPRESS 4 //guzik. dodatkowy parametr = który
-#define UI_EV_BTNRELEASE 5   //guzik, zwolnienie przycisku
 
-void processUIEvent(uint8_t event, int8_t arg);
 
 #endif
