@@ -24,21 +24,26 @@ int32_t getEncoderPos();
 
 typedef struct UIStateEntry {
   char Code;
-  void (*HandleEvent)(char, uint8_t, uint8_t);
+  void* Ctx;
+  void (*HandleEvent)(uint8_t event, uint8_t arg);
+  void (*UpdateView)();
   
 } TUIStateEntry;
 
 typedef struct UIScreenEntry {
   char Code;
-  void (*UpdateView)(char);
-} TUIScreeenEntry;
+  void (*UpdateView)(uint8_t screen);
+  void* Ctx;
+} TUIScreenEntry;
 
 extern const TUIStateEntry UI_STATES[];
+extern const TUIScreenEntry UI_SCREENS[];
 
 #define VAR_EDITABLE 1
 #define VAR_ADVANCED 2
 #define VAR_CONFIG  4 //variable is a configuration entry
 #define VAR_IMMEDIATE 8 //variable is adjusted immediately, without save
+
 typedef struct UIVariableEntry {
   char* Name;
   uint16_t Flags;
@@ -47,5 +52,9 @@ typedef struct UIVariableEntry {
 } TUIVarEntry;
 
 extern const TUIVarEntry UI_VARIABLES[];
+
+extern uint16_t g_CurrentlyEditedVariable;
+extern uint8_t g_CurrentUIState;
+extern uint8_t g_CurrentUIView;
 
 #endif

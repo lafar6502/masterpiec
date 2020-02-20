@@ -100,6 +100,10 @@ void processUIEvent(uint8_t event, int8_t arg)
 {
   _hbCountSinceLastEvent = 0;
   if (event != UI_EV_IDLE) _idleReported = false;
+
+  assert(g_CurrentUIState >= 0 && g_CurrentUIState < sizeof(UI_STATES) / sizeof(TUIStateEntry));
+  s0 = UI_STATES[g_CurrentUIState].HandleEvent;
+  if (s0 != null) s0(event, arg);
   
   Serial.print("ev:");
   Serial.print(event);
@@ -108,6 +112,10 @@ void processUIEvent(uint8_t event, int8_t arg)
 }
 
 void updateView() {
+  assert(g_CurrentUIState >= 0 && g_CurrentUIState < sizeof(UI_STATES) / sizeof(TUIStateEntry));
+  s0 = UI_STATES[g_CurrentUIState].UpdateView;
+  if (s0 != null) s0();
+  
   lcd.setCursor(0,1);
   lcd.print("pos:");
   lcd.print(getEncoderPos());
