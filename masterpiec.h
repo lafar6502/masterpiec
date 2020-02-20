@@ -35,21 +35,6 @@ TSTATE CUR_STATE;  //aktualny stan pieca
 
 #define MAX_POWER_STATES 3 //max liczba konfiguracji dla mocy. 1 - tylko podtrzymanie, 2 - podtrzymanie i praca, 3 - podtrzymanie i 2 moce pracy
 
-void setPumpOn(uint8_t num);
-void setPumpOff(uint8_t num);
-bool isPumpOn(uint8_t num);
-bool isPumpEnabled(uint8_t num);
-
-//uruchomienie podajnika
-void setFeederOn();
-//zatrzymanie podajnika
-void setFeederOff();
-//czy podajnik działa
-bool isFeederOn();
-
-void setBlowerPower(uint8_t power);
-uint8_t getCurrentBlowerPower();
-
 //ostatni odczyt z podanego termometru
 double getLastTempSensorRead(uint8_t sensor);
 //czy termometr jest dostępny

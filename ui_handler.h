@@ -38,7 +38,7 @@ extern const TUIStateEntry UI_STATES[];
 #define VAR_EDITABLE 1
 #define VAR_ADVANCED 2
 #define VAR_CONFIG  4 //variable is a configuration entry
-
+#define VAR_IMMEDIATE 8 //variable is adjusted immediately, without save
 typedef struct UIVariableEntry {
   char* Name;
   uint16_t Flags;

@@ -1,6 +1,8 @@
 #include "masterpiec.h"
 #include <assert.h>
 #include "ui_handler.h"
+#include "piec_sensors.h"
+#include "boiler_control.h"
 
 /**
  * struktura programu
@@ -29,8 +31,10 @@ void setup() {
 }
 
 void loop() {
+  uint64_t m = millis();
   // put your main code here, to run repeatedly:
   updateView();
+  
 }
 
 
