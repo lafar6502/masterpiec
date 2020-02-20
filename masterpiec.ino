@@ -56,9 +56,8 @@ void loop() {
 
 //czas wejscia w bieżący stan, ms
 unsigned long g_CurStateStart = 0;
-uint16_t  g_CurStateStartC10 = 0; //temp pieca w momencie wejscia w bież. stan.
+float  g_CurStateStartTempCO = 0; //temp pieca w momencie wejscia w bież. stan.
 unsigned long g_CurBurnCycleStart = 0; //timestamp, w ms, w ktorym rozpoczelismy akt. cykl palenia
-uint16_t g_BoilerC10; //aktualna temperatura pieca
 
 TControlConfiguration g_CurrentConfig;
 
@@ -72,7 +71,7 @@ void standardBurnLoop() {
 }
 
 void initializeBurningLoop() {
-  g_BurnState = STATE_STOP;
+  forceState(STATE_STOP);
 }
 
 void burningProc() 
@@ -91,7 +90,7 @@ void burningProc()
         g_BurnState = BURN_TRANSITIONS[i].To;
         assert(g_BurnState != STATE_UNDEFINED);
         g_CurStateStart = millis();
-        g_CurStateStartC10 = g_BoilerC10;
+        g_CurStateStartTempCO = g_TempCO;
         if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize();
         return;    
       }
@@ -104,7 +103,12 @@ void burningProc()
   
 }
 
-
+void forceState(TSTATE st) {
+  assert(st != STATE_UNDEFINED);
+  g_CurStateStart = millis();
+  g_CurStateStartTempCO = g_TempCO;
+  if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize();
+}
 
 static unsigned long burnCycleLen = 0;
 static unsigned long burnFeedLen = 0;

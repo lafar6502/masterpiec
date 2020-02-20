@@ -18,7 +18,7 @@ typedef uint8_t TSTATE;
 #define STATE_P2 3   //grzanie z mocą nominalną
 #define STATE_STOP 5 //tryb ręczny - zatrzymany piec - sterowanie automatyczne powinno zaprzestać działalności 
 #define STATE_ALARM 6 // alarm - cos się stało, piec zatrzymany albo włączone zabezpieczenie
-
+#define STATE_REDUCE 7 //tryb przejścia na niższy stan P2 => P1 => P0. zadaniem tego trybu jest dopalenie pozostałego węgla. W tym celu musimy wiedzieć z jakiego stanu wyszlismy do reduce
 
 #define MAX_POWER_STATES 3 //max liczba konfiguracji dla mocy. 1 - tylko podtrzymanie, 2 - podtrzymanie i praca, 3 - podtrzymanie i 2 moce pracy
 
@@ -72,5 +72,11 @@ extern float g_TempPodajnik;
 extern TSTATE g_BurnState;  //aktualny stan grzania
 extern bool   g_TermostatStop;  //true - termostat pokojowy kazał zaprzestać grzania
 extern float g_TempZewn; //aktualna temp. zewn
+
+//czas wejscia w bieżący stan, ms
+extern unsigned long g_CurStateStart;
+extern float  g_CurStateStartTempCO; //temp pieca w momencie wejscia w bież. stan.
+extern unsigned long g_CurBurnCycleStart; //timestamp, w ms, w ktorym rozpoczelismy akt. cykl palenia
+
 
 #endif

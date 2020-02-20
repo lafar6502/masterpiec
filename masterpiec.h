@@ -4,17 +4,6 @@
 #include "global_variables.h"
 
 
-//podtrzymanie - czas podawania, czestosc podawania, czas nadmuchu, czestosc nadmuchu, moc nadmuchu
-
-//ostatni odczyt z podanego termometru
-double getLastTempSensorRead(uint8_t sensor);
-//czy termometr jest dostępny
-bool   isTempSensorEnabled(uint8_t sensor);
-
-
-
-
-
 
 
 typedef struct BurnTransition {
@@ -45,8 +34,6 @@ void updatePumpStatus();
 //funkcja wołana cyklicznie w celu aktualizacji wyswietlacza
 void updateUI();
 
-//cyklicznie, na koncu cyklu - wysylamy prosbe o odczyt wartosci sensorow
-void requestSensorUpdate();
 
 //odczytuje wskazania sensorów i aktualizuje zmienne na tej podstawie
 void processSensorValues();
@@ -61,7 +48,7 @@ void eepromSaveConfig(uint8_t configSlot);
 //reset config to default
 void eepromResetConfig(uint8_t configSlot);
 
-
-
+///przejscie w dany stan bez sprawdzania war. początkowych
+void forceState(TSTATE state);
 
 #endif
