@@ -25,19 +25,20 @@ void setup() {
   Serial.begin(9600);
   // put your setup code here, to run once:
   eepromRestoreConfig(0);
-  initializeEncoder(15, 18, 34);
+  initializeEncoder(HW_ENCODER_PINA, HW_ENCODER_PINB, HW_ENCODER_PINBTN);
   initializeDisplay();
   initializeDallasSensors();
   initializeMax6675Sensors();
   initializeBlowerControl();
   Serial.println("inited the hardware");
+  initializeBurningLoop();
 }
 
 void loop() {
   uint64_t m = millis();
   refreshSensorReadings();
   processSensorValues();  //wciagamy odczyty sensorów do zmiennych programu
-  standardBurnLoop();     //procedura kontroli spalania
+  //standardBurnLoop();     //procedura kontroli spalania
   updateView();           //aktualizacja ui
   int m2 = millis();
   int d = 100 - (m2 - m);
@@ -70,6 +71,10 @@ void standardBurnLoop() {
   
 }
 
+void initializeBurningLoop() {
+  g_BurnState = STATE_STOP;
+}
+
 void burningProc() 
 {
   assert(g_BurnState != STATE_UNDEFINED);
@@ -79,14 +84,15 @@ void burningProc()
   {
     if (BURN_TRANSITIONS[i].From == g_BurnState) 
     {
-      if (BURN_TRANSITIONS[i].fCondition()) 
+      if (BURN_TRANSITIONS[i].fCondition != NULL && BURN_TRANSITIONS[i].fCondition()) 
       {
+        if (BURN_TRANSITIONS[i].fAction != NULL) BURN_TRANSITIONS[i].fAction();
         //transition to new state
         g_BurnState = BURN_TRANSITIONS[i].To;
         assert(g_BurnState != STATE_UNDEFINED);
         g_CurStateStart = millis();
         g_CurStateStartC10 = g_BoilerC10;
-        BURN_STATES[g_BurnState].fInitialize();
+        if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize();
         return;    
       }
     }

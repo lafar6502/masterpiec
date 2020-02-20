@@ -16,7 +16,7 @@ typedef uint8_t TSTATE;
 #define STATE_P0 1   //podtrzymanie
 #define STATE_P1 2   //grzanie z mocą minimalną
 #define STATE_P2 3   //grzanie z mocą nominalną
-#define STATE_STOP 5 //zatrzymany piec (brak nadmuchu, stop pomp, stop podajnika, brak podtrzymania)
+#define STATE_STOP 5 //tryb ręczny - zatrzymany piec - sterowanie automatyczne powinno zaprzestać działalności 
 #define STATE_ALARM 6 // alarm - cos się stało, piec zatrzymany albo włączone zabezpieczenie
 
 
