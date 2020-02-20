@@ -29,8 +29,8 @@ void setup() {
   initializeDisplay();
   initializeDallasSensors();
   initializeMax6675Sensors();
-  
-  Serial.println("inited the encoder");
+  initializeBlowerControl();
+  Serial.println("inited the hardware");
 }
 
 void loop() {

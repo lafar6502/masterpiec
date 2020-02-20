@@ -19,7 +19,7 @@ void setBlowerPower(uint8_t power);
 uint8_t getCurrentBlowerPower();
 
 
-
+void initializeBlowerControl();
 
 
 #endif
