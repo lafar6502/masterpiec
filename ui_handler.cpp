@@ -202,6 +202,6 @@ void changeUIState(char code) {
       return;
     }
   }
-  Serial.print("ui state not found");
+  Serial.print("ui state not found: ");
   Serial.println(code);
 }

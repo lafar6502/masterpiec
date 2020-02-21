@@ -218,6 +218,52 @@ void printUint16(uint8_t varIdx, void* editCopy, char* buf) {
   sprintf(buf, "%d", *pv);
 }
 
+typedef bool (*BoolFun)();
+void printVBoolSwitch(uint8_t varIdx, void* editCopy, char* buf) {
+  BoolFun f = (BoolFun) UI_VARIABLES[varIdx].DataPtr;
+  if (f == NULL) return;
+  bool v = f();
+  strcpy(buf, v ? "ON" : "OFF");
+}
+
+typedef uint8_t (*U8Fun)();
+void printVU8(uint8_t varIdx, void* editCopy, char* buf) {
+  U8Fun f = (U8Fun) UI_VARIABLES[varIdx].DataPtr;
+  if (f == NULL) return;
+  uint8_t v = f();
+  sprintf(buf, "%d", v);
+}
+
+
+void printPumpState(uint8_t varIdx, void* editCopy, char* buf) {
+  int i = (int) UI_VARIABLES[varIdx].DataPtr;
+  if (!isPumpEnabled(i)) {
+    strcpy(buf, "BRAK");
+    return;
+  }
+  bool v = isPumpOn(i);
+  strcpy(buf, v ? "ON" : "OFF");
+}
+
+void adjustPumpState(uint8_t varIdx, void* d, int8_t increment) {
+  int i = (int) UI_VARIABLES[varIdx].DataPtr;
+  if (!isPumpEnabled(i)) return;
+  if (getAutomaticHeatingMode()) return;
+  if (isPumpOn(i))
+    setPumpOff(i);
+  else
+    setPumpOn(i);
+}
+
+void adjustBlowerState(uint8_t varIdx, void* d, int8_t increment) {
+  if (getAutomaticHeatingMode()) return;
+  uint8_t v = getCurrentBlowerPower();
+  v += increment;
+  if (v < 0) v = 0;
+  if (v > 100) v = 100;
+  setBlowerPower(v);
+}
+
 void* copyU8(uint8_t varIdx, void* pData, bool save) 
 {
   static uint8_t _copy;
@@ -282,7 +328,7 @@ const TUIStateEntry UI_STATES[] = {
     
 };
 
-const TUIScreenEntry UI_SCREENS[] = {
+const TUIScreenEntry UI_SCREENS[]  = {
     {'\0', NULL, scrSplash},
     {'0', NULL, scrDefault},
     {'0', NULL, scrTime},
@@ -298,7 +344,13 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Miesiac", 0, &RTC.mm, 1, 12, printUint8, adjustUint8, copyU8, queueCommitTime},
   {"Dzien", 0, &RTC.dd, 1, 31, printUint8, adjustUint8, copyU8, queueCommitTime},
   {"Godzina", 0, &RTC.h, 1, 23, printUint8, adjustUint8, copyU8, queueCommitTime},
-  {"Minuta", 0, &RTC.m, 1, 59, printUint8, adjustUint8, copyU8, queueCommitTime}
+  {"Minuta", 0, &RTC.m, 1, 59, printUint8, adjustUint8, copyU8, queueCommitTime},
+  {"Tryb reczny", 0, getAutomaticHeatingMode, 0, 1, printVBoolSwitch, NULL, NULL, NULL},
+  {"Pompa CO", 0, PUMP_CO1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
+  {"Pompa CWU", 0, PUMP_CWU1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
+  {"Pompa obieg", 0, PUMP_CIRC, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
+  {"Dmuchawa", 0, getCurrentBlowerPower, 0, 100, printVU8, NULL, NULL, NULL},
+  {"Podajnik", 0, isFeederOn, 0, 1, printVBoolSwitch, NULL, NULL, NULL},
 };
 
 const uint8_t N_UI_VARIABLES = sizeof(UI_VARIABLES) / sizeof(TUIVarEntry);

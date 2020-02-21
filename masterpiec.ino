@@ -130,6 +130,13 @@ void workStateInitialize() {
   setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower);
 }
 
+//przejscie do stanu recznego
+void stopStateInitialize() {
+  assert(g_BurnState == STATE_STOP);
+  setBlowerPower(0);
+  setFeederOff();
+}
+
 ///pętla palenia dla stanu pracy
 //załączamy dmuchawę na ustaloną moc no i pilnujemy podajnika
 void workStateBurnLoop() {
@@ -187,6 +194,25 @@ void updatePumpStatus() {
   
 }
 
+void setAutomaticHeatingMode(bool b)
+{
+  if (b) {
+    if (g_BurnState == STATE_STOP) {
+      forceState(STATE_P0);
+    }
+  }
+  else {
+    if (g_BurnState != STATE_STOP) {
+      forceState(STATE_STOP);
+    }
+  }
+}
+
+bool getAutomaticHeatingMode()
+{
+  return g_BurnState != STATE_STOP;
+}
+
 void eepromRestoreConfig(uint8_t slot) {
   
 }
@@ -213,7 +239,7 @@ void processSensorValues() {
 }
 
 
-const TBurnTransition  BURN_TRANSITIONS[]  = 
+const TBurnTransition  BURN_TRANSITIONS[]   = 
 {
   {STATE_P0, STATE_ALARM, NULL, NULL},
   {STATE_P1, STATE_ALARM, NULL, NULL},
@@ -247,11 +273,11 @@ const TBurnTransition  BURN_TRANSITIONS[]  =
 #define STATE_REDUCE2 6 //tryb przejścia na niższy stan P1 => P0 
 
 
-const TBurnStateConfig BURN_STATES[] = {
+const TBurnStateConfig BURN_STATES[]  = {
   {STATE_P0, 'P', podtrzymanieStateInitialize, podtrzymanieStateLoop},
   {STATE_P1, '1', workStateInitialize, workStateBurnLoop},
   {STATE_P2, '2', workStateInitialize, workStateBurnLoop},
-  {STATE_STOP, 'S', NULL, NULL},
+  {STATE_STOP, 'S', stopStateInitialize, NULL},
   {STATE_ALARM, 'A', NULL, NULL},
   {STATE_REDUCE1, 'R', NULL, NULL},
   {STATE_REDUCE2, 'r', NULL, NULL},

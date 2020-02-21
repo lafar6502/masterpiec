@@ -22,4 +22,9 @@ uint8_t getCurrentBlowerPower();
 void initializeBlowerControl();
 
 
+//wlacz/wylacz tryb automatyczny
+void setAutomaticHeatingMode(bool b);
+//czy mamy tryb automatyczny
+bool getAutomaticHeatingMode();
+
 #endif
