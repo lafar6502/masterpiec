@@ -3,7 +3,7 @@
 #include "ui_handler.h"
 #include "boiler_control.h"
 #include <MD_DS1307.h>
-
+#include "varholder.h"
 
 
 uint16_t g_CurrentlyEditedVariable = 0;
@@ -54,6 +54,9 @@ void stDefaultEventHandler(uint8_t ev, uint8_t arg)
   }
 }
 
+VarHolder g_editCopy;    //placeholder for copy of variable value that cant be edited in place (VAR_INPLACE flag not set)
+bool      g_editStarted; //true if we're in the edit and we have already made a copy of the variable
+
 void stSelectVariableHandler(uint8_t ev, uint8_t arg) 
 {
   const TUIStateEntry* ps = UI_STATES + g_CurrentUIState;
@@ -61,17 +64,22 @@ void stSelectVariableHandler(uint8_t ev, uint8_t arg)
   g_CurrentUIView = ps->DefaultView;
 
   if (g_CurrentlyEditedVariable > N_UI_VARIABLES) g_CurrentlyEditedVariable = 0;
-  while(advanced && (UI_VARIABLES[g_CurrentlyEditedVariable].Flags | VAR_ADVANCED != 0))
+  while(advanced && (UI_VARIABLES[g_CurrentlyEditedVariable].Flags & VAR_ADVANCED != 0))
   {
     g_CurrentlyEditedVariable++;
     if (g_CurrentlyEditedVariable >= N_UI_VARIABLES) g_CurrentlyEditedVariable = 0;
   }
+  Serial.print("sv:");
+  Serial.println(UI_VARIABLES[g_CurrentlyEditedVariable].Name);
+  
   if (ev == UI_EV_UP) {
     do 
     {
       g_CurrentlyEditedVariable = (g_CurrentlyEditedVariable + 1) % N_UI_VARIABLES;
     }
-    while(!advanced && (UI_VARIABLES[g_CurrentlyEditedVariable].Flags | VAR_ADVANCED != 0));
+    while(!advanced && (UI_VARIABLES[g_CurrentlyEditedVariable].Flags & VAR_ADVANCED != 0));
+    Serial.print("new var:");
+    Serial.println(g_CurrentlyEditedVariable);
   }
   else if (ev == UI_EV_DOWN) 
   {
@@ -79,7 +87,9 @@ void stSelectVariableHandler(uint8_t ev, uint8_t arg)
     {
       g_CurrentlyEditedVariable = g_CurrentlyEditedVariable == 0 ? N_UI_VARIABLES - 1 : g_CurrentlyEditedVariable - 1;
     }
-    while(!advanced && (UI_VARIABLES[g_CurrentlyEditedVariable].Flags | VAR_ADVANCED != 0));  
+    while(!advanced && (UI_VARIABLES[g_CurrentlyEditedVariable].Flags & VAR_ADVANCED != 0));  
+    Serial.print("new var:");
+    Serial.println(g_CurrentlyEditedVariable);
   }
   else if (ev == UI_EV_BTNPRESS) 
   {
@@ -105,16 +115,20 @@ void stEditVariableHandler(uint8_t ev, uint8_t arg)
   }
   else if (ev == UI_EV_BTNPRESS) 
   {
-    if (pv->Commit != NULL)
+    Serial.print("save var:");
+    Serial.println(g_CurrentlyEditedVariable);
+    if (pv->Store != NULL)
     {
-      pv->Commit(g_CurrentlyEditedVariable, true);
+      pv->Store(g_CurrentlyEditedVariable, true);
     }
     changeUIState(pv->Flags & VAR_ADVANCED != 0 ? 'W' : 'V');
   }
   else if (ev == UI_EV_IDLE) {
-    if (pv->Commit != NULL)
+    Serial.print("dont save var:");
+    Serial.println(g_CurrentlyEditedVariable);
+    if (pv->Store != NULL)
     {
-      pv->Commit(g_CurrentlyEditedVariable, false);
+      pv->Store(g_CurrentlyEditedVariable, false);
     }
     changeUIState(pv->Flags & VAR_ADVANCED != 0 ? 'W' : 'V');
   }
@@ -146,19 +160,80 @@ void adjustUint8(uint8_t varIdx, int8_t increment) {
   uint8_t v2 = *pd + increment;
   if (v2 < pv->Min) v2 = (uint8_t) pv->Max;
   if (v2 > pv->Max) v2 = (uint8_t) pv->Min;
+  Serial.print("upd v:");
+  Serial.println(v2);
+  *pd = v2;
+}
+
+
+void adjustUint16(uint8_t varIdx, int8_t increment) {
+  const TUIVarEntry* pv = UI_VARIABLES + varIdx;
+  uint16_t* pd = (uint16_t*) pv->DataPtr;
+  uint16_t v2 = (*pd) + increment;
+  if (v2 < (uint16_t) pv->Min) v2 = (uint16_t) pv->Max;
+  if (v2 > (uint16_t) pv->Max) v2 = (uint16_t) pv->Min;
+  Serial.print("upd v:");
+  Serial.println(v2);
   *pd = v2;
 }
 
 void printUint8(uint8_t varIdx, char* buf) {
   uint8_t* pv = (uint8_t*) UI_VARIABLES[varIdx].DataPtr;
+  if (g_editStarted && UI_VARIABLES[varIdx].Flags & VAR_INPLACE == 0) {
+    pv = &g_editCopy.U8V;
+  }
   sprintf(buf, "%d", *pv);
+}
+
+void printUint16(uint8_t varIdx, char* buf) {
+  uint16_t* pv = (uint16_t*) UI_VARIABLES[varIdx].DataPtr;
+  if (g_editStarted && UI_VARIABLES[varIdx].Flags & VAR_INPLACE == 0) {
+    pv = &g_editCopy.U16V;
+  }
+  sprintf(buf, "%d", *pv);
+}
+
+void storeU8(uint8_t varIdx, bool save) 
+{
+  uint8_t* p = (uint8_t*) UI_VARIABLES[varIdx].DataPtr;
+  if (save) {
+    *p = g_editCopy.U8V;
+  } else {
+    g_editCopy.U8V = *p;
+  }
+}
+
+void storeU16(uint8_t varIdx, bool save) 
+{
+  uint16_t* p = (uint16_t*) UI_VARIABLES[varIdx].DataPtr;
+  if (save) {
+    *p = g_editCopy.U16V;
+  } else {
+    g_editCopy.U16V = *p;
+  }
+}
+
+void storeF(uint8_t varIdx, bool save) 
+{
+  float* p = (float*) UI_VARIABLES[varIdx].DataPtr;
+  if (save) {
+    *p = g_editCopy.FVal;
+  } else {
+    g_editCopy.FVal = *p;
+  }
 }
 
 void commitTime(uint8_t varIdx, bool save) {
   if (save)
+  {
+    
+    Serial.println("save time");
     RTC.writeTime();
+  }
   else
+  {
     RTC.readTime();
+  }
 }
 
 const TUIStateEntry UI_STATES[] = {
@@ -182,13 +257,11 @@ const TUIScreenEntry UI_SCREENS[] = {
 const uint8_t N_UI_SCREENS = sizeof(UI_SCREENS) / sizeof(TUIScreenEntry);
 
 const TUIVarEntry UI_VARIABLES[] = {
-  {"Rok", 0, &RTC.yyyy, 2019, 3000, printUint8, adjustUint8, commitTime},
+  {"Rok", 0, &RTC.yyyy, 2019, 3000, printUint16, adjustUint16, commitTime},
   {"Miesiac", 0, &RTC.mm, 1, 12, printUint8, adjustUint8, commitTime},
   {"Dzien", 0, &RTC.dd, 1, 31, printUint8, adjustUint8, commitTime},
   {"Godzina", 0, &RTC.h, 1, 23, printUint8, adjustUint8, commitTime},
-  {"Minuta", 0, &RTC.m, 1, 59, printUint8, adjustUint8, commitTime},
-  
-  {NULL, 0, NULL, 0, 0, NULL, NULL}
+  {"Minuta", 0, &RTC.m, 1, 59, printUint8, adjustUint8, commitTime}
 };
 
 const uint8_t N_UI_VARIABLES = sizeof(UI_VARIABLES) / sizeof(TUIVarEntry);

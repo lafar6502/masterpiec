@@ -53,8 +53,8 @@ void loop() {
   }
   else 
   {
-    Serial.print("zabrakło mi ms ");
-    Serial.println(-d);  
+    ///Serial.print("zabrakło mi ms ");
+    ///Serial.println(-d);  
   }
 }
 

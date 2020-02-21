@@ -114,10 +114,10 @@ void refreshSensorReadings() {
   
   sensors.requestTemperatures();
   int m2 = millis();
-  Serial.print("sensors read. t:");
-  Serial.print(m2 - m0);
-  Serial.print(", t0:");
-  Serial.println(g_dallasSensors[0].LastValue);
+  //Serial.print("sensors read. t:");
+  //Serial.print(m2 - m0);
+  //Serial.print(", t0:");
+  //Serial.println(g_dallasSensors[0].LastValue);
 }
 
 bool isDallasEnabled(uint8_t idx) 

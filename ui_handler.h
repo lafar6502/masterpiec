@@ -25,9 +25,11 @@ int32_t getEncoderPos();
 
 typedef union {
   void* Ptr;
+  uint8_t U8V;
+  uint16_t U16V;
   int   NumVal;
   float FVal;
-  uint64_t UNVal;
+  uint64_t U64Val;
 } VarHolder;
 
 typedef struct UIStateEntry {
@@ -58,6 +60,7 @@ extern char* g_DisplayBuf[];
 #define VAR_ADVANCED 2
 #define VAR_CONFIG  4 //variable is a configuration entry
 #define VAR_IMMEDIATE 8 //variable is adjusted immediately, without save
+#define VAR_INPLACE 16 //variable can be edited in place, without making a temporary copy
 
 typedef struct UIVariableEntry {
   const char* Name; //nazwa zmiennej
@@ -67,7 +70,7 @@ typedef struct UIVariableEntry {
   float Max; //max val
   void (*PrintTo)(uint8_t varIdx, char* buf); //function to print the value to the buffer
   void (*Adjust)(uint8_t varIdx, int8_t increment); //call to adjust changes the value by specified increment. commit - saves the value immediately, false - we're just editing a temp value. call with increment=0, commit=false -> we cancel the edit. call with increment=0,commit=true to save the edit
-  void (*Commit)(uint8_t varIdx, bool save); //call to commit the value(store). if save == false then we want to cancel edit and return to original value.
+  void (*Store)(uint8_t varIdx, bool save); //call to commit the value(store). if save == false then we want to cancel edit and return to original value.
   void* Temp; //temp field for any purpose
 } TUIVarEntry;
 
