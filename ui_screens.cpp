@@ -68,7 +68,7 @@ void stSelectVariableHandler(uint8_t ev, uint8_t arg)
     g_CurrentlyEditedVariable++;
     if (g_CurrentlyEditedVariable >= N_UI_VARIABLES) g_CurrentlyEditedVariable = 0;
   }
-  Serial.print("sv:");
+  Serial.print("selv:");
   Serial.println(UI_VARIABLES[g_CurrentlyEditedVariable].Name);
   
   if (ev == UI_EV_UP) {
@@ -126,17 +126,20 @@ void stEditVariableHandler(uint8_t ev, uint8_t arg)
   }
   else if (ev == UI_EV_BTNPRESS) 
   {
-    Serial.print("save var:");
+    Serial.print("xsave var:");
     Serial.println(g_CurrentlyEditedVariable);
     if (pv->Store != NULL && g_editCopy != NULL)
     {
       pv->Store(g_CurrentlyEditedVariable, g_editCopy, true);
     }
+    g_editCopy = NULL;
     if (pv->Commit != NULL) 
     {
+      Serial.println("commit");
       pv->Commit(g_CurrentlyEditedVariable);  
     }
-    g_editCopy = NULL;
+    
+    Serial.println("saved!");
     changeUIState(pv->Flags & VAR_ADVANCED != 0 ? 'W' : 'V');
   }
   else if (ev == UI_EV_IDLE) {
@@ -227,6 +230,10 @@ void* copyU8(uint8_t varIdx, void* pData, bool save)
 
 void* copyU16(uint8_t varIdx, void* pData, bool save) 
 {
+  Serial.print("copy u16. ");
+  Serial.print("var:");
+  Serial.print(varIdx);
+  Serial.println(save ? " save":" copy");
   static uint16_t _copy;
   uint16_t* p = (uint16_t*) UI_VARIABLES[varIdx].DataPtr;
   if (save) {

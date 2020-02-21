@@ -1,0 +1,5 @@
+{
+    "board": "arduino:avr:megaADK",
+    "sketch": "masterpiec.ino",
+    "port": "COM3"
+}
