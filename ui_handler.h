@@ -18,8 +18,11 @@
 void processUIEvent(uint8_t event, int8_t arg);
 
 
-void initializeEncoder(uint8_t inputAPin, uint8_t inputBPin, uint8_t buttonPin);
+void initializeEncoder();
 void initializeDisplay();
+
+//this is supposed to be called from the main loop
+//to update the ui view
 void updateView();
 
 int32_t getEncoderPos();
@@ -80,6 +83,10 @@ extern const TUIVarEntry UI_VARIABLES[];
 extern uint16_t g_CurrentlyEditedVariable;
 extern uint8_t g_CurrentUIState;
 extern uint8_t g_CurrentUIView;
+
+extern void (*g_uiBottomHalf)(void*);
+extern void* g_uiBottomHalfCtx;
+
 
 void changeUIState(char code);
 

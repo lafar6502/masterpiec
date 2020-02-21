@@ -23,11 +23,12 @@
 void setup() {
   //initialize interrupts etc
   //initialize hardware
-  Serial.begin(115200);
+  Serial.begin(9600);
   if (!RTC.isRunning()) RTC.control(DS1307_CLOCK_HALT, DS1307_OFF);
+  
   // put your setup code here, to run once:
   eepromRestoreConfig(0);
-  initializeEncoder(HW_ENCODER_PINA, HW_ENCODER_PINB, HW_ENCODER_PINBTN);
+  initializeEncoder();
   initializeDisplay();
   initializeDallasSensors();
   initializeMax6675Sensors();
@@ -43,7 +44,7 @@ void loop() {
   RTC.readTime();
   refreshSensorReadings();
   processSensorValues();  //wciagamy odczyty sensorów do zmiennych programu
-  //standardBurnLoop();     //procedura kontroli spalania
+  standardBurnLoop();     //procedura kontroli spalania
   updateView();           //aktualizacja ui
   int m2 = millis();
   int d = 100 - (m2 - m);
@@ -82,10 +83,9 @@ void initializeBurningLoop() {
 
 void burningProc() 
 {
-  assert(g_BurnState != STATE_UNDEFINED);
+  assert(g_BurnState != STATE_UNDEFINED && g_BurnState < N_BURN_STATES);
   //1. check if we should change state
-  uint8_t i=0;
-  while(BURN_TRANSITIONS[i].From != STATE_UNDEFINED)
+  for(int i=0; i < N_BURN_TRANSITIONS; i++)
   {
     if (BURN_TRANSITIONS[i].From == g_BurnState) 
     {
@@ -94,7 +94,7 @@ void burningProc()
         if (BURN_TRANSITIONS[i].fAction != NULL) BURN_TRANSITIONS[i].fAction();
         //transition to new state
         g_BurnState = BURN_TRANSITIONS[i].To;
-        assert(g_BurnState != STATE_UNDEFINED);
+        assert(g_BurnState != STATE_UNDEFINED && g_BurnState < N_BURN_STATES);
         g_CurStateStart = millis();
         g_CurStateStartTempCO = g_TempCO;
         if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize();
@@ -102,18 +102,20 @@ void burningProc()
       }
     }
   }
-  
-  //2. obsługa bieżącego stanu
-  BURN_STATES[g_BurnState].fLoop();
-  
-  
+
+  if (BURN_STATES[g_BurnState].fLoop != NULL) {
+    BURN_STATES[g_BurnState].fLoop();  
+  }
 }
 
 void forceState(TSTATE st) {
   assert(st != STATE_UNDEFINED);
+  g_BurnState = st;
   g_CurStateStart = millis();
   g_CurStateStartTempCO = g_TempCO;
   if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize();
+  Serial.print("BS ");
+  Serial.println(BURN_STATES[g_BurnState].Code);
 }
 
 static unsigned long burnCycleLen = 0;
@@ -121,7 +123,7 @@ static unsigned long burnFeedLen = 0;
 static unsigned long burnCycleStart = 0;
 
 void workStateInitialize() {
-  assert(g_BurnState != STATE_UNDEFINED && g_BurnState != STATE_STOP);
+  assert(g_BurnState != STATE_UNDEFINED && g_BurnState != STATE_STOP && g_BurnState < N_BURN_STATES);
   burnCycleLen = g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec * 1000;
   burnFeedLen = g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 * 100;
   burnCycleStart = g_CurStateStart;
@@ -131,8 +133,9 @@ void workStateInitialize() {
 ///pętla palenia dla stanu pracy
 //załączamy dmuchawę na ustaloną moc no i pilnujemy podajnika
 void workStateBurnLoop() {
-  assert(g_BurnState != STATE_UNDEFINED && g_BurnState != STATE_STOP);
+  assert(g_BurnState != STATE_UNDEFINED && g_BurnState != STATE_STOP && g_BurnState < N_BURN_STATES);
   unsigned long tNow = millis();
+  static unsigned long tPrev = 0;
   if (tNow < burnCycleStart + burnFeedLen) 
   {
     if (!isFeederOn()) setFeederOn();
@@ -144,6 +147,18 @@ void workStateBurnLoop() {
   if (tNow >= burnCycleStart + burnCycleLen) {
     burnCycleStart = millis(); //
   }
+  if (tPrev - tNow > 5000) {
+    Serial.print("Burn s");
+    Serial.print(g_BurnState);
+    Serial.print(", t ms:");
+    Serial.print(tNow - burnCycleStart);
+    Serial.print(", podajnik:");
+    Serial.print(isFeederOn());
+    Serial.print(", tot s:");
+    Serial.print((tNow - g_CurStateStart) / 1000);
+    Serial.println();
+  }
+  tPrev = tNow;
 }
 
 void podtrzymanieStateInitialize() {
@@ -152,7 +167,20 @@ void podtrzymanieStateInitialize() {
 
 void podtrzymanieStateLoop() {
   unsigned long tNow = millis();
+  static unsigned long tPrev = 0;
   
+  if (tPrev - tNow > 5000) {
+    Serial.print("PODT s");
+    Serial.print(g_BurnState);
+    Serial.print(", t ms:");
+    Serial.print(tNow - burnCycleStart);
+    Serial.print(", podajnik:");
+    Serial.print(isFeederOn());
+    Serial.print(", tot s:");
+    Serial.print((tNow - g_CurStateStart) / 1000);
+    Serial.println();
+  }
+  tPrev = tNow;
 }
 
 void updatePumpStatus() {
@@ -209,12 +237,25 @@ const TBurnTransition  BURN_TRANSITIONS[]  =
   {STATE_UNDEFINED, STATE_UNDEFINED, NULL, NULL} //sentinel
 };
 
+
+#define STATE_P0 0   //podtrzymanie
+#define STATE_P1 1   //grzanie z mocą minimalną
+#define STATE_P2 2   //grzanie z mocą nominalną
+#define STATE_STOP 3 //tryb ręczny - zatrzymany piec - sterowanie automatyczne powinno zaprzestać działalności 
+#define STATE_ALARM 4 // alarm - cos się stało, piec zatrzymany albo włączone zabezpieczenie
+#define STATE_REDUCE1 5 //tryb przejścia na niższy stan P2 => P1 => P0. zadaniem tego trybu jest dopalenie pozostałego węgla. W tym celu musimy wiedzieć z jakiego stanu wyszlismy do reduce
+#define STATE_REDUCE2 6 //tryb przejścia na niższy stan P1 => P0 
+
+
 const TBurnStateConfig BURN_STATES[] = {
-  {STATE_UNDEFINED, '~', NULL, NULL},
   {STATE_P0, 'P', podtrzymanieStateInitialize, podtrzymanieStateLoop},
   {STATE_P1, '1', workStateInitialize, workStateBurnLoop},
   {STATE_P2, '2', workStateInitialize, workStateBurnLoop},
   {STATE_STOP, 'S', NULL, NULL},
   {STATE_ALARM, 'A', NULL, NULL},
-  {STATE_UNDEFINED, ' ', NULL, NULL} //sentinel
+  {STATE_REDUCE1, 'R', NULL, NULL},
+  {STATE_REDUCE2, 'r', NULL, NULL},
 };
+
+const uint8_t N_BURN_TRANSITIONS = sizeof(BURN_TRANSITIONS) / sizeof(TBurnTransition);
+const uint8_t N_BURN_STATES = sizeof(BURN_STATES) / sizeof(TBurnStateConfig);

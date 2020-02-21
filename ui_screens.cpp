@@ -41,6 +41,10 @@ void scrTime(uint8_t idx, char* lines[]) {
   sprintf(lines[1], "%02d:%02d:%02d      ", RTC.h, RTC.m, RTC.s);
 }
 
+void scrBurnInfo(uint8_t idx, char* lines[]) {
+  sprintf(lines[0], "S%c", BURN_STATES[g_BurnState].Code); 
+}
+
 void stDefaultEventHandler(uint8_t ev, uint8_t arg) 
 {
   //screens 0, 1, 2
@@ -259,9 +263,14 @@ void* copyFloat(uint8_t varIdx, void* pData, bool save)
 }
 
 
-void commitTime(uint8_t varIdx) {
+
+void commitTime(void* p) {
   Serial.println("save time");
   RTC.writeTime();
+};
+
+void queueCommitTime(uint8_t varIdx) {
+  g_uiBottomHalf = commitTime;
 }
 
 const TUIStateEntry UI_STATES[] = {
@@ -275,21 +284,21 @@ const TUIStateEntry UI_STATES[] = {
 
 const TUIScreenEntry UI_SCREENS[] = {
     {'\0', NULL, scrSplash},
-    {'1', NULL, scrDefault},
-    {'T', NULL, scrTime},
+    {'0', NULL, scrDefault},
+    {'0', NULL, scrTime},
     {'V', NULL, scrSelectVariable},
     {'E', NULL, scrEditVariable},
-    
+    {'0', NULL, scrBurnInfo},
 };
 
 const uint8_t N_UI_SCREENS = sizeof(UI_SCREENS) / sizeof(TUIScreenEntry);
 
 const TUIVarEntry UI_VARIABLES[] = {
-  {"Rok", 0, &RTC.yyyy, 2019, 3000, printUint16, adjustUint16, copyU16, commitTime},
-  {"Miesiac", 0, &RTC.mm, 1, 12, printUint8, adjustUint8, copyU8, commitTime},
-  {"Dzien", 0, &RTC.dd, 1, 31, printUint8, adjustUint8, copyU8, commitTime},
-  {"Godzina", 0, &RTC.h, 1, 23, printUint8, adjustUint8, copyU8, commitTime},
-  {"Minuta", 0, &RTC.m, 1, 59, printUint8, adjustUint8, copyU8, commitTime}
+  {"Rok", 0, &RTC.yyyy, 2019, 3000, printUint16, adjustUint16, copyU16, queueCommitTime},
+  {"Miesiac", 0, &RTC.mm, 1, 12, printUint8, adjustUint8, copyU8, queueCommitTime},
+  {"Dzien", 0, &RTC.dd, 1, 31, printUint8, adjustUint8, copyU8, queueCommitTime},
+  {"Godzina", 0, &RTC.h, 1, 23, printUint8, adjustUint8, copyU8, queueCommitTime},
+  {"Minuta", 0, &RTC.m, 1, 59, printUint8, adjustUint8, copyU8, queueCommitTime}
 };
 
 const uint8_t N_UI_VARIABLES = sizeof(UI_VARIABLES) / sizeof(TUIVarEntry);
