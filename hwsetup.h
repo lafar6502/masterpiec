@@ -26,4 +26,8 @@
 #define HW_DISPLAY_PIN 1
 #define HW_ZERO_DETECT_PIN 2
 #define HW_BLOWER_CTRL_PIN 32
+
+#define DISPLAY_TEXT_LINES 2
+#define DISPLAY_TEXT_LEN  16
+
 #endif

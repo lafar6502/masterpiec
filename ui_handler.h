@@ -1,6 +1,8 @@
 #ifndef _UI_HANDLER_H_INCLUDED_
 #define _UI_HANDLER_H_INCLUDED_
 
+#include "hwsetup.h"
+
 //ui - display and user input handlers
 
 //zdarzenia ui
@@ -32,12 +34,14 @@ typedef struct UIStateEntry {
 
 typedef struct UIScreenEntry {
   char Code;
-  void (*UpdateView)(uint8_t screen);
+  //lines - array of text line buffers that will be passed to you. You can sprint to these lines. Warning: max number of lines depends on the display DISPLAY_TEXT_LINES DISPLAY_TEXT_LEN
+  void (*UpdateView)(uint8_t screen, char* lines[]);
   void* Ctx;
 } TUIScreenEntry;
 
 extern const TUIStateEntry UI_STATES[];
 extern const TUIScreenEntry UI_SCREENS[];
+extern char* g_DisplayBuf[];
 
 #define VAR_EDITABLE 1
 #define VAR_ADVANCED 2
@@ -48,7 +52,11 @@ typedef struct UIVariableEntry {
   char* Name;
   uint16_t Flags;
   void* Ptr; //variable pointer or some other context data
-  void (*PrintTo)(void*, char* buf, uint8_t len);
+  float Min;
+  float Max;
+  void (*PrintTo)(uint8_t varIdx, char* buf, uint8_t len);
+  //call to adjust changes the value by specified increment. commit - saves the value immediately, false - we're just editing a temp value. call with increment=0, commit=false -> we cancel the edit. call with increment=0,commit=true to save the edit
+  void (*Adjust)(uint8_t varIdx, int8_t increment, bool commit);
 } TUIVarEntry;
 
 extern const TUIVarEntry UI_VARIABLES[];

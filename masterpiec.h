@@ -6,23 +6,6 @@
 
 
 
-typedef struct BurnTransition {
-  TSTATE From;
-  TSTATE To;
-  bool (*fCondition)();
-  void (*fAction)(); //akcja wykonywana przy tym przejściu
-} TBurnTransition;
-
-typedef struct BurnStateConfig {
-  TSTATE State;
-  char Code;
-  void (*fLoop)();
-  void (*fInitialize)();
-} TBurnStateConfig;
-
-extern const TBurnTransition  BURN_TRANSITIONS[];
-extern const TBurnStateConfig BURN_STATES[];
-extern TSTATE g_BurnState;
 
 //funkcja wołana cykliczne w celu obsługi 
 //procesu palenia (sterowanie podajnikiem, dmuchawą, przejścia miedzy mocami)

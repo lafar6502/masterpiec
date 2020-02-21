@@ -55,6 +55,23 @@ typedef struct ControlConfiguration {
 //bieżąca konfiguracja pieca
 extern TControlConfiguration g_CurrentConfig;
 
+typedef struct BurnTransition {
+  TSTATE From;
+  TSTATE To;
+  bool (*fCondition)();
+  void (*fAction)(); //akcja wykonywana przy tym przejściu
+} TBurnTransition;
+
+typedef struct BurnStateConfig {
+  TSTATE State;
+  char Code;
+  void (*fLoop)();
+  void (*fInitialize)();
+} TBurnStateConfig;
+
+extern const TBurnTransition  BURN_TRANSITIONS[];
+extern const TBurnStateConfig BURN_STATES[];
+extern TSTATE g_BurnState;
 
 
 
@@ -77,6 +94,6 @@ extern float g_TempZewn; //aktualna temp. zewn
 extern unsigned long g_CurStateStart;
 extern float  g_CurStateStartTempCO; //temp pieca w momencie wejscia w bież. stan.
 extern unsigned long g_CurBurnCycleStart; //timestamp, w ms, w ktorym rozpoczelismy akt. cykl palenia
-
+extern uint8_t  g_CurrentBlowerPower;
 
 #endif

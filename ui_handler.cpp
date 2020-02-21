@@ -90,33 +90,65 @@ void initializeEncoder(uint8_t inputAPin, uint8_t inputBPin, uint8_t buttonPin)
   
 }
 
+char* g_DisplayBuf[DISPLAY_TEXT_LINES];
+
 void initializeDisplay() {
   lcd.init();
   lcd.backlight();
+
+  for(int i=0; i<DISPLAY_TEXT_LINES; i++) {
+    g_DisplayBuf[i] = new char[DISPLAY_TEXT_LEN + 1];
+  }
 }
 
+void clearDipslayBuf() {
+  for(int i=0; i<DISPLAY_TEXT_LINES; i++) {
+    memset(g_DisplayBuf[i], 0, DISPLAY_TEXT_LEN + 1);
+  }
+}
 
 void processUIEvent(uint8_t event, int8_t arg) 
 {
   _hbCountSinceLastEvent = 0;
+  uint8_t cs = g_CurrentUIState;
+  uint8_t cv = g_CurrentUIView;
+  
   if (event != UI_EV_IDLE) _idleReported = false;
 
-  assert(g_CurrentUIState >= 0 && g_CurrentUIState < sizeof(UI_STATES) / sizeof(TUIStateEntry));
-  s0 = UI_STATES[g_CurrentUIState].HandleEvent;
-  if (s0 != null) s0(event, arg);
+  //assert(g_CurrentUIState >= 0 && g_CurrentUIState < sizeof(UI_STATES) / sizeof(TUIStateEntry));
+
+  if (UI_STATES[g_CurrentUIState].HandleEvent != NULL) UI_STATES[g_CurrentUIState].HandleEvent(event, arg);
+
+  if (cs != g_CurrentUIState || cv != g_CurrentUIView) {
+    Serial.print("ev:");
+    Serial.print(event);
+    Serial.print(" St:");
+    Serial.print(g_CurrentUIState);
+    Serial.print(" v:");
+    Serial.print(g_CurrentUIView);
+    Serial.print(" enc:");
+    Serial.println(getEncoderPos());  
+  }
   
-  Serial.print("ev:");
-  Serial.print(event);
-  Serial.print(" enc:");
-  Serial.println(getEncoderPos());
 }
 
 void updateView() {
-  assert(g_CurrentUIState >= 0 && g_CurrentUIState < sizeof(UI_STATES) / sizeof(TUIStateEntry));
-  s0 = UI_STATES[g_CurrentUIState].UpdateView;
-  if (s0 != null) s0();
-  
-  lcd.setCursor(0,1);
-  lcd.print("pos:");
-  lcd.print(getEncoderPos());
+  //assert(g_CurrentUIState >= 0 && g_CurrentUIState < sizeof(UI_STATES) / sizeof(TUIStateEntry));
+  if (UI_STATES[g_CurrentUIState].UpdateView != NULL) 
+  {
+    clearDipslayBuf();
+    UI_STATES[g_CurrentUIState].UpdateView();
+  }
+  else 
+  {
+    if (UI_SCREENS[g_CurrentUIView].UpdateView != NULL) 
+    {
+      clearDipslayBuf();
+      UI_SCREENS[g_CurrentUIView].UpdateView(g_CurrentUIView, g_DisplayBuf);
+      lcd.setCursor(0,0);
+      lcd.print(g_DisplayBuf[0]);
+      lcd.setCursor(0, 1);
+      lcd.print(g_DisplayBuf[1]);
+    }
+  }
 }

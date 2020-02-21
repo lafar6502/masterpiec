@@ -1,5 +1,6 @@
 #include "masterpiec.h"
 #include <assert.h>
+#include <MD_DS1307.h>
 #include "ui_handler.h"
 #include "piec_sensors.h"
 #include "boiler_control.h"
@@ -23,6 +24,7 @@ void setup() {
   //initialize interrupts etc
   //initialize hardware
   Serial.begin(9600);
+  if (!RTC.isRunning()) RTC.control(DS1307_CLOCK_HALT, DS1307_OFF);
   // put your setup code here, to run once:
   eepromRestoreConfig(0);
   initializeEncoder(HW_ENCODER_PINA, HW_ENCODER_PINB, HW_ENCODER_PINBTN);
@@ -36,6 +38,7 @@ void setup() {
 
 void loop() {
   uint64_t m = millis();
+  RTC.readTime();
   refreshSensorReadings();
   processSensorValues();  //wciagamy odczyty sensorów do zmiennych programu
   //standardBurnLoop();     //procedura kontroli spalania
@@ -58,6 +61,7 @@ void loop() {
 unsigned long g_CurStateStart = 0;
 float  g_CurStateStartTempCO = 0; //temp pieca w momencie wejscia w bież. stan.
 unsigned long g_CurBurnCycleStart = 0; //timestamp, w ms, w ktorym rozpoczelismy akt. cykl palenia
+uint8_t  g_CurrentBlowerPower = 0;
 
 TControlConfiguration g_CurrentConfig;
 
@@ -157,15 +161,15 @@ void eepromRestoreConfig(uint8_t slot) {
   
 }
 
-float g_AktTempZadana = 0; //aktualnie zadana temperatura pieca (która może być wyższa od temp. zadanej w konfiguracji bo np grzejemy CWU)
-float g_TempCO;
-float g_TempCWU; 
-float g_TempPowrot;  //akt. temp. powrotu
-float g_TempSpaliny; //akt. temp. spalin
-float g_TempPodajnik;
+float g_AktTempZadana = 0.1; //aktualnie zadana temperatura pieca (która może być wyższa od temp. zadanej w konfiguracji bo np grzejemy CWU)
+float g_TempCO = 0.1;
+float g_TempCWU = 0.0; 
+float g_TempPowrot = 0.1;  //akt. temp. powrotu
+float g_TempSpaliny = 0.1; //akt. temp. spalin
+float g_TempPodajnik = 0.1;
 TSTATE g_BurnState = STATE_UNDEFINED;  //aktualny stan grzania
-bool   g_TermostatStop;  //true - termostat pokojowy kazał zaprzestać grzania
-float g_TempZewn; //aktualna temp. zewn
+bool   g_TermostatStop = false;  //true - termostat pokojowy kazał zaprzestać grzania
+float g_TempZewn = 0.0; //aktualna temp. zewn
 
 void processSensorValues() {
   g_TempCO = getLastDallasValue(TSENS_BOILER);
