@@ -107,6 +107,20 @@ void clearDipslayBuf() {
   }
 }
 
+void eraseDisplayToEnd(char* buf) {
+  bool f = false;
+  for(int i=0; i<DISPLAY_TEXT_LEN; i++) 
+  {
+    if (f) 
+      buf[i] = ' ';
+    else if (buf[i] == '\0') {
+      f = true;
+      buf[i] = ' ';
+    }
+  }
+  buf[DISPLAY_TEXT_LEN - 1] = 0;
+}
+
 void processUIEvent(uint8_t event, int8_t arg) 
 {
   _hbCountSinceLastEvent = 0;
@@ -145,10 +159,27 @@ void updateView() {
     {
       clearDipslayBuf();
       UI_SCREENS[g_CurrentUIView].UpdateView(g_CurrentUIView, g_DisplayBuf);
+      eraseDisplayToEnd(g_DisplayBuf[0]);
+      eraseDisplayToEnd(g_DisplayBuf[1]);
+
       lcd.setCursor(0,0);
       lcd.print(g_DisplayBuf[0]);
       lcd.setCursor(0, 1);
       lcd.print(g_DisplayBuf[1]);
     }
   }
+}
+
+void changeUIState(char code) {
+  for(int i=0; i<N_UI_STATES; i++) {
+    if (UI_STATES[i].Code == code) {
+      g_CurrentUIState = i;
+      g_CurrentUIView = UI_STATES[i].DefaultView;
+      Serial.print("ui state:");
+      Serial.println(g_CurrentUIState);
+      return;
+    }
+  }
+  Serial.print("ui state not found");
+  Serial.println(code);
 }

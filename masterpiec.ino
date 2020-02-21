@@ -35,6 +35,7 @@ void setup() {
   Serial.println("inited the hardware");
   
   initializeBurningLoop();
+  changeUIState('0');
 }
 
 void loop() {

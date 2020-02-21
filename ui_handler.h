@@ -33,16 +33,17 @@ typedef union {
 typedef struct UIStateEntry {
   char Code;
   VarHolder Data;
+  uint8_t DefaultView;
   void (*HandleEvent)(uint8_t event, uint8_t arg);
   void (*UpdateView)();
-  
 } TUIStateEntry;
 
 typedef struct UIScreenEntry {
   char Code;
+  VarHolder Data;
   //lines - array of text line buffers that will be passed to you. You can sprint to these lines. Warning: max number of lines depends on the display DISPLAY_TEXT_LINES DISPLAY_TEXT_LEN
   void (*UpdateView)(uint8_t screen, char* lines[]);
-  void* Ctx;
+  
 } TUIScreenEntry;
 
 extern const TUIStateEntry UI_STATES[];
@@ -75,5 +76,8 @@ extern const TUIVarEntry UI_VARIABLES[];
 extern uint16_t g_CurrentlyEditedVariable;
 extern uint8_t g_CurrentUIState;
 extern uint8_t g_CurrentUIView;
+
+void changeUIState(char code);
+
 
 #endif
