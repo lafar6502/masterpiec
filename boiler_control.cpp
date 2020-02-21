@@ -3,17 +3,32 @@
 #include "boiler_control.h"
 #include "global_variables.h"
 
+const uint8_t pump_pins[] = {
+  HW_PUMP_CO1_CTRL_PIN,
+  HW_PUMP_CWU1_CTRL_PIN,
+  HW_PUMP_CO2_CTRL_PIN,
+  HW_PUMP_CIRC_CTRL_PIN
+};
 
 void setPumpOn(uint8_t num) {
-  
-  
+  if (num >= sizeof(pump_pins)) return;
+  digitalWrite(pump_pins[num], HIGH);
 }
 
 void setPumpOff(uint8_t num) {
-  
+  if (num >= sizeof(pump_pins)) return;
+  digitalWrite(pump_pins[num], LOW);
 }
-bool isPumpOn(uint8_t num);
-bool isPumpEnabled(uint8_t num);
+
+bool isPumpOn(uint8_t num) {
+  if (num >= sizeof(pump_pins)) return false;
+  return digitalRead(pump_pins[num]) == HIGH;
+}
+
+bool isPumpEnabled(uint8_t num) {
+  if (num >= sizeof(pump_pins)) return false;
+  return true;
+}
 
 //uruchomienie podajnika
 void setFeederOn() {
@@ -47,7 +62,8 @@ uint8_t brese_cycle = 1;
 uint8_t brese_curV = 0;
 
 //1 - triac on, 0 - triac off
-uint8_t breseControlStep() {
+uint8_t breseControlStep() 
+{
   uint8_t rem = counter % brese_cycle;
   
   if (rem == 0) {
@@ -78,8 +94,8 @@ void zeroCrossHandler() {
 void breseInit(uint8_t power, uint8_t cycleLength) {
     brese_increment = ((float) power) * cycleLength / 100.0;
     brese_cycle = cycleLength;
-    brese_curV = 0;
-    brese_error = 0;
+    //brese_curV = 0;
+    //brese_error = 0;
 }
 
 void initializeBlowerControl() {

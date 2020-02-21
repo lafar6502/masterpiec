@@ -23,10 +23,16 @@ void updateView();
 
 int32_t getEncoderPos();
 
+typedef union {
+  void* Ptr;
+  int   NumVal;
+  float FVal;
+  uint64_t UNVal;
+} VarHolder;
 
 typedef struct UIStateEntry {
   char Code;
-  void* Ctx;
+  VarHolder Data;
   void (*HandleEvent)(uint8_t event, uint8_t arg);
   void (*UpdateView)();
   
@@ -41,6 +47,10 @@ typedef struct UIScreenEntry {
 
 extern const TUIStateEntry UI_STATES[];
 extern const TUIScreenEntry UI_SCREENS[];
+extern const uint8_t N_UI_SCREENS;
+extern const uint8_t N_UI_STATES;
+extern const uint8_t N_UI_VARIABLES;
+
 extern char* g_DisplayBuf[];
 
 #define VAR_EDITABLE 1
@@ -49,14 +59,15 @@ extern char* g_DisplayBuf[];
 #define VAR_IMMEDIATE 8 //variable is adjusted immediately, without save
 
 typedef struct UIVariableEntry {
-  char* Name;
-  uint16_t Flags;
-  void* Ptr; //variable pointer or some other context data
-  float Min;
-  float Max;
-  void (*PrintTo)(uint8_t varIdx, char* buf, uint8_t len);
-  //call to adjust changes the value by specified increment. commit - saves the value immediately, false - we're just editing a temp value. call with increment=0, commit=false -> we cancel the edit. call with increment=0,commit=true to save the edit
-  void (*Adjust)(uint8_t varIdx, int8_t increment, bool commit);
+  const char* Name; //nazwa zmiennej
+  uint16_t Flags; //flagi
+  void* DataPtr; //variable pointer or some other context data
+  float Min; //minimum val.
+  float Max; //max val
+  void (*PrintTo)(uint8_t varIdx, char* buf); //function to print the value to the buffer
+  void (*Adjust)(uint8_t varIdx, int8_t increment); //call to adjust changes the value by specified increment. commit - saves the value immediately, false - we're just editing a temp value. call with increment=0, commit=false -> we cancel the edit. call with increment=0,commit=true to save the edit
+  void (*Commit)(uint8_t varIdx, bool save); //call to commit the value(store). if save == false then we want to cancel edit and return to original value.
+  void* Temp; //temp field for any purpose
 } TUIVarEntry;
 
 extern const TUIVarEntry UI_VARIABLES[];

@@ -8,7 +8,7 @@
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 
-Rotary _rot(2, 3);
+Rotary _rot(HW_ENCODER_PINA, HW_ENCODER_PINB);
 int _encoderPos = 0;
 uint8_t _encButtonPin = 0;
 volatile uint32_t _hbCountSinceLastEvent = 0;

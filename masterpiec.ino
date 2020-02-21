@@ -33,6 +33,7 @@ void setup() {
   initializeMax6675Sensors();
   initializeBlowerControl();
   Serial.println("inited the hardware");
+  
   initializeBurningLoop();
 }
 
@@ -140,7 +141,7 @@ void workStateBurnLoop() {
     if (isFeederOn()) setFeederOff();
   }
   if (tNow >= burnCycleStart + burnCycleLen) {
-    burnCycleStart = millis();
+    burnCycleStart = millis(); //
   }
 }
 
@@ -170,30 +171,40 @@ float g_TempPodajnik = 0.1;
 TSTATE g_BurnState = STATE_UNDEFINED;  //aktualny stan grzania
 bool   g_TermostatStop = false;  //true - termostat pokojowy kazał zaprzestać grzania
 float g_TempZewn = 0.0; //aktualna temp. zewn
+bool g_Alert = false;
+char* g_AlertReason;
 
 void processSensorValues() {
   g_TempCO = getLastDallasValue(TSENS_BOILER);
   g_TempCWU = getLastDallasValue(TSENS_CWU);
   g_TempPowrot = getLastDallasValue(TSENS_RETURN);
   g_TempPodajnik = getLastDallasValue(TSENS_FEEDER);
+  g_TempZewn = getLastDallasValue(TSENS_EXTERNAL);
   g_TempSpaliny = getLastThermocoupleValue(T2SENS_EXHAUST);
 }
 
 
 const TBurnTransition  BURN_TRANSITIONS[]  = 
 {
+  {STATE_P0, STATE_ALARM, NULL, NULL},
+  {STATE_P1, STATE_ALARM, NULL, NULL},
+  {STATE_P2, STATE_ALARM, NULL, NULL},
+  {STATE_STOP, STATE_ALARM, NULL, NULL},
+  
   {STATE_STOP, STATE_P2, NULL, NULL},  
   {STATE_P2, STATE_P1, NULL, NULL},
   {STATE_P1, STATE_P2, NULL, NULL},
   {STATE_P1, STATE_P0, NULL, NULL},
   {STATE_P0, STATE_P2, NULL, NULL},
   {STATE_P2, STATE_P1, NULL, NULL},
-  {STATE_P0, STATE_ALARM, NULL, NULL},
-  {STATE_P1, STATE_ALARM, NULL, NULL},
-  {STATE_P2, STATE_ALARM, NULL, NULL},
-  {STATE_STOP, STATE_ALARM, NULL, NULL},
 
-  
+  {STATE_P2, STATE_REDUCE2, NULL, NULL}, //P2 -> P1
+  {STATE_P1, STATE_REDUCE1, NULL, NULL}, //P1 -> P0
+  {STATE_REDUCE2, STATE_P1, NULL, NULL},
+  {STATE_REDUCE1, STATE_P0, NULL, NULL},
+  {STATE_REDUCE2, STATE_P2, NULL, NULL},
+  {STATE_REDUCE1, STATE_P1, NULL, NULL}, //juz nie redukujemy  - np sytuacja się zmieniła i temp. została podniesiona
+  {STATE_REDUCE1, STATE_P2, NULL, NULL}, //juz nie redukujemy
   {STATE_UNDEFINED, STATE_UNDEFINED, NULL, NULL} //sentinel
 };
 

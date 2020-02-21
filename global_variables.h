@@ -18,7 +18,8 @@ typedef uint8_t TSTATE;
 #define STATE_P2 3   //grzanie z mocą nominalną
 #define STATE_STOP 5 //tryb ręczny - zatrzymany piec - sterowanie automatyczne powinno zaprzestać działalności 
 #define STATE_ALARM 6 // alarm - cos się stało, piec zatrzymany albo włączone zabezpieczenie
-#define STATE_REDUCE 7 //tryb przejścia na niższy stan P2 => P1 => P0. zadaniem tego trybu jest dopalenie pozostałego węgla. W tym celu musimy wiedzieć z jakiego stanu wyszlismy do reduce
+#define STATE_REDUCE1 7 //tryb przejścia na niższy stan P2 => P1 => P0. zadaniem tego trybu jest dopalenie pozostałego węgla. W tym celu musimy wiedzieć z jakiego stanu wyszlismy do reduce
+#define STATE_REDUCE2 8 //tryb przejścia na niższy stan P1 => P0 
 
 #define MAX_POWER_STATES 3 //max liczba konfiguracji dla mocy. 1 - tylko podtrzymanie, 2 - podtrzymanie i praca, 3 - podtrzymanie i 2 moce pracy
 
