@@ -12,6 +12,7 @@ bool isPumpEnabled(uint8_t num);
 void setFeederOn();
 //zatrzymanie podajnika
 void setFeederOff();
+void setFeeder(bool b);
 //czy podajnik działa
 bool isFeederOn();
 

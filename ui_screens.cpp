@@ -63,7 +63,7 @@ void* g_editCopy = NULL;
 void stSelectVariableHandler(uint8_t ev, uint8_t arg) 
 {
   const TUIStateEntry* ps = UI_STATES + g_CurrentUIState;
-  bool advanced = ps->Data.NumVal == 1;
+  bool advanced = ps->Data.numV == 1;
   g_CurrentUIView = ps->DefaultView;
 
   if (g_CurrentlyEditedVariable > N_UI_VARIABLES) g_CurrentlyEditedVariable = 0;
@@ -180,9 +180,14 @@ void adjustUint8(uint8_t varIdx, void* data, int8_t increment) {
   uint8_t v2 = *pd + increment;
   if (v2 < pv->Min) v2 = (uint8_t) pv->Max;
   if (v2 > pv->Max) v2 = (uint8_t) pv->Min;
-  Serial.print("upd v:");
-  Serial.println(v2);
   *pd = v2;
+}
+
+
+void adjustBool(uint8_t varIdx, void* data, int8_t increment) {
+  const TUIVarEntry* pv = UI_VARIABLES + varIdx;
+  bool* pd = (bool*) (data == NULL ? pv->DataPtr : data);
+  if (increment != 0 && pv->Min != pv->Max) *pd = !*pd;
 }
 
 
@@ -218,7 +223,8 @@ void printUint16(uint8_t varIdx, void* editCopy, char* buf) {
   sprintf(buf, "%d", *pv);
 }
 
-typedef bool (*BoolFun)();
+
+
 void printVBoolSwitch(uint8_t varIdx, void* editCopy, char* buf) {
   BoolFun f = (BoolFun) UI_VARIABLES[varIdx].DataPtr;
   if (f == NULL) return;
@@ -226,6 +232,19 @@ void printVBoolSwitch(uint8_t varIdx, void* editCopy, char* buf) {
   strcpy(buf, v ? "ON" : "OFF");
 }
 
+void* copyVBoolSwitch(uint8_t varIdx, void* pData, bool save) {
+  BoolFun f = (BoolFun) UI_VARIABLES[varIdx].DataPtr;
+  static bool _copy;
+  if (f == NULL) return;
+  if (save) {
+    SetBoolFun sbf = UI_VARIABLES[varIdx].Data.setBoolF;
+    if (sbf != NULL) sbf(_copy);
+  }
+  else {
+    _copy = f();
+    return &_copy;
+  }
+}
 typedef uint8_t (*U8Fun)();
 void printVU8(uint8_t varIdx, void* editCopy, char* buf) {
   U8Fun f = (U8Fun) UI_VARIABLES[varIdx].DataPtr;
@@ -253,6 +272,11 @@ void adjustPumpState(uint8_t varIdx, void* d, int8_t increment) {
     setPumpOff(i);
   else
     setPumpOn(i);
+}
+
+void adjustFeederState(uint8_t varIdx, void*d, int8_t increment) {
+  if (getAutomaticHeatingMode()) return;
+  setFeeder(!isFeederOn());
 }
 
 void adjustBlowerState(uint8_t varIdx, void* d, int8_t increment) {
@@ -321,8 +345,8 @@ void queueCommitTime(uint8_t varIdx) {
 
 const TUIStateEntry UI_STATES[] = {
     {'0', NULL, 1, stDefaultEventHandler, NULL},
-    {'V', {.NumVal=0}, 3 ,stSelectVariableHandler, NULL},
-    {'W', {.NumVal=1}, 3,stSelectVariableHandler, NULL},
+    {'V', {.numV=0}, 3 ,stSelectVariableHandler, NULL},
+    {'W', {.numV=1}, 3,stSelectVariableHandler, NULL},
     {'E', NULL, 4, stEditVariableHandler, NULL},
     
     
@@ -345,12 +369,12 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Dzien", 0, &RTC.dd, 1, 31, printUint8, adjustUint8, copyU8, queueCommitTime},
   {"Godzina", 0, &RTC.h, 1, 23, printUint8, adjustUint8, copyU8, queueCommitTime},
   {"Minuta", 0, &RTC.m, 1, 59, printUint8, adjustUint8, copyU8, queueCommitTime},
-  {"Tryb reczny", 0, getAutomaticHeatingMode, 0, 1, printVBoolSwitch, NULL, NULL, NULL},
+  {"Tryb reczny", 0, getAutomaticHeatingMode, 0, 1, printVBoolSwitch, adjustBool, copyVBoolSwitch, NULL, {.setBoolF = setAutomaticHeatingMode}},
   {"Pompa CO", 0, PUMP_CO1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
   {"Pompa CWU", 0, PUMP_CWU1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
   {"Pompa obieg", 0, PUMP_CIRC, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
-  {"Dmuchawa", 0, getCurrentBlowerPower, 0, 100, printVU8, NULL, NULL, NULL},
-  {"Podajnik", 0, isFeederOn, 0, 1, printVBoolSwitch, NULL, NULL, NULL},
+  {"Dmuchawa", 0, getCurrentBlowerPower, 0, 100, printVU8, adjustBlowerState, NULL, NULL, NULL},
+  {"Podajnik", 0, isFeederOn, 0, 1, printVBoolSwitch, adjustFeederState, NULL, NULL},
 };
 
 const uint8_t N_UI_VARIABLES = sizeof(UI_VARIABLES) / sizeof(TUIVarEntry);

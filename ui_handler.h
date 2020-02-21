@@ -27,13 +27,26 @@ void updateView();
 
 int32_t getEncoderPos();
 
+typedef bool (*BoolFun)();
+typedef void (*SetBoolFun)(bool);
+typedef uint8_t (*U8Fun)();
+typedef void (*SetU8Fun)(uint8_t);
+typedef uint16_t (*U16Fun)();
+typedef void (*SetU16Fun)(uint16_t);
+typedef float (*FFun)();
+typedef void (*SetFFun)(float);
+
+
 typedef union {
-  void* Ptr;
-  uint8_t U8V;
-  uint16_t U16V;
-  int   NumVal;
-  float FVal;
-  uint64_t U64Val;
+  void* ptr;
+  SetBoolFun setBoolF;
+  SetU8Fun  setU8F;
+  SetU16Fun setU16F;
+  SetFFun setFF; 
+  uint8_t u8V;
+  uint16_t u16V;
+  int   numV;
+  float fV;
 } VarHolder;
 
 typedef struct UIStateEntry {
@@ -76,6 +89,7 @@ typedef struct UIVariableEntry {
   void (*Adjust)(uint8_t varIdx, void* dataPtr, int8_t increment); //call to adjust changes the value by specified increment. commit - saves the value immediately, false - we're just editing a temp value. call with increment=0, commit=false -> we cancel the edit. call with increment=0,commit=true to save the edit
   void* (*Store)(uint8_t varIdx, void* dataPtr, bool save); //call to commit the value(store). if save == false then we want to cancel edit and return to original value.
   void (*Commit)(uint8_t varIdx); //additional function to call after saving
+  VarHolder Data;
 } TUIVarEntry;
 
 extern const TUIVarEntry UI_VARIABLES[];

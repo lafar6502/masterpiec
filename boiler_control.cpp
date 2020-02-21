@@ -30,13 +30,16 @@ bool isPumpEnabled(uint8_t num) {
   return true;
 }
 
+void setFeeder(bool on) {
+  digitalWrite(HW_FEEDER_CTRL_PIN, on ? HIGH : LOW);
+}
 //uruchomienie podajnika
 void setFeederOn() {
-  digitalWrite(HW_FEEDER_CTRL_PIN, HIGH);
+  setFeeder(true);
 }
 //zatrzymanie podajnika
 void setFeederOff() {
-  digitalWrite(HW_FEEDER_CTRL_PIN, LOW);
+  setFeeder(false);
 }
 //czy podajnik działa
 bool isFeederOn() {
