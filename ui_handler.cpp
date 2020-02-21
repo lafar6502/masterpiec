@@ -171,12 +171,15 @@ void updateView() {
 }
 
 void changeUIState(char code) {
+  uint8_t oldState = g_CurrentUIState;
   for(int i=0; i<N_UI_STATES; i++) {
     if (UI_STATES[i].Code == code) {
       g_CurrentUIState = i;
       g_CurrentUIView = UI_STATES[i].DefaultView;
+      if (UI_STATES[g_CurrentUIState].HandleEvent != NULL) UI_STATES[g_CurrentUIState].HandleEvent(UI_EV_INITSTATE, oldState);
       Serial.print("ui state:");
       Serial.println(g_CurrentUIState);
+      
       return;
     }
   }

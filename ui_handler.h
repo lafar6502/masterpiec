@@ -13,6 +13,7 @@
 #define UI_EV_IDLE  6     //reported once after several seconds of inactivity
 #define UI_EV_BTNRELEASE 7 //reported when button is released
 #define UI_EV_BTNHOLD 8 //hold a button for 3 sec
+#define UI_EV_INITSTATE 9 //just for initing new ui state
 
 void processUIEvent(uint8_t event, int8_t arg);
 
@@ -68,10 +69,10 @@ typedef struct UIVariableEntry {
   void* DataPtr; //variable pointer or some other context data
   float Min; //minimum val.
   float Max; //max val
-  void (*PrintTo)(uint8_t varIdx, char* buf); //function to print the value to the buffer
-  void (*Adjust)(uint8_t varIdx, int8_t increment); //call to adjust changes the value by specified increment. commit - saves the value immediately, false - we're just editing a temp value. call with increment=0, commit=false -> we cancel the edit. call with increment=0,commit=true to save the edit
-  void (*Store)(uint8_t varIdx, bool save); //call to commit the value(store). if save == false then we want to cancel edit and return to original value.
-  void* Temp; //temp field for any purpose
+  void (*PrintTo)(uint8_t varIdx, void* dataPtr, char* buf); //function to print the value to the buffer
+  void (*Adjust)(uint8_t varIdx, void* dataPtr, int8_t increment); //call to adjust changes the value by specified increment. commit - saves the value immediately, false - we're just editing a temp value. call with increment=0, commit=false -> we cancel the edit. call with increment=0,commit=true to save the edit
+  void* (*Store)(uint8_t varIdx, void* dataPtr, bool save); //call to commit the value(store). if save == false then we want to cancel edit and return to original value.
+  void (*Commit)(uint8_t varIdx); //additional function to call after saving
 } TUIVarEntry;
 
 extern const TUIVarEntry UI_VARIABLES[];

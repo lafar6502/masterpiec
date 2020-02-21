@@ -54,8 +54,7 @@ void stDefaultEventHandler(uint8_t ev, uint8_t arg)
   }
 }
 
-VarHolder g_editCopy;    //placeholder for copy of variable value that cant be edited in place (VAR_INPLACE flag not set)
-bool      g_editStarted; //true if we're in the edit and we have already made a copy of the variable
+void* g_editCopy = NULL;
 
 void stSelectVariableHandler(uint8_t ev, uint8_t arg) 
 {
@@ -108,28 +107,42 @@ void stEditVariableHandler(uint8_t ev, uint8_t arg)
 {
   const TUIStateEntry* ps = UI_STATES + g_CurrentUIState;
   const TUIVarEntry* pv = UI_VARIABLES + g_CurrentlyEditedVariable;
+  if (ev == UI_EV_INITSTATE) 
+  {
+    //1. make a copy
+    g_editCopy = NULL;
+    if (pv->Store != NULL) 
+    {
+      g_editCopy = pv->Store(g_CurrentlyEditedVariable, pv->DataPtr, false);
+    };
+    return;
+  }
+  
+  
   if (ev == UI_EV_UP || ev == UI_EV_DOWN) {
     if (pv->Adjust != NULL) {
-      pv->Adjust(g_CurrentlyEditedVariable, ev == UI_EV_UP ? 1 : -1);
+      pv->Adjust(g_CurrentlyEditedVariable, g_editCopy, ev == UI_EV_UP ? 1 : -1);
     }
   }
   else if (ev == UI_EV_BTNPRESS) 
   {
     Serial.print("save var:");
     Serial.println(g_CurrentlyEditedVariable);
-    if (pv->Store != NULL)
+    if (pv->Store != NULL && g_editCopy != NULL)
     {
-      pv->Store(g_CurrentlyEditedVariable, true);
+      pv->Store(g_CurrentlyEditedVariable, g_editCopy, true);
     }
+    if (pv->Commit != NULL) 
+    {
+      pv->Commit(g_CurrentlyEditedVariable);  
+    }
+    g_editCopy = NULL;
     changeUIState(pv->Flags & VAR_ADVANCED != 0 ? 'W' : 'V');
   }
   else if (ev == UI_EV_IDLE) {
     Serial.print("dont save var:");
     Serial.println(g_CurrentlyEditedVariable);
-    if (pv->Store != NULL)
-    {
-      pv->Store(g_CurrentlyEditedVariable, false);
-    }
+    
     changeUIState(pv->Flags & VAR_ADVANCED != 0 ? 'W' : 'V');
   }
 }
@@ -141,7 +154,7 @@ void scrSelectVariable(uint8_t idx, char* lines[])
   const TUIVarEntry* pv = UI_VARIABLES + g_CurrentlyEditedVariable;
   sprintf(lines[0], "%s", pv->Name);
   sprintf(lines[1], "V:");
-  pv->PrintTo(g_CurrentlyEditedVariable, lines[1] + 2);
+  pv->PrintTo(g_CurrentlyEditedVariable, NULL, lines[1] + 2);
 }
 
 void scrEditVariable(uint8_t idx, char* lines[])
@@ -150,13 +163,13 @@ void scrEditVariable(uint8_t idx, char* lines[])
   const TUIVarEntry* pv = UI_VARIABLES + g_CurrentlyEditedVariable;
   sprintf(lines[0], "<-%s->", pv->Name);
   sprintf(lines[1], "V:");
-  pv->PrintTo(g_CurrentlyEditedVariable, lines[1] + 2);
+  pv->PrintTo(g_CurrentlyEditedVariable, g_editCopy, lines[1] + 2);
 }
 
 
-void adjustUint8(uint8_t varIdx, int8_t increment) {
+void adjustUint8(uint8_t varIdx, void* data, int8_t increment) {
   const TUIVarEntry* pv = UI_VARIABLES + varIdx;
-  uint8_t* pd = (uint8_t*) pv->DataPtr;
+  uint8_t* pd = (uint8_t*) (data == NULL ? pv->DataPtr : data);
   uint8_t v2 = *pd + increment;
   if (v2 < pv->Min) v2 = (uint8_t) pv->Max;
   if (v2 > pv->Max) v2 = (uint8_t) pv->Min;
@@ -166,9 +179,9 @@ void adjustUint8(uint8_t varIdx, int8_t increment) {
 }
 
 
-void adjustUint16(uint8_t varIdx, int8_t increment) {
+void adjustUint16(uint8_t varIdx, void* data, int8_t increment) {
   const TUIVarEntry* pv = UI_VARIABLES + varIdx;
-  uint16_t* pd = (uint16_t*) pv->DataPtr;
+  uint16_t* pd = (uint16_t*) (data == NULL ? pv->DataPtr : data);
   uint16_t v2 = (*pd) + increment;
   if (v2 < (uint16_t) pv->Min) v2 = (uint16_t) pv->Max;
   if (v2 > (uint16_t) pv->Max) v2 = (uint16_t) pv->Min;
@@ -177,63 +190,71 @@ void adjustUint16(uint8_t varIdx, int8_t increment) {
   *pd = v2;
 }
 
-void printUint8(uint8_t varIdx, char* buf) {
-  uint8_t* pv = (uint8_t*) UI_VARIABLES[varIdx].DataPtr;
-  if (g_editStarted && UI_VARIABLES[varIdx].Flags & VAR_INPLACE == 0) {
-    pv = &g_editCopy.U8V;
-  }
+void adjustFloat(uint8_t varIdx, void* data, int8_t increment) {
+  const TUIVarEntry* pv = UI_VARIABLES + varIdx;
+  float* pd = (float*) (data == NULL ? pv->DataPtr : data);
+  float v2 = *pd + (increment * 0.1);
+  if (v2 < pv->Min) v2 = (uint8_t) pv->Max;
+  if (v2 > pv->Max) v2 = (uint8_t) pv->Min;
+  Serial.print("upd v:");
+  Serial.println(v2);
+  *pd = v2;
+}
+
+void printUint8(uint8_t varIdx, void* editCopy, char* buf) {
+  uint8_t* pv = (uint8_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
   sprintf(buf, "%d", *pv);
 }
 
-void printUint16(uint8_t varIdx, char* buf) {
-  uint16_t* pv = (uint16_t*) UI_VARIABLES[varIdx].DataPtr;
-  if (g_editStarted && UI_VARIABLES[varIdx].Flags & VAR_INPLACE == 0) {
-    pv = &g_editCopy.U16V;
-  }
+void printUint16(uint8_t varIdx, void* editCopy, char* buf) {
+  uint16_t* pv = (uint16_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
   sprintf(buf, "%d", *pv);
 }
 
-void storeU8(uint8_t varIdx, bool save) 
+void* copyU8(uint8_t varIdx, void* pData, bool save) 
 {
+  static uint8_t _copy;
+  
   uint8_t* p = (uint8_t*) UI_VARIABLES[varIdx].DataPtr;
   if (save) {
-    *p = g_editCopy.U8V;
+    *p = _copy;
+    return p;
   } else {
-    g_editCopy.U8V = *p;
+    _copy = *p;
+    return &_copy;
   }
 }
 
-void storeU16(uint8_t varIdx, bool save) 
+void* copyU16(uint8_t varIdx, void* pData, bool save) 
 {
+  static uint16_t _copy;
   uint16_t* p = (uint16_t*) UI_VARIABLES[varIdx].DataPtr;
   if (save) {
-    *p = g_editCopy.U16V;
+    *p = _copy;
+    return p;
   } else {
-    g_editCopy.U16V = *p;
+    _copy = *p;
+    return &_copy;
   }
 }
 
-void storeF(uint8_t varIdx, bool save) 
+void* copyFloat(uint8_t varIdx, void* pData, bool save) 
 {
+  static float _copy;
   float* p = (float*) UI_VARIABLES[varIdx].DataPtr;
   if (save) {
-    *p = g_editCopy.FVal;
+    *p = _copy;
+    return p;
   } else {
-    g_editCopy.FVal = *p;
+    _copy = *p;
+    return &_copy;
   }
 }
 
-void commitTime(uint8_t varIdx, bool save) {
-  if (save)
-  {
-    
-    Serial.println("save time");
-    RTC.writeTime();
-  }
-  else
-  {
-    RTC.readTime();
-  }
+
+void commitTime(uint8_t varIdx) {
+  Serial.println("save time");
+  RTC.writeTime();
 }
 
 const TUIStateEntry UI_STATES[] = {
@@ -257,11 +278,11 @@ const TUIScreenEntry UI_SCREENS[] = {
 const uint8_t N_UI_SCREENS = sizeof(UI_SCREENS) / sizeof(TUIScreenEntry);
 
 const TUIVarEntry UI_VARIABLES[] = {
-  {"Rok", 0, &RTC.yyyy, 2019, 3000, printUint16, adjustUint16, commitTime},
-  {"Miesiac", 0, &RTC.mm, 1, 12, printUint8, adjustUint8, commitTime},
-  {"Dzien", 0, &RTC.dd, 1, 31, printUint8, adjustUint8, commitTime},
-  {"Godzina", 0, &RTC.h, 1, 23, printUint8, adjustUint8, commitTime},
-  {"Minuta", 0, &RTC.m, 1, 59, printUint8, adjustUint8, commitTime}
+  {"Rok", 0, &RTC.yyyy, 2019, 3000, printUint16, adjustUint16, copyU16, commitTime},
+  {"Miesiac", 0, &RTC.mm, 1, 12, printUint8, adjustUint8, copyU8, commitTime},
+  {"Dzien", 0, &RTC.dd, 1, 31, printUint8, adjustUint8, copyU8, commitTime},
+  {"Godzina", 0, &RTC.h, 1, 23, printUint8, adjustUint8, copyU8, commitTime},
+  {"Minuta", 0, &RTC.m, 1, 59, printUint8, adjustUint8, copyU8, commitTime}
 };
 
 const uint8_t N_UI_VARIABLES = sizeof(UI_VARIABLES) / sizeof(TUIVarEntry);
