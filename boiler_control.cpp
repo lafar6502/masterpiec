@@ -112,10 +112,10 @@ void breseInit(uint8_t power, uint8_t cycleLength) {
     brese_cycle = cycleLength;
     //brese_curV = 0;
     //brese_error = 0;
-    Serial.print("brese pow:");
-    Serial.print(power);
-    Serial.print(", c:");
-    Serial.println(brese_cycle);
+    //Serial.print("brese pow:");
+    //Serial.print(power);
+    //Serial.print(", c:");
+    //Serial.println(brese_cycle);
 }
 
 void initializeBlowerControl() {

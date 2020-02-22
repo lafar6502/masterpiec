@@ -6,15 +6,17 @@
 #include "piec_sensors.h"
 
 void initializeBurningLoop() {
-  g_AktTempZadana = g_CurrentConfig.TCO;
+  g_TargetTemp = g_CurrentConfig.TCO;
   g_HomeThermostatOn = true;
   forceState(STATE_STOP);
+  Serial.println("Burn init");
 }
 
 
 
 
-float g_AktTempZadana = 0.1; //aktualnie zadana temperatura pieca (która może być wyższa od temp. zadanej w konfiguracji bo np grzejemy CWU)
+float g_TargetTemp = 0.1; //aktualnie zadana temperatura pieca (która może być wyższa od temp. zadanej w konfiguracji bo np grzejemy CWU)
+float g_CurrentHysteresis = 1.0;
 float g_TempCO = 0.0;
 float g_TempCWU = 0.0; 
 float g_TempPowrot = 0.0;  //akt. temp. powrotu
@@ -52,9 +54,11 @@ void burningProc()
 {
   assert(g_BurnState != STATE_UNDEFINED && g_BurnState < N_BURN_STATES);
   if (g_BurnState != BURN_STATES[g_BurnState].State) {
-    Serial.print("inv burn st");
+    Serial.print("invalid burn st");
     Serial.println(g_BurnState);
   }
+
+  
   //1. check if we should change state
   for(int i=0; i < N_BURN_TRANSITIONS; i++)
   {
@@ -67,6 +71,7 @@ void burningProc()
         g_BurnState = BURN_TRANSITIONS[i].To;
         assert(g_BurnState != STATE_UNDEFINED && g_BurnState < N_BURN_STATES);
         g_CurStateStart = millis();
+        g_CurBurnCycleStart = g_CurStateStart;
         g_CurStateStartTempCO = g_TempCO;
         if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize(g_BurnState);
         return;    
@@ -112,6 +117,7 @@ void forceState(TSTATE st) {
   if (st == g_BurnState) return;
   g_BurnState = st;
   g_CurStateStart = millis();
+  g_CurBurnCycleStart = g_CurStateStart;
   g_CurStateStartTempCO = g_TempCO;
   if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize(g_BurnState);
   Serial.print("BS->");
@@ -119,6 +125,7 @@ void forceState(TSTATE st) {
 }
 
 void updatePumpStatus();
+void adjustTargetTemperature();
 
 //API 
 //to nasza procedura aktualizacji stanu hardware-u
@@ -126,9 +133,9 @@ void updatePumpStatus();
 void burnControlTask() {
   
   processSensorValues();
-  burningProc();
+  adjustTargetTemperature();
   updatePumpStatus();
-  
+  burningProc();
 }
 
 
@@ -140,6 +147,8 @@ void workStateInitialize(TSTATE t) {
   g_CurStateStart = millis();
   g_CurBurnCycleStart = g_CurStateStart;
   setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
+  Serial.print("Burn init, cycle: ");
+  Serial.println(g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec);
 }
 
 //przejscie do stanu recznego
@@ -147,15 +156,19 @@ void stopStateInitialize(TSTATE t) {
   assert(g_BurnState == STATE_STOP);
   setBlowerPower(0);
   setFeederOff();
+  g_CurStateStart = millis();
+  g_CurBurnCycleStart = g_CurStateStart;
+  Serial.println("Stop init");
 }
 
 ///pętla palenia dla stanu pracy
 //załączamy dmuchawę na ustaloną moc no i pilnujemy podajnika
 void workStateBurnLoop() {
-  assert(g_BurnState != STATE_UNDEFINED && g_BurnState != STATE_STOP && g_BurnState < N_BURN_STATES);
+  assert(g_BurnState == STATE_P1 || g_BurnState == STATE_P2);
   unsigned long tNow = millis();
-  unsigned int burnCycleLen = g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec * 1000;
-  unsigned int burnFeedLen = g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 * 100;
+  unsigned long burnCycleLen = (unsigned long) g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec * 1000L;
+  unsigned long burnFeedLen = (unsigned long) g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 * 100L;
+  
   if (tNow < g_CurBurnCycleStart + burnFeedLen) 
   {
     if (!isFeederOn()) setFeederOn();
@@ -168,6 +181,8 @@ void workStateBurnLoop() {
   {
     g_CurBurnCycleStart = millis(); //
     setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
+    Serial.print("r1:");
+    Serial.println(g_CurBurnCycleStart);
   }
 }
 
@@ -176,14 +191,17 @@ void podtrzymanieStateInitialize(TSTATE t) {
   g_CurBurnCycleStart = g_CurStateStart;
   setBlowerPower(0);
   setFeederOff();
+  Serial.print("podtrz init. C:");
+  Serial.println(g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec);
 }
 
 void podtrzymanieStateLoop() {
+  assert(g_BurnState == STATE_P0);
   unsigned long tNow = millis();
-  static uint8_t cycleNum;
-  unsigned int burnCycleLen = g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec * 1000;
-  unsigned int burnFeedLen = g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 * 100;
-  unsigned int blowerStart = burnCycleLen - g_CurrentConfig.P0BlowerTime * 1000;
+  static uint8_t cycleNum = 0;
+  unsigned long burnCycleLen = (unsigned long) g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec * 1000L;
+  unsigned long burnFeedLen = (unsigned long) g_CurrentConfig.BurnConfigs[STATE_P0].FuelSecT10 * 100L;
+  unsigned long blowerStart = burnCycleLen - (unsigned long) g_CurrentConfig.P0BlowerTime * 1000L;
   
   if (tNow >= g_CurBurnCycleStart + blowerStart) 
   {
@@ -194,19 +212,25 @@ void podtrzymanieStateLoop() {
     setBlowerPower(0);
   }
 
-  if (tNow >= g_CurBurnCycleStart + blowerStart && tNow <= g_CurBurnCycleStart + blowerStart + burnFeedLen && cycleNum % g_CurrentConfig.P0FuelFreq == 0) 
+  if (tNow >= g_CurBurnCycleStart + blowerStart && tNow <= g_CurBurnCycleStart + blowerStart + burnFeedLen && (cycleNum % g_CurrentConfig.P0FuelFreq) == 0) 
   {
-    setFeederOn();
+    if (!isFeederOn()) setFeederOn();
   } 
   else 
   {
-    setFeederOff();
+    if (isFeederOn()) setFeederOff();
   }
   
   if (tNow >= g_CurBurnCycleStart + burnCycleLen) 
   {
     g_CurBurnCycleStart = tNow;
     cycleNum++;
+    Serial.print("rP:");
+    Serial.print(burnCycleLen);
+    Serial.print(", ");
+    Serial.print(g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec);
+    Serial.print(", s:");
+    Serial.println(g_CurBurnCycleStart);
   }
 }
 
@@ -235,6 +259,19 @@ bool cond_needsCooling() {
   return g_TempCO > 90;
 }
 
+
+void adjustTargetTemperature() {
+  
+  g_TargetTemp = g_CurrentConfig.TCO;
+  g_CurrentHysteresis = g_CurrentConfig.THistCO;
+  if (cond_shouldHeatCWU1()) {
+     g_TargetTemp = max(g_CurrentConfig.TCO, g_CurrentConfig.TCWU + g_CurrentConfig.TDeltaCWU);
+     g_CurrentHysteresis = min(g_CurrentConfig.THistCO, g_CurrentConfig.TDeltaCWU);
+  }
+  else if (cond_shouldHeatHome()) {
+    //nothing...
+  }
+}
 //
 // which pumps and when
 // cwu heating needed -> turn on cwu pump if current temp is above min pump temp and above cwu temp + delta
@@ -282,7 +319,14 @@ bool isAlarm_NoHeating() {
 
 bool cond_feederOnFire() {
   //is feeder on fire?
+  return false;
 }
+
+// kiedy przechodzimy z P0 do P2
+// gdy temp. wody CO spadnie poniżej zadanej
+// 
+
+
 
 const TBurnTransition  BURN_TRANSITIONS[]   = 
 {

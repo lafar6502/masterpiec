@@ -25,7 +25,7 @@ void scrSplash(uint8_t idx, char* lines[])
 void scrDefault(uint8_t idx, char* lines[]) 
 {
   char buf1[10], buf2[10], buf3[10];
-  dtostrf(g_AktTempZadana,2, 0, buf1);
+  dtostrf(g_TargetTemp,2, 0, buf1);
   dtostrf(g_TempCO,3, 1, buf2);
   sprintf(buf3, "CW:");
   dtostrf(g_TempCWU,3, 1, buf3);
@@ -42,14 +42,14 @@ void scrTime(uint8_t idx, char* lines[]) {
 }
 
 void scrBurnInfo(uint8_t idx, char* lines[]) {
-  unsigned int tnow = millis();
+  unsigned long tnow = millis();
+  
   if (g_BurnState == STATE_P0 || g_BurnState == STATE_P1 || g_BurnState == STATE_P2)
   {
     uint8_t cycle = g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle;
-    unsigned int burnCycleLen = g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec * 1000;
-    
-    sprintf(lines[0], "S%c T%d/%d", BURN_STATES[g_BurnState].Code, g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec - (tnow - g_CurStateStart) / 1000, (tnow - g_CurBurnCycleStart) / 1000); 
-    sprintf(lines[1], "P%d%% %d", getCurrentBlowerPower(), cycle);
+    int tt = (tnow - g_CurStateStart) / 1000L;
+    sprintf(lines[0], "#%c T%d/%d", BURN_STATES[g_BurnState].Code, g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec - (tnow - g_CurBurnCycleStart) / 1000, tt); 
+    sprintf(lines[1], "P%d%% %d %ld", getCurrentBlowerPower(), cycle, g_CurStateStart);
   }
   else if (g_BurnState == STATE_REDUCE1 || g_BurnState == STATE_REDUCE2) 
   {
@@ -198,13 +198,13 @@ void stEditVariableHandler(uint8_t ev, uint8_t arg)
     }
     
     Serial.println("saved!");
-    changeUIState(pv->Flags & VAR_ADVANCED != 0 ? 'W' : 'V');
+    changeUIState((pv->Flags & VAR_ADVANCED) != 0 ? 'W' : 'V');
   }
   else if (ev == UI_EV_IDLE) {
     Serial.print("dont save var:");
     Serial.println(g_CurrentlyEditedVariable);
     
-    changeUIState(pv->Flags & VAR_ADVANCED != 0 ? 'W' : 'V');
+    changeUIState((pv->Flags & VAR_ADVANCED) != 0 ? 'W' : 'V');
   }
 }
 
@@ -507,8 +507,8 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Temp.min.pomp", VAR_ADVANCED, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {"DeltaT", VAR_ADVANCED, &g_CurrentConfig.TDeltaCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
   {"DeltaCWU", VAR_ADVANCED, &g_CurrentConfig.TDeltaCWU, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
+  {"Dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.DefaultBlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   
-  {"P0 cykl przedm.", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec, 0, 15, printUint16, adjustUint16, copyU16, commitConfig},
   
   {"P0 cykl sek.", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec, 0, 3600, printUint16, adjustUint16, copyU16, commitConfig},
   {"P0 podawanie", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].FuelSecT10, 0, 600, printUint16_10, adjustUint16, copyU16, commitConfig},

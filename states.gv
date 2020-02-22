@@ -1,0 +1,29 @@
+digraph G {
+
+
+
+HEAT->REDUCE2 [label="T >= tTarget", style=bold, color=darkgreen]
+
+REDUCE2 -> COOLOFF [label="cycle end",style=bold, color=darkgreen]
+
+
+REDUCE2 -> HEAT [label="2. NEED and T < tTarget"]
+REDUCE2 -> HEAT [label="1. T < tTarget - hist0"]
+
+COOLOFF->REDUCE1 [label="2. T >= tTarget + tDelta", style=bold, color=darkgreen]
+COOLOFF->REDUCE1 [label="3. T >= tTarget and not NEED", style=bold, color=darkgreen]
+
+REDUCE1 -> MAINTAIN [label="cycle end", style=bold, color=darkgreen]
+
+
+REDUCE1 -> HEAT [label="T <= tTarget - hist0"]
+REDUCE1 -> COOLOFF [label="2. NEED and T<tTarget"]
+
+COOLOFF->HEAT [label="1. T <= tTarget - hist0"]
+HEAT -> REDUCE1 [label="1. T > tTarget + tDelta"]
+MAINTAIN -> HEAT [label="T <= tTarget - hist0", style=bold, color=darkgreen]
+
+//MAINTAIN -> COOLOFF [label="NEED and T between tTarget - hist0 and tTarget", style=bold, color=darkgreen]
+
+
+}

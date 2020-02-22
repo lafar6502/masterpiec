@@ -65,8 +65,8 @@ void loop() {
 }
 
 void periodicDumpControlState() {
-  static unsigned int lastDump = 0;
-  unsigned int t = millis();
+  static unsigned long lastDump = 0;
+  unsigned long t = millis();
   if (t - lastDump > 5000)
   {
     lastDump = t;
@@ -82,8 +82,8 @@ void periodicDumpControlState() {
     Serial.print(isPumpOn(PUMP_CWU1));
     Serial.print(", stime:");
     Serial.print((t - g_CurStateStart) / 1000);
-    //Serial.print(", btime:");
-    //Serial.print((t - burnCycleStart) / 1000);
+    Serial.print(", btime:");
+    Serial.print((t - g_CurBurnCycleStart) / 1000);
     Serial.println();
   }
 }

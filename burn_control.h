@@ -92,7 +92,8 @@ extern unsigned long g_CurBurnCycleStart; //timestamp, w ms, w ktorym rozpoczeli
 // po to żeby np moduł UI mógł sobie je wyswietlać. 
 //
 
-extern float g_AktTempZadana; //aktualnie zadana temperatura pieca (która może być wyższa od temp. zadanej w konfiguracji bo np grzejemy CWU)
+extern float g_TargetTemp; //aktualnie zadana temperatura pieca (która może być wyższa od temp. zadanej w konfiguracji bo np grzejemy CWU)
+extern float g_CurrentHysteresis; //aktualna wartosc histerezy pieca
 extern float g_TempCO;
 extern float g_TempCWU; 
 extern float g_TempPowrot;  //akt. temp. powrotu
