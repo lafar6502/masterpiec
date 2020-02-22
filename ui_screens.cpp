@@ -3,8 +3,7 @@
 #include "ui_handler.h"
 #include "boiler_control.h"
 #include <MD_DS1307.h>
-#include "varholder.h"
-
+#include "masterpiec.h"
 
 uint16_t g_CurrentlyEditedVariable = 0;
 uint8_t g_CurrentUIState = 1;
@@ -223,6 +222,14 @@ void printUint16(uint8_t varIdx, void* editCopy, char* buf) {
   sprintf(buf, "%d", *pv);
 }
 
+void printUint16_10(uint8_t varIdx, void* editCopy, char* buf) {
+  uint16_t* pv = (uint16_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  float f = *pv / 10.0;
+  char buf1[10];
+  dtostrf(f,2, 1, buf1);
+  strcpy(buf, buf1);
+}
+
 void printFloat(uint8_t varIdx, void* editCopy, char* buf) {
   float* pv = (float*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
   char buf1[10];
@@ -341,6 +348,10 @@ void commitTime(void* p) {
   RTC.writeTime();
 };
 
+void commitConfig(uint8_t varIdx) {
+  eepromSaveConfig(0);
+}
+
 void queueCommitTime(uint8_t varIdx) {
   g_uiBottomHalf = commitTime;
 }
@@ -377,13 +388,33 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Pompa obieg", 0, PUMP_CIRC, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
   {"Dmuchawa", 0, getCurrentBlowerPower, 0, 100, printVU8, adjustBlowerState, NULL, NULL, NULL},
   {"Podajnik", 0, isFeederOn, 0, 1, printVBoolSwitch, adjustFeederState, NULL, NULL},
-  {"Temp.CO", 0, &g_CurrentConfig.TCO, 30, 80, printUint8, adjustUint8, copyU8, NULL},
-  {"Histereza CO", 0, &g_CurrentConfig.THistCO, 0, 15, printUint8, adjustUint8, copyU8, NULL},
-  {"Temp.CWU", 0, &g_CurrentConfig.TCWU, 20, 80, printUint8, adjustUint8, copyU8, NULL},
-  {"Histereza CWU", 0, &g_CurrentConfig.THistCwu, 0, 15, printUint8, adjustUint8, copyU8, NULL},
-  {"Temp.min.pomp", 0, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, NULL},
-  {"DeltaT", 0, &g_CurrentConfig.TDeltaCO, 0, 15, printUint8, adjustUint8, copyU8, NULL},
-  {"DeltaCWU", 0, &g_CurrentConfig.TDeltaCWU, 0, 15, printUint8, adjustUint8, copyU8, NULL},
+  {"Temp.CO", 0, &g_CurrentConfig.TCO, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
+  {"Histereza CO", 0, &g_CurrentConfig.THistCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
+  {"Temp.CWU", 0, &g_CurrentConfig.TCWU, 20, 80, printUint8, adjustUint8, copyU8, commitConfig},
+  {"Temp.CWU2", 0, &g_CurrentConfig.TCWU2, 20, 80, printUint8, adjustUint8, copyU8, commitConfig},
+  {"Histereza CWU", 0, &g_CurrentConfig.THistCwu, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
+  {"Temp.min.pomp", 0, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
+  {"DeltaT", 0, &g_CurrentConfig.TDeltaCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
+  {"DeltaCWU", 0, &g_CurrentConfig.TDeltaCWU, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
+  
+  {"P0 cykl przedm.", 0, &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec, 0, 15, printUint16, adjustUint16, copyU16, commitConfig},
+  
+  {"P0 cykl sek.", 0, &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec, 0, 3600, printUint16, adjustUint16, copyU16, commitConfig},
+  {"P0 podawanie", 0, &g_CurrentConfig.BurnConfigs[STATE_P0].FuelSecT10, 0, 600, printUint16_10, adjustUint16, copyU16, commitConfig},
+  {"P0 wegiel co", 0, &g_CurrentConfig.P0FuelFreq, 1, 5, printUint8, adjustUint8, copyU8, commitConfig},
+  {"P0 dmuchawa sek", 0, &g_CurrentConfig.P0BlowerTime, 1, 240, printUint8, adjustUint8, copyU8, commitConfig},
+  {"P0 dmuchawa %", 0, &g_CurrentConfig.BurnConfigs[STATE_P0].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {"P0 dmuchawa CZ", 0, &g_CurrentConfig.BurnConfigs[STATE_P0].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  
+  {"P1 cykl sek.", 0, &g_CurrentConfig.BurnConfigs[STATE_P1].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
+  {"P1 podawanie", 0, &g_CurrentConfig.BurnConfigs[STATE_P1].FuelSecT10, 0, 600, printUint16_10, adjustUint16, copyU16, commitConfig},
+  {"P1 dmuchawa %", 0, &g_CurrentConfig.BurnConfigs[STATE_P1].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {"P1 dmuchawa CZ", 0, &g_CurrentConfig.BurnConfigs[STATE_P1].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+
+  {"P2 cykl sek.", 0, &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
+  {"P2 podawanie", 0, &g_CurrentConfig.BurnConfigs[STATE_P2].FuelSecT10, 0, 600, printUint16_10, adjustUint16, copyU16, commitConfig},
+  {"P2 dmuchawa %", 0, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {"P2 dmuchawa CZ", 0, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   
 };
 

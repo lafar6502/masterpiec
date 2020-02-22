@@ -28,9 +28,9 @@ typedef uint8_t TSTATE;
 
 //konfiguracja jednego z poziomów mocy
 typedef struct BurnParams {
-    uint8_t CycleSec;
+    uint16_t CycleSec; //total cycle, including the fueling time, in seconds. podtrzymanie: okres przedmuchu. podawanie wegla co 1, 2, 3 przedmuchy
     //czas podawania wegla, * 10 (50 = 5 sekund)
-    uint8_t FuelSecT10;
+    uint16_t FuelSecT10;
     //moc nadmuchu
     uint8_t BlowerPower;
     uint8_t BlowerCycle; //cykl dmuchawy dla zasilania grupowego. 0 gdy fazowe.
@@ -39,18 +39,21 @@ typedef struct BurnParams {
 
 //zestaw ustawień pieca (aktualna konfiguracja). Nie zawiera bieżących wartości.
 typedef struct ControlConfiguration {
-  uint8_t TCO;
-  uint8_t TCWU;
-  uint8_t TMinPomp;
+  uint16_t Magic; //should always be 0x6502
+  uint8_t TCO; //co temp 
+  uint8_t TCWU;  //cwu temp
+  uint8_t TCWU2; //cwu2 temp
+  uint8_t TMinPomp; //minimum pump run temp.
   uint8_t THistCwu; //histereza cwu
   uint8_t THistCO;  //histereza co
   uint8_t TDeltaCO; //delta co - temp powyzej zadanej przy ktorej przejdzie w podtrzymanie
   uint8_t TDeltaCWU; //delta cwu - temp powyżej bojlera do ktorej rozgrzewamy piec
-  uint16_t T10PodtrzymaniePrzedmuch; //czas cyklu przedmuchu w podtrzymaniu, * 10 (100 = 10 sek)
-  uint16_t T10PodtrzymanieDmuch; //czas pracy dmuchawy w podtrzymaniu
-  uint8_t P0MocDm; //P0 moc dmuchawy w podtrzymaniu
-  
-  TBurnParams BurnConfigs[MAX_POWER_STATES];
+  uint8_t P0BlowerTime; //czas pracy dmuchawy w podtrzymaniu
+  uint8_t P0FuelFreq; //podawanie wegla co x cykli przedmuchu
+  bool    SummerMode; //tryb letni
+  bool    HomeThermostat;
+  TBurnParams BurnConfigs[MAX_POWER_STATES]; //first one [0] is the podtrzymanie
+  uint8_t DallasAddress[8][8]; //dallas sensor addresses. if zero - sensor not present
   
 } TControlConfiguration;
 

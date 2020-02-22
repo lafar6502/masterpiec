@@ -39,6 +39,7 @@ void setup() {
   changeUIState('0');
 }
 
+
 void loop() {
   uint64_t m = millis();
   RTC.readTime();
@@ -89,7 +90,7 @@ unsigned long g_CurStateStart = 0;
 float  g_CurStateStartTempCO = 0; //temp pieca w momencie wejscia w bież. stan.
 unsigned long g_CurBurnCycleStart = 0; //timestamp, w ms, w ktorym rozpoczelismy akt. cykl palenia
 
-TControlConfiguration g_CurrentConfig;
+
 
 //to nasza procedura aktualizacji stanu hardware-u
 //wolana cyklicznie.
@@ -225,9 +226,6 @@ bool getManualControlMode()
   return g_BurnState == STATE_STOP;
 }
 
-void eepromRestoreConfig(uint8_t slot) {
-  
-}
 
 float g_AktTempZadana = 0.1; //aktualnie zadana temperatura pieca (która może być wyższa od temp. zadanej w konfiguracji bo np grzejemy CWU)
 float g_TempCO = 0.1;

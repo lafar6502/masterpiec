@@ -6,24 +6,9 @@
 
 
 
-
-//funkcja wołana cykliczne w celu obsługi 
-//procesu palenia (sterowanie podajnikiem, dmuchawą, przejścia miedzy mocami)
-void burningProc();
-
-//funkcja wołana cyklicznie w celu obsługi zmiany stanu pomp
-void updatePumpStatus();
-
-//funkcja wołana cyklicznie w celu aktualizacji wyswietlacza
-void updateUI();
-
-
-//odczytuje wskazania sensorów i aktualizuje zmienne na tej podstawie
-void processSensorValues();
-
-//restore saved configuration on program init
+//restore global configuration 
 //from a specified slot. 0 is the default slot
-void eepromRestoreConfig(uint8_t configSlot);
+bool eepromRestoreConfig(uint8_t configSlot);
 
 //store current configuration in specified config slot
 void eepromSaveConfig(uint8_t configSlot);
