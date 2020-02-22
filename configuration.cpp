@@ -41,7 +41,8 @@ TControlConfiguration defaultConfig() {
     },
     {}, //dallas
     5,   //DefaultBlowerCycle
-    100  //feeder temp limit
+    100,  //feeder temp limit
+    8 //NoHeatAlarmTimeM
   };
 }
 

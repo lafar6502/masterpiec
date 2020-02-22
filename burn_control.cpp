@@ -33,7 +33,7 @@ bool   g_HomeThermostatOn = true;  //true - termostat pokojowy kazał zaprzesta�
 float g_TempZewn = 0.0; //aktualna temp. zewn
 char* g_Alarm;
 TReading lastCOTemperatures[10];
-CircularBuffer<TReading> g_lastCOReads(lastCOTemperatures, sizeof(lastCOTemperatures));
+CircularBuffer<TReading> g_lastCOReads(lastCOTemperatures, sizeof(lastCOTemperatures)/sizeof(TReading));
 
 
 void setAlarm(const char* txt) {
@@ -55,12 +55,8 @@ void processSensorValues() {
     g_HomeThermostatOn = isThermostatOn();
   }
   unsigned long ms = millis();
-  if (g_lastCOReads.IsEmpty() || ms >= (g_lastCOReads.GetLast()->Ms + 10000)) {
+  if (g_lastCOReads.IsEmpty() || ms >= (g_lastCOReads.GetLast()->Ms + 5000)) {
     g_lastCOReads.Enqueue({ms, g_TempCO});
-    Serial.println(g_lastCOReads.GetCount());
-    for(int i=0; i<g_lastCOReads.GetCount(); i++) {
-      Serial.println(g_lastCOReads.GetAt(i)->Val);
-    }
   }
 }
 
@@ -129,6 +125,7 @@ bool getManualControlMode()
 unsigned long g_CurStateStart = 0;
 float  g_CurStateStartTempCO = 0; //temp pieca w momencie wejscia w bież. stan.
 unsigned long g_CurBurnCycleStart = 0; //timestamp, w ms, w ktorym rozpoczelismy akt. cykl palenia (ten podajnik+nadmuch)
+float curStateMaxTempCO = 0;
 
 //api - switch to state
 void forceState(TSTATE st) {
@@ -165,6 +162,8 @@ void workStateInitialize(TSTATE t) {
   assert(g_BurnState != STATE_UNDEFINED && g_BurnState != STATE_STOP && g_BurnState < N_BURN_STATES);
   g_CurStateStart = millis();
   g_CurBurnCycleStart = g_CurStateStart;
+  g_CurStateStartTempCO = g_TempCO;
+  curStateMaxTempCO = g_TempCO;
   setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
   Serial.print("Burn init, cycle: ");
   Serial.println(g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec);
@@ -196,6 +195,7 @@ void workStateBurnLoop() {
   {
     if (isFeederOn()) setFeederOff();
   }
+  if (g_TempCO > curStateMaxTempCO) curStateMaxTempCO = g_TempCO;
   if (tNow >= g_CurBurnCycleStart + burnCycleLen) 
   {
     g_CurBurnCycleStart = millis(); //
@@ -389,6 +389,14 @@ bool isAlarm_Overheat() {
 
 bool isAlarm_NoHeating() {
   //only for automatic heating cycles P1 P2
+  if (g_BurnState != STATE_P1 && g_BurnState != STATE_P2) return false;
+  unsigned long m = millis();
+  m = m - g_CurStateStartTempCO;
+  if (curStateMaxTempCO - g_CurStateStartTempCO < 2.0 && g_CurrentConfig.NoHeatAlarmTimeM > 0 && m > 60 * 1000L * g_CurrentConfig.NoHeatAlarmTimeM) 
+  {
+    g_Alarm = "Wygaslo";
+    return true;
+  }
   return false;
 }
 
@@ -444,7 +452,9 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
 {
   {STATE_P0, STATE_ALARM, isAlarm_Any, NULL},
   {STATE_P1, STATE_ALARM, isAlarm_Any, NULL},
+  {STATE_P1, STATE_ALARM, isAlarm_NoHeating, NULL},
   {STATE_P2, STATE_ALARM, isAlarm_Any, NULL},
+  {STATE_P2, STATE_ALARM, isAlarm_NoHeating, NULL},
   {STATE_REDUCE1, STATE_ALARM, isAlarm_Any, NULL},
   {STATE_REDUCE2, STATE_ALARM, isAlarm_Any, NULL},
   

@@ -5,11 +5,12 @@ template<class T> class CircularBuffer
 {
   private:
     T* _buf;
-    int16_t _bufLen;
-    int16_t _tail;
-    int16_t _head;
+    uint16_t _bufLen;
+    uint16_t _tail;
+    uint16_t _head;
   
   public:
+    //holds bufLength - 1 elements
     CircularBuffer(T* buf, uint16_t bufLength) 
     {
       _buf = buf;
@@ -23,11 +24,15 @@ template<class T> class CircularBuffer
       if (_tail == _head) { //head has trumped tail
         _tail = (_tail + 1) % _bufLen;
       }
+      /*Serial.print("h");
+      Serial.print(_head);
+      Serial.print(" t");
+      Serial.println(_tail);*/
     }
 
     const T& Dequeue() {
       if (_tail == _head) return NULL;
-      int16_t t0 = _tail;
+      uint16_t t0 = _tail;
       _tail = (_tail + 1) % _bufLen;
       return _buf[t0];
     }
@@ -46,15 +51,15 @@ template<class T> class CircularBuffer
       return _buf + (_head > 0 ? _head - 1 : _head - 1 + _bufLen);
     }
 
-    const T* GetAt(uint16_t idx) {
+    const T* GetAt(int16_t idx) {
       if (_head == _tail) return NULL;
-      int16_t f = _tail + idx;
+      uint16_t f = _tail + idx;
       return _buf + (f >= _bufLen? f - _bufLen : f);
     }
     
-    void CopyTo(T* buf, uint16_t count) {
-      int16_t tl = _tail;
-      int16_t pos = 0;
+    void CopyTo(T* buf, int16_t count) {
+      uint16_t tl = _tail;
+      uint16_t pos = 0;
       while(tl != _head && pos < count) {
         buf[pos++] = _buf[tl];
         tl = (tl + 1) % _bufLen;
