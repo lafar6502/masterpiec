@@ -25,7 +25,7 @@
 #define MAX6675_0_CS_PIN 49
 #define MAX6675_0_SO_PIN 50
 
-#define MAX6675_1_SCK_PIN 42
+#define MAX6675_1_SCK_PIN 0 //disable
 #define MAX6675_1_CS_PIN 44
 #define MAX6675_1_SO_PIN 46
 

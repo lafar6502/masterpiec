@@ -264,6 +264,7 @@ void adjustUint16(uint8_t varIdx, void* data, int8_t increment) {
   *pd = v2;
 }
 
+
 void adjustFloat(uint8_t varIdx, void* data, int8_t increment) {
   const TUIVarEntry* pv = UI_VARIABLES + varIdx;
   float* pd = (float*) (data == NULL ? pv->DataPtr : data);
@@ -298,6 +299,11 @@ void printFloat(uint8_t varIdx, void* editCopy, char* buf) {
   char buf1[10];
   dtostrf(*pv,2, 1, buf1);
   strcpy(buf, buf1);
+}
+
+void printBool(uint8_t varIdx, void* editCopy, char* buf) {
+  bool* pv = (bool*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  strcpy(buf, *pv ? "ON" : "OFF");
 }
 
 void printVBoolSwitch(uint8_t varIdx, void* editCopy, char* buf) {
@@ -507,6 +513,9 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Temp.min.pomp", VAR_ADVANCED, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {"DeltaT", VAR_ADVANCED, &g_CurrentConfig.TDeltaCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
   {"DeltaCWU", VAR_ADVANCED, &g_CurrentConfig.TDeltaCWU, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
+  {"Zewn. termostat", VAR_ADVANCED, &g_CurrentConfig.HomeThermostat, 0, 11, printBool, adjustBool, NULL, commitConfig},
+  {"Tryb letni", VAR_ADVANCED, &g_CurrentConfig.SummerMode, 0, 11, printBool, adjustBool, NULL, commitConfig},
+  
   {"Dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.DefaultBlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   
   

@@ -136,25 +136,35 @@ void initializeMax6675Sensors()
 
 
 void refreshSensorReadings() {
-  int m0 = millis();
-  for(int i=0; i<sizeof(g_dallasSensors) / sizeof(TDallasSensor); i++) {
-    if (g_dallasSensors[i].Active) {
-      g_dallasSensors[i].LastValue = sensors.getTempC(g_dallasSensors[i].Addr);
-      g_dallasSensors[i].LastReadMs = m0;
-    }
-  }
-
-  for (int i=0; i<sizeof(g_thermocouples)/sizeof(TThermocoupleSensor); i++) 
+  unsigned long m0 = millis();
+  static unsigned long last_tc_read=0;
+  static unsigned long last_da_read = 0;
+  if (m0 - last_da_read > 1000)
   {
-    if (g_thermocouples[i].Sensor != NULL) 
-    {
-      g_thermocouples[i].LastValue = g_thermocouples[i].Sensor->readCelsius();
-      g_thermocouples[i].LastReadMs = m0;
+    for(int i=0; i<sizeof(g_dallasSensors) / sizeof(TDallasSensor); i++) {
+      if (g_dallasSensors[i].Active) {
+        g_dallasSensors[i].LastValue = sensors.getTempC(g_dallasSensors[i].Addr);
+        g_dallasSensors[i].LastReadMs = m0;
+      }
     }
+    sensors.requestTemperatures();
+    last_da_read = m0;
   }
   
-  sensors.requestTemperatures();
-  int m2 = millis();
+  if (m0 - last_tc_read > 5000)
+  {
+    for (int i=0; i<sizeof(g_thermocouples)/sizeof(TThermocoupleSensor); i++) 
+    {
+      if (g_thermocouples[i].Sensor != NULL) 
+      {
+        g_thermocouples[i].LastValue = g_thermocouples[i].Sensor->readCelsius();
+        g_thermocouples[i].LastReadMs = m0;
+      }
+    }
+    last_tc_read = m0;
+  }
+  
+  //int m2 = millis();
   //Serial.print("sensors read. t:");
   //Serial.print(m2 - m0);
   //Serial.print(", t0:");

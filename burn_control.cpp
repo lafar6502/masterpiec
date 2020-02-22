@@ -66,6 +66,10 @@ void burningProc()
     {
       if (BURN_TRANSITIONS[i].fCondition != NULL && BURN_TRANSITIONS[i].fCondition()) 
       {
+        Serial.print("BS: trans ");
+        Serial.print(i);
+        Serial.print(" ->");
+        Serial.println(BURN_STATES[BURN_TRANSITIONS[i].To].Code);
         if (BURN_TRANSITIONS[i].fAction != NULL) BURN_TRANSITIONS[i].fAction();
         //transition to new state
         g_BurnState = BURN_TRANSITIONS[i].To;
@@ -73,7 +77,7 @@ void burningProc()
         g_CurStateStart = millis();
         g_CurBurnCycleStart = g_CurStateStart;
         g_CurStateStartTempCO = g_TempCO;
-        if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize(g_BurnState);
+        if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize(BURN_TRANSITIONS[i].From);
         return;    
       }
     }
@@ -191,12 +195,19 @@ unsigned long _reductionStateEndMs = 0;
 void reductionStateInit(TSTATE prev) {
   assert(g_BurnState == STATE_REDUCE1 || g_BurnState == STATE_REDUCE2);
   assert(prev == STATE_P1 || prev == STATE_P2);
-  _reductionStateEndMs = (unsigned long) g_CurrentConfig.BurnConfigs[prev].CycleSec * 1000L;
+  if (prev != STATE_P1 && prev != STATE_P2) {
+    Serial.print("red: wrong state");
+    Serial.println(prev);
+    prev = STATE_P1;
+  }
+  
   g_CurStateStart = millis();
   g_CurBurnCycleStart = g_CurStateStart;
+  _reductionStateEndMs = g_CurStateStart + (unsigned long) g_CurrentConfig.BurnConfigs[prev].CycleSec * 1000L;
   setBlowerPower(g_CurrentConfig.BurnConfigs[prev].BlowerPower, g_CurrentConfig.BurnConfigs[prev].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[prev].BlowerCycle);
   setFeederOff();
-  
+  Serial.print("red: cycle should end in ");
+  Serial.println((_reductionStateEndMs - g_CurStateStart) / 1000.0);
 }
 
 void reductionStateLoop() {
@@ -397,7 +408,7 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_P0, STATE_P1, cond_needHeatingAndBelowTargetTemp, NULL},
 
   {STATE_P2, STATE_REDUCE1, cond_boilerOverheated, NULL},  //P2 -> P0
-  {STATE_P2, STATE_REDUCE2, cond_targetTempReached, NULL}, //P2 -> P1
+  {STATE_P2, STATE_REDUCE2, cond_targetTempReached, NULL}, //10 P2 -> P1
   
   {STATE_REDUCE2, STATE_P2, cond_belowHysteresis, NULL},
   {STATE_REDUCE2, STATE_P2, cond_needHeatingAndBelowTargetTemp, NULL},

@@ -52,15 +52,15 @@ void loop() {
   updateView();           //aktualizacja ui
   periodicDumpControlState();
   int m2 = millis();
-  int d = 100 - (m2 - m);
+  int d = 150 - (m2 - m);
   if (d > 0) 
   {
     delay(d);
   }
   else 
   {
-    ///Serial.print("zabrakło mi ms ");
-    ///Serial.println(-d);  
+    Serial.print("zabrakło mi ms ");
+    Serial.println(-d);  
   }
 }
 
@@ -86,6 +86,11 @@ void periodicDumpControlState() {
     Serial.print((t - g_CurStateStart) / 1000);
     Serial.print(", btime:");
     Serial.print((t - g_CurBurnCycleStart) / 1000);
+    Serial.print(", tspalin");
+    Serial.print(g_TempSpaliny);
+    Serial.print(", tpiec");
+    Serial.print(g_TempCO);
+    
     Serial.println();
   }
 }
