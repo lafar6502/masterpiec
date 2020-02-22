@@ -44,6 +44,7 @@ typedef struct ControlConfiguration {
   bool    HomeThermostat;
   TBurnParams BurnConfigs[MAX_POWER_STATES]; //first one [0] is the podtrzymanie
   uint8_t DallasAddress[8][8]; //dallas sensor addresses. if zero - sensor not present
+  uint8_t DefaultBlowerCycle;
   
 } TControlConfiguration;
 

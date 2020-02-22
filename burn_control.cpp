@@ -104,7 +104,7 @@ bool getManualControlMode()
 //czas wejscia w bieżący stan, ms
 unsigned long g_CurStateStart = 0;
 float  g_CurStateStartTempCO = 0; //temp pieca w momencie wejscia w bież. stan.
-unsigned long g_CurBurnCycleStart = 0; //timestamp, w ms, w ktorym rozpoczelismy akt. cykl palenia
+unsigned long g_CurBurnCycleStart = 0; //timestamp, w ms, w ktorym rozpoczelismy akt. cykl palenia (ten podajnik+nadmuch)
 
 //api - switch to state
 void forceState(TSTATE st) {
@@ -132,17 +132,12 @@ void burnControlTask() {
 
 
 
-static unsigned long burnCycleLen = 0;
-static unsigned long burnFeedLen = 0;
-static unsigned long burnCycleStart = 0;
 
 //inicjalizacja dla stanu grzania autom. P1 P2
 void workStateInitialize(TSTATE t) {
   assert(g_BurnState != STATE_UNDEFINED && g_BurnState != STATE_STOP && g_BurnState < N_BURN_STATES);
-  burnCycleLen = g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec * 1000;
-  burnFeedLen = g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 * 100;
-  burnCycleStart = g_CurStateStart;
-  setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower);
+  g_CurBurnCycleStart = g_CurStateStart;
+  setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
 }
 
 //przejscie do stanu recznego
@@ -157,8 +152,9 @@ void stopStateInitialize(TSTATE t) {
 void workStateBurnLoop() {
   assert(g_BurnState != STATE_UNDEFINED && g_BurnState != STATE_STOP && g_BurnState < N_BURN_STATES);
   unsigned long tNow = millis();
-  static unsigned long tPrev = 0;
-  if (tNow < burnCycleStart + burnFeedLen) 
+  unsigned int burnCycleLen = g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec * 1000;
+  unsigned int burnFeedLen = g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 * 100;
+  if (tNow < g_CurBurnCycleStart + burnFeedLen) 
   {
     if (!isFeederOn()) setFeederOn();
   }
@@ -166,23 +162,49 @@ void workStateBurnLoop() {
   {
     if (isFeederOn()) setFeederOff();
   }
-  if (tNow >= burnCycleStart + burnCycleLen) {
-    burnCycleStart = millis(); //
-    setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower);
+  if (tNow >= g_CurBurnCycleStart + burnCycleLen) 
+  {
+    g_CurBurnCycleStart = millis(); //
+    setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
   }
-  tPrev = tNow;
 }
 
 void podtrzymanieStateInitialize(TSTATE t) {
-  
+  g_CurBurnCycleStart = g_CurStateStart;
+  setBlowerPower(0);
+  setFeederOff();
 }
 
 void podtrzymanieStateLoop() {
   unsigned long tNow = millis();
-  static unsigned long tPrev = 0;
+  static uint8_t cycleNum;
+  unsigned int burnCycleLen = g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec * 1000;
+  unsigned int burnFeedLen = g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 * 100;
+  unsigned int blowerStart = burnCycleLen - g_CurrentConfig.P0BlowerTime * 1000;
   
+  if (tNow >= g_CurBurnCycleStart + blowerStart) 
+  {
+    setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
+  } 
+  else 
+  {
+    setBlowerPower(0);
+  }
+
+  if (tNow >= g_CurBurnCycleStart + blowerStart && tNow <= g_CurBurnCycleStart + blowerStart + burnFeedLen && cycleNum % g_CurrentConfig.P0FuelFreq == 0) 
+  {
+    setFeederOn();
+  } 
+  else 
+  {
+    setFeederOff();
+  }
   
-  tPrev = tNow;
+  if (tNow >= g_CurBurnCycleStart + burnCycleLen) 
+  {
+    g_CurBurnCycleStart = tNow;
+    cycleNum++;
+  }
 }
 
 void manualStateLoop() {

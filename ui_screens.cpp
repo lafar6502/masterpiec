@@ -45,13 +45,30 @@ void scrBurnInfo(uint8_t idx, char* lines[]) {
   sprintf(lines[0], "S%c", BURN_STATES[g_BurnState].Code); 
 }
 
+uint16_t findNextView(uint16_t currentView, bool increment, bool (*f)(uint16_t))
+{
+  int16_t c = currentView;
+  int cnt = 0;
+  while(cnt < N_UI_SCREENS) {
+    c += increment ? 1 : -1;
+    if (c < 0) c = N_UI_SCREENS - 1;
+    if (c >= N_UI_SCREENS) c = 0;
+    if (f(c)) return c;
+  }
+  return currentView;
+}
+
+bool viewCodeMatchesState(uint16_t n) {
+  return UI_SCREENS[n].Code == UI_STATES[g_CurrentUIState].Code;
+}
+
 void stDefaultEventHandler(uint8_t ev, uint8_t arg) 
 {
   //screens 0, 1, 2
   if (ev == UI_EV_UP) {
-    g_CurrentUIView = (g_CurrentUIView + 1) % 3;
+    g_CurrentUIView = findNextView(g_CurrentUIView, true, viewCodeMatchesState);
   } else if (ev == UI_EV_DOWN) {
-    g_CurrentUIView = g_CurrentUIView < 1 ? 3 - 1 : g_CurrentUIView - 1;
+    g_CurrentUIView = findNextView(g_CurrentUIView, false, viewCodeMatchesState);
   }
   else if (ev == UI_EV_BTNPRESS) {
     changeUIState('V');

@@ -145,6 +145,10 @@ void setBlowerPower(uint8_t power) {
   breseInit(power, getCycleLengthForBlowerPower(power));
 }
 
+void setBlowerPower(uint8_t power, uint8_t powerCycle) 
+{
+  breseInit(power, powerCycle);
+}
 
 
 uint8_t getCurrentBlowerPower() {

@@ -17,6 +17,7 @@ void setFeeder(bool b);
 bool isFeederOn();
 
 void setBlowerPower(uint8_t power);
+void setBlowerPower(uint8_t power, uint8_t powerCycle);
 uint8_t getCurrentBlowerPower();
 
 

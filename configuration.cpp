@@ -36,7 +36,9 @@ TControlConfiguration g_CurrentConfig = {
       50,
       7
     }
-  }
+  },
+  {}, //dallas
+  5   //DefaultBlowerCycle
 };
 
 
