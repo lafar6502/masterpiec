@@ -46,6 +46,7 @@ void loop() {
   processSensorValues();  //wciagamy odczyty sensorów do zmiennych programu
   standardBurnLoop();     //procedura kontroli spalania
   updateView();           //aktualizacja ui
+  periodicDumpControlState();
   int m2 = millis();
   int d = 100 - (m2 - m);
   if (d > 0) 
@@ -59,6 +60,29 @@ void loop() {
   }
 }
 
+void periodicDumpControlState() {
+  static unsigned int lastDump = 0;
+  unsigned int t = millis();
+  if (t - lastDump > 5000)
+  {
+    lastDump = t;
+    Serial.print("s:");
+    Serial.print(BURN_STATES[g_BurnState].Code);
+    Serial.print(", dm:");
+    Serial.print(getCurrentBlowerPower());
+    Serial.print(", pd:");
+    Serial.print(isFeederOn() ? "ON": "OFF");
+    Serial.print(", co:");
+    Serial.print(isPumpOn(PUMP_CO1));
+    Serial.print(", cwu:");
+    Serial.print(isPumpOn(PUMP_CWU1));
+    Serial.print(", stime:");
+    Serial.print((t - g_CurStateStart) / 1000);
+    //Serial.print(", btime:");
+    //Serial.print((t - burnCycleStart) / 1000);
+    Serial.println();
+  }
+}
 
 //czas wejscia w bieżący stan, ms
 unsigned long g_CurStateStart = 0;
@@ -144,14 +168,15 @@ void workStateBurnLoop() {
   static unsigned long tPrev = 0;
   if (tNow < burnCycleStart + burnFeedLen) 
   {
-    if (!isFeederOn()) setFeederOn();
+    setFeederOn();
   }
   else 
   {
-    if (isFeederOn()) setFeederOff();
+    setFeederOff();
   }
   if (tNow >= burnCycleStart + burnCycleLen) {
     burnCycleStart = millis(); //
+    setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower);
   }
   if (tPrev - tNow > 5000) {
     Serial.print("Burn s");

@@ -3,34 +3,45 @@
 #include "boiler_control.h"
 #include "global_variables.h"
 
-const uint8_t pump_pins[] = {
-  HW_PUMP_CO1_CTRL_PIN,
-  HW_PUMP_CWU1_CTRL_PIN,
-  HW_PUMP_CO2_CTRL_PIN,
-  HW_PUMP_CIRC_CTRL_PIN
+struct tPumpPin {
+  uint8_t Pin;
+  bool    Enabled;
+  bool    On;
 };
 
+tPumpPin pump_ctrl_pins[] = {
+  {HW_PUMP_CO1_CTRL_PIN, false},
+  {HW_PUMP_CWU1_CTRL_PIN, false},
+  {HW_PUMP_CO2_CTRL_PIN, false},
+  {HW_PUMP_CIRC_CTRL_PIN, false}
+};
+
+
 void setPumpOn(uint8_t num) {
-  if (num >= sizeof(pump_pins)) return;
-  digitalWrite(pump_pins[num], HIGH);
+  if (num >= sizeof(pump_ctrl_pins)/sizeof(tPumpPin)) return;
+  pump_ctrl_pins[num].On = true;
+  digitalWrite(pump_ctrl_pins[num].Pin, HIGH);
 }
 
 void setPumpOff(uint8_t num) {
-  if (num >= sizeof(pump_pins)) return;
-  digitalWrite(pump_pins[num], LOW);
+  if (num >= sizeof(pump_ctrl_pins)/sizeof(tPumpPin)) return;
+  pump_ctrl_pins[num].On = false;
+  digitalWrite(pump_ctrl_pins[num].Pin, LOW);
 }
 
 bool isPumpOn(uint8_t num) {
-  if (num >= sizeof(pump_pins)) return false;
-  return digitalRead(pump_pins[num]) == HIGH;
+  if (num >= sizeof(pump_ctrl_pins)/sizeof(tPumpPin)) return false;
+  return pump_ctrl_pins[num].On;
 }
 
 bool isPumpEnabled(uint8_t num) {
-  if (num >= sizeof(pump_pins)) return false;
+  if (num >= sizeof(pump_ctrl_pins)/sizeof(tPumpPin)) return false;
   return true;
 }
 
+bool feeder = false;
 void setFeeder(bool on) {
+  feeder = on;
   digitalWrite(HW_FEEDER_CTRL_PIN, on ? HIGH : LOW);
 }
 //uruchomienie podajnika
@@ -43,7 +54,7 @@ void setFeederOff() {
 }
 //czy podajnik działa
 bool isFeederOn() {
- return digitalRead(HW_FEEDER_CTRL_PIN) == HIGH;
+ return feeder;
 }
 
 
@@ -99,6 +110,10 @@ void breseInit(uint8_t power, uint8_t cycleLength) {
     brese_cycle = cycleLength;
     //brese_curV = 0;
     //brese_error = 0;
+    Serial.print("brese pow:");
+    Serial.print(power);
+    Serial.print(", c:");
+    Serial.println(brese_cycle);
 }
 
 void initializeBlowerControl() {
@@ -111,7 +126,13 @@ void initializeBlowerControl() {
   pinMode(HW_PUMP_CO2_CTRL_PIN, OUTPUT);
   pinMode(HW_PUMP_CIRC_CTRL_PIN, OUTPUT);
   pinMode(HW_FEEDER_CTRL_PIN, OUTPUT);
+  digitalWrite(HW_PUMP_CO1_CTRL_PIN, LOW);
+  digitalWrite(HW_PUMP_CWU1_CTRL_PIN, LOW);
+  digitalWrite(HW_PUMP_CO2_CTRL_PIN, LOW);
+  digitalWrite(HW_PUMP_CIRC_CTRL_PIN, LOW);
+  digitalWrite(HW_FEEDER_CTRL_PIN, LOW);
 }
+
 
 
 uint8_t getCycleLengthForBlowerPower(uint8_t power) {
