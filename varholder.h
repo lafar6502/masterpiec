@@ -1,46 +1,73 @@
 #ifndef _VARHOLDER_H_INCLUDED_
 #define _VARHOLDER_H_INCLUDED_
 
-class VarHandlerBase {
+template<class T> class CircularBuffer
+{
+  private:
+    T* _buf;
+    int16_t _bufLen;
+    int16_t _tail;
+    int16_t _head;
+  
   public:
-    virtual void beginEdit() = 0;
-    virtual void endEdit() = 0;
-    virtual void adjust(int increment) = 0;
-    virtual void printTo(char* buf) = 0;
-};
+    CircularBuffer(T* buf, uint16_t bufLength) 
+    {
+      _buf = buf;
+      _bufLen = bufLength;
+      _head = _tail = 0; //head==tail -> empty, head=tail-1 -> full  
+    };
 
-template<class T> class VarHandler : VarHandlerBase {
-    private:
-      T * _original;
-      const char* _name;
-      static T _copy;
-      static bool _editing;
-    public:
-      VarHandler<T>(const char* name, T* pdata, const T minV, const T maxV) {
-        _original = pdata;
-        _name = name;
-      };
-
-      void beginEdit() {
-        _copy = *_original;
-        _editing = true;
+    void Enqueue(const T& d) {
+      _buf[_head] = d;
+      _head = (_head + 1) % _bufLen;
+      if (_tail == _head) { //head has trumped tail
+        _tail = (_tail + 1) % _bufLen;
       }
+    }
 
-      void endEdit(bool save) {
-        _editing = false;
-        if (save) {
-          *_original = _copy;
-        } 
-        else {
-          
-        }
-      }
+    const T& Dequeue() {
+      if (_tail == _head) return NULL;
+      int16_t t0 = _tail;
+      _tail = (_tail + 1) % _bufLen;
+      return _buf[t0];
+    }
 
-      void printTo(char* buf) {
-        String s = _editing ? new String(_copy) : new String(*_original);
-        return;
-      }
-      
+    uint16_t GetCount() {
+      return _head >= _tail ? _head - _tail : _head - _tail + _bufLen;
+    }
+
+    const T* GetFirst() {
+      if (_head == _tail) return NULL;
+      return _buf + _tail;
+    }
+    
+    const T* GetLast() {
+      if (_head == _tail) return NULL;
+      return _buf + (_head > 0 ? _head - 1 : _head - 1 + _bufLen);
+    }
+
+    const T* GetAt(uint16_t idx) {
+      if (_head == _tail) return NULL;
+      int16_t f = _tail + idx;
+      return _buf + (f >= _bufLen? f - _bufLen : f);
+    }
+    
+    void CopyTo(T* buf, uint16_t count) {
+      int16_t tl = _tail;
+      int16_t pos = 0;
+      while(tl != _head && pos < count) {
+        buf[pos++] = _buf[tl];
+        tl = (tl + 1) % _bufLen;
+      }  
+    }
+
+    bool IsEmpty() {
+      return _tail == _head;
+    }
+
+    bool IsFull() {
+      return  _tail == (_head + 1) % _bufLen;
+    }
 };
 
 #endif

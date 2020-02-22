@@ -5,6 +5,7 @@
 #include "hwsetup.h"
 #include "piec_sensors.h"
 #include "ui_handler.h"
+#include "varholder.h"
 
 void initializeBurningLoop() {
   g_TargetTemp = g_CurrentConfig.TCO;
@@ -14,7 +15,10 @@ void initializeBurningLoop() {
 }
 
 
-
+typedef struct {
+  unsigned long Ms;
+  float Val;
+} TReading;
 
 float g_TargetTemp = 0.1; //aktualnie zadana temperatura pieca (która może być wyższa od temp. zadanej w konfiguracji bo np grzejemy CWU)
 float g_CurrentHysteresis = 1.0;
@@ -28,7 +32,8 @@ TSTATE g_BurnState = STATE_UNDEFINED;  //aktualny stan grzania
 bool   g_HomeThermostatOn = true;  //true - termostat pokojowy kazał zaprzestać grzania
 float g_TempZewn = 0.0; //aktualna temp. zewn
 char* g_Alarm;
-
+TReading lastCOTemperatures[10];
+CircularBuffer<TReading> g_lastCOReads(lastCOTemperatures, sizeof(lastCOTemperatures));
 
 
 void setAlarm(const char* txt) {
@@ -48,10 +53,15 @@ void processSensorValues() {
   if (g_CurrentConfig.HomeThermostat) 
   {
     g_HomeThermostatOn = isThermostatOn();
-    if (g_HomeThermostatOn) Serial.println("T");
   }
-  
-  
+  unsigned long ms = millis();
+  if (g_lastCOReads.IsEmpty() || ms >= (g_lastCOReads.GetLast()->Ms + 10000)) {
+    g_lastCOReads.Enqueue({ms, g_TempCO});
+    Serial.println(g_lastCOReads.GetCount());
+    for(int i=0; i<g_lastCOReads.GetCount(); i++) {
+      Serial.println(g_lastCOReads.GetAt(i)->Val);
+    }
+  }
 }
 
 
@@ -358,7 +368,7 @@ bool isAlarm_HardwareProblem() {
     g_Alarm = "Czujnik temp CO";
     return true;
   }
-  if (g_CurrentConfig.FeederTempLimit > 0 && !isDallasEnabled(TSENS_FEEDER)) {
+  if (g_CurrentConfig.FeederTempLimit != 0 && !isDallasEnabled(TSENS_FEEDER)) {
     g_Alarm = "Czujnik podajnika";
     return true;
   }
@@ -374,6 +384,7 @@ bool isAlarm_Overheat() {
     g_Alarm = "Temp. podajnika";
     return true;
   }
+  return false;
 }
 
 bool isAlarm_NoHeating() {
