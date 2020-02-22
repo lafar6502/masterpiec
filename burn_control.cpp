@@ -6,6 +6,8 @@
 #include "piec_sensors.h"
 
 void initializeBurningLoop() {
+  g_AktTempZadana = g_CurrentConfig.TCO;
+  g_HomeThermostatOn = true;
   forceState(STATE_STOP);
 }
 
@@ -13,13 +15,14 @@ void initializeBurningLoop() {
 
 
 float g_AktTempZadana = 0.1; //aktualnie zadana temperatura pieca (która może być wyższa od temp. zadanej w konfiguracji bo np grzejemy CWU)
-float g_TempCO = 0.1;
+float g_TempCO = 0.0;
 float g_TempCWU = 0.0; 
-float g_TempPowrot = 0.1;  //akt. temp. powrotu
-float g_TempSpaliny = 0.1; //akt. temp. spalin
-float g_TempPodajnik = 0.1;
+float g_TempPowrot = 0.0;  //akt. temp. powrotu
+float g_TempSpaliny = 0.0; //akt. temp. spalin
+float g_TempFeeder = 0.1;
+float g_TempBurner = 0;
 TSTATE g_BurnState = STATE_UNDEFINED;  //aktualny stan grzania
-bool   g_TermostatStop = false;  //true - termostat pokojowy kazał zaprzestać grzania
+bool   g_HomeThermostatOn = true;  //true - termostat pokojowy kazał zaprzestać grzania
 float g_TempZewn = 0.0; //aktualna temp. zewn
 bool g_Alert = false;
 char* g_AlertReason;
@@ -32,9 +35,16 @@ void processSensorValues() {
   g_TempCO = getLastDallasValue(TSENS_BOILER);
   g_TempCWU = getLastDallasValue(TSENS_CWU);
   g_TempPowrot = getLastDallasValue(TSENS_RETURN);
-  g_TempPodajnik = getLastDallasValue(TSENS_FEEDER);
+  g_TempFeeder = getLastDallasValue(TSENS_FEEDER);
   g_TempZewn = getLastDallasValue(TSENS_EXTERNAL);
   g_TempSpaliny = getLastThermocoupleValue(T2SENS_EXHAUST);
+  g_TempBurner = getLastThermocoupleValue(T2SENS_BURNER);
+  if (g_CurrentConfig.HomeThermostat) 
+  {
+    g_HomeThermostatOn = digitalRead(HW_THERMOSTAT_PIN) != LOW;
+  }
+  
+  
 }
 
 
@@ -69,9 +79,6 @@ void burningProc()
   }
 }
 
-void updatePumpStatus() {
-  if (getManualControlMode()) return;
-}
 
 void setManualControlMode(bool b)
 {
@@ -110,7 +117,7 @@ void forceState(TSTATE st) {
   Serial.println(BURN_STATES[g_BurnState].Code);
 }
 
-
+void updatePumpStatus();
 
 //API 
 //to nasza procedura aktualizacji stanu hardware-u
@@ -183,6 +190,61 @@ void manualStateLoop() {
 }
 
 
+bool cond_shouldHeatCWU1() {
+  //check if cwu1 heating is needed
+  if (!isPumpEnabled(PUMP_CWU1)) return false;
+  if (g_TempCWU < g_CurrentConfig.TCWU - g_CurrentConfig.THistCwu) return true;
+  return false;
+}
+
+///kiedy potrzebujemy grzać grzejniki - tzn kiedy chcemy pompować wodę 
+bool cond_shouldHeatHome() {
+  if (getManualControlMode()) return false;
+  if (g_CurrentConfig.HomeThermostat) {
+    return g_HomeThermostatOn;
+  }
+  return true;
+}
+
+bool cond_needsCooling() {
+  return g_TempCO > 90;
+}
+
+//
+// which pumps and when
+// cwu heating needed -> turn on cwu pump if current temp is above min pump temp and above cwu temp + delta
+//
+void updatePumpStatus() {
+  if (getManualControlMode()) return;
+  if (cond_shouldHeatCWU1()) {
+    uint8_t minTemp = max(g_CurrentConfig.TMinPomp, g_TempCWU + g_CurrentConfig.TDeltaCWU);
+    if (g_TempCO >= minTemp) {
+      setPumpOn(PUMP_CWU1);
+    } 
+    else 
+    {
+      setPumpOff(PUMP_CWU1);
+    }
+  }
+  else if (cond_shouldHeatHome()) {
+    uint8_t minTemp = g_CurrentConfig.TMinPomp;
+    if (g_TempCO > minTemp) {
+      setPumpOn(PUMP_CO1);
+    } 
+    else {
+      setPumpOff(PUMP_CO1);
+    }
+  }
+  else if (cond_needsCooling()) {
+    setPumpOn(PUMP_CO1);
+    if (isPumpEnabled(PUMP_CWU1)) setPumpOn(PUMP_CWU1);
+  }
+  else 
+  {
+    setPumpOff(PUMP_CWU1);
+    setPumpOff(PUMP_CO1); 
+  }
+}
 
 
 

@@ -31,7 +31,7 @@
 #define HW_PUMP_CWU1_CTRL_PIN  A15
 #define HW_PUMP_CO2_CTRL_PIN  A14
 #define HW_PUMP_CIRC_CTRL_PIN  A8
-
+#define HW_THERMOSTAT_PIN 36
 
 
 

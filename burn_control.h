@@ -81,4 +81,27 @@ extern const uint8_t N_BURN_STATES;
 extern TSTATE g_BurnState;
 
 
+//czas wejscia w bieżący BURN stan, ms
+extern unsigned long g_CurStateStart;
+extern float  g_CurStateStartTempCO; //temp pieca w momencie wejscia w bież. stan.
+extern unsigned long g_CurBurnCycleStart; //timestamp, w ms, w ktorym rozpoczelismy akt. cykl palenia
+
+//
+// Globalne zmienne reprezentujące bieżący stan pieca, temperatury, dmuchawy itp
+// po to żeby np moduł UI mógł sobie je wyswietlać. 
+//
+
+extern float g_AktTempZadana; //aktualnie zadana temperatura pieca (która może być wyższa od temp. zadanej w konfiguracji bo np grzejemy CWU)
+extern float g_TempCO;
+extern float g_TempCWU; 
+extern float g_TempPowrot;  //akt. temp. powrotu
+extern float g_TempSpaliny; //akt. temp. spalin
+extern float g_TempFeeder;
+extern float g_TempBurner; //temp palnika
+
+extern TSTATE g_BurnState;  //aktualny stan grzania
+extern bool   g_HomeThermostatOn;  //true - termostat pokojowy kazał zaprzestać grzania
+extern float g_TempZewn; //aktualna temp. zewn
+
+
 #endif

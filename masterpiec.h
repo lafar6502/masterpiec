@@ -16,7 +16,5 @@ void eepromSaveConfig(uint8_t configSlot);
 //reset config to default
 void eepromResetConfig(uint8_t configSlot);
 
-///przejscie w dany stan bez sprawdzania war. początkowych
-void forceState(TSTATE state);
 
 #endif
