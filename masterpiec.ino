@@ -102,4 +102,12 @@ void updateDallasSensorAssignmentFromConfig() {
       Serial.println(buf);    
     }
   }
+  for(uint8_t i=0; i<8; i++) 
+  {
+    printDallasInfo(i, buf);
+    Serial.print("czujnik ");
+    Serial.print(i);
+    Serial.print(" ");
+    Serial.println(buf);
+  }
 }

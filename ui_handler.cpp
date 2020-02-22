@@ -119,7 +119,7 @@ void clearDipslayBuf() {
 
 void eraseDisplayToEnd(char* buf) {
   bool f = false;
-  for(int i=0; i<DISPLAY_TEXT_LEN; i++) 
+  for(int i=0; i<=DISPLAY_TEXT_LEN; i++) 
   {
     if (f) 
       buf[i] = ' ';
@@ -128,7 +128,7 @@ void eraseDisplayToEnd(char* buf) {
       buf[i] = ' ';
     }
   }
-  buf[DISPLAY_TEXT_LEN - 1] = 0;
+  buf[DISPLAY_TEXT_LEN] = 0;
 }
 
 void processUIEvent(uint8_t event, int8_t arg) 

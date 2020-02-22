@@ -321,10 +321,10 @@ void* copyDallasInfo(uint8_t vIdx, void* pData, bool save)
   static int cidx;
   if (!save) {
     int i2 = findDallasIndex(g_CurrentConfig.DallasAddress[idx]);
-    cidx = i2 == idx ? idx : -1;
+    cidx = i2 >= 0 ? i2 : -1;
     return &cidx;
   } 
-  else if (cidx != idx || cidx < 0) 
+  else  
   {
     if (cidx < 0 || cidx >= 8)
     {
@@ -333,7 +333,7 @@ void* copyDallasInfo(uint8_t vIdx, void* pData, bool save)
     else 
     {
       getDallasAddress(cidx, g_CurrentConfig.DallasAddress[idx]);//copy to config
-      swapDallasAddress(idx, cidx); //move the sensor info
+      if (cidx != idx) swapDallasAddress(idx, cidx); //move the sensor info
     }
   }
 }
