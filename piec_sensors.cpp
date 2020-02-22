@@ -2,12 +2,10 @@
 #include <DallasTemperature.h>
 #include <Thermocouple.h>
 #include <MAX6675_Thermocouple.h>
-
+#include "hwsetup.h"
 #include "piec_sensors.h"
 
-#define SCK_PIN 52
-#define CS_PIN 49
-#define SO_PIN 50
+
 
 struct TDallasSensor {
   DeviceAddress Addr;
@@ -28,12 +26,54 @@ DallasTemperature sensors(&oneWire);
 static TDallasSensor g_dallasSensors[MAX_DALLAS_SENSORS];
 static TThermocoupleSensor g_thermocouples[MAX_THERMOCOUPLES];
 
+void getDallasAddress(uint8_t idx, uint8_t buf[])
+{
+  if (idx >= MAX_DALLAS_SENSORS) return;
+  memcpy(buf, g_dallasSensors[idx].Addr, 8);
+}
+
+void swapDallasAddress(uint8_t idx1, uint8_t idx2)
+{
+  if (idx1 >= MAX_DALLAS_SENSORS || idx2 >= MAX_DALLAS_SENSORS) return;
+  if (idx1 == idx2) return;
+  TDallasSensor tmp = g_dallasSensors[idx1];
+  g_dallasSensors[idx1] = g_dallasSensors[idx2];
+  g_dallasSensors[idx2] = tmp;
+}
+
+bool ensureDallasSensorAtIndex(uint8_t idx, uint8_t addr[8]) 
+{
+  if (idx >= MAX_DALLAS_SENSORS) return false;
+  for(uint8_t i=0; i<MAX_DALLAS_SENSORS; i++) 
+  {
+    if (memcmp(g_dallasSensors[i].Addr, addr, 8) == 0) {
+      if (i == idx) return true;
+      swapDallasAddress(idx, i);
+      return true;
+    } 
+  }
+}
+
 void printAddress(DeviceAddress d)
 { 
   char buf[17];
   sprintf(buf, "%02X%02X%02X%02X%02X%02X%02X%02X", d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7]);
   
   Serial.println(buf);
+}
+
+void printDallasInfo(uint8_t idx, char* buf)
+{
+  uint8_t* d  = g_dallasSensors[idx].Addr;
+  sprintf(buf, "%d%c%02X%02X%02X%02X%02X %d", idx, g_dallasSensors[idx].Active ? '.':'!', d[3], d[4], d[5], d[6], d[7], g_dallasSensors[idx].Active ? (uint8_t) g_dallasSensors[idx].LastValue * 10 : 0);
+}
+
+int findDallasIndex(uint8_t addr[8])
+{
+  for(uint8_t i=0; i<MAX_DALLAS_SENSORS; i++) {
+    if (memcmp(addr, g_dallasSensors[i].Addr, 8) == 0) return i;
+  }
+  return -1;
 }
 
 void initializeDallasSensors() {
@@ -76,8 +116,9 @@ void initializeDallasSensors() {
 
 void initializeMax6675Sensors() 
 {
-  g_thermocouples[0].Sensor = new MAX6675_Thermocouple(SCK_PIN, CS_PIN, SO_PIN);
-  g_thermocouples[1].Sensor = NULL; //new MAX6675_Thermocouple(SCK_PIN, CS_PIN, SO_PIN);
+  g_thermocouples[0].Sensor = new MAX6675_Thermocouple(MAX6675_0_SCK_PIN, MAX6675_0_CS_PIN, MAX6675_0_SO_PIN);
+  g_thermocouples[1].Sensor = MAX6675_1_SCK_PIN == 0 ? NULL : new MAX6675_Thermocouple(MAX6675_1_SCK_PIN, MAX6675_1_CS_PIN, MAX6675_1_SO_PIN);
+  
   for (int i=0; i<sizeof(g_thermocouples)/sizeof(TThermocoupleSensor); i++) {
     if (g_thermocouples[i].Sensor != NULL) {
       int m = millis();

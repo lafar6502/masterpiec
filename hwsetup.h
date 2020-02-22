@@ -5,18 +5,6 @@
 #define MAX_DALLAS_SENSORS 8
 
 
-#define TSENS_BOILER 0 //temp pieca
-#define TSENS_CWU 1    //temp bojlera cwu
-#define TSENS_FEEDER 2 //temp podajn.
-#define TSENS_RETURN 3  //temp powrotu
-#define TSENS_EXTERNAL 4  //temp zewnetrzna
-#define TSENS_USR1 5  //temp user 1
-#define TSENS_USR2 6  //temp user 2 
-#define TSENS_USR3 7  //temp user 3
-
-#define MAX_THERMOCOUPLES 2
-#define T2SENS_EXHAUST 0  //temp. spalin
-#define T2SENS_BURNER  1  //temp. palnika
 
 
 #define HW_FEEDER_CTRL_PIN A10
@@ -33,6 +21,13 @@
 #define HW_PUMP_CIRC_CTRL_PIN  A8
 #define HW_THERMOSTAT_PIN 36
 
+#define MAX6675_0_SCK_PIN 52
+#define MAX6675_0_CS_PIN 49
+#define MAX6675_0_SO_PIN 50
+
+#define MAX6675_1_SCK_PIN 42
+#define MAX6675_1_CS_PIN 44
+#define MAX6675_1_SO_PIN 46
 
 
 #define DISPLAY_TEXT_LINES 2

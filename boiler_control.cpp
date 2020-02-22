@@ -1,4 +1,5 @@
 #include <arduino.h>
+#include "hwsetup.h"
 #include "piec_sensors.h"
 #include "boiler_control.h"
 #include "global_variables.h"

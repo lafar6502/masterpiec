@@ -6,6 +6,7 @@
 #include "piec_sensors.h"
 #include "boiler_control.h"
 
+void updateDallasSensorAssignmentFromConfig();
 /**
  * struktura programu
  * - sterowanie silnikiem dmuchawy - na przerwaniu 0
@@ -34,8 +35,9 @@ void setup() {
   initializeDallasSensors();
   initializeMax6675Sensors();
   initializeBlowerControl();
-  Serial.println("inited the hardware");
   
+  Serial.println("inited the hardware");
+  updateDallasSensorAssignmentFromConfig();
   initializeBurningLoop();
   changeUIState('0');
 }
@@ -83,5 +85,21 @@ void periodicDumpControlState() {
     //Serial.print(", btime:");
     //Serial.print((t - burnCycleStart) / 1000);
     Serial.println();
+  }
+}
+
+void updateDallasSensorAssignmentFromConfig() {
+  uint8_t zbuf[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+  char buf[20];
+  
+  for(uint8_t i=0; i<8; i++) {
+    uint8_t*p = g_CurrentConfig.DallasAddress[i];
+    if (memcmp(p, zbuf, 8) == 0) continue;
+    
+    if (!ensureDallasSensorAtIndex(i, p)) {
+      Serial.print("Invalid dallas address ");
+      sprintf(buf, "%d: %02X%02X%02X%02X%02X%02X%02X%02X", i, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8]);     
+      Serial.println(buf);    
+    }
   }
 }

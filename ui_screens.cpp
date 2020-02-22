@@ -4,6 +4,7 @@
 #include "boiler_control.h"
 #include <MD_DS1307.h>
 #include "masterpiec.h"
+#include "piec_sensors.h"
 
 uint16_t g_CurrentlyEditedVariable = 0;
 uint8_t g_CurrentUIState = 1;
@@ -182,6 +183,15 @@ void adjustUint8(uint8_t varIdx, void* data, int8_t increment) {
   *pd = v2;
 }
 
+void adjustInt(uint8_t varIdx, void* data, int8_t increment) {
+  const TUIVarEntry* pv = UI_VARIABLES + varIdx;
+  int* pd = (int*) (data == NULL ? pv->DataPtr : data);
+  int v2 = *pd + increment;
+  if (v2 < pv->Min) v2 = (uint8_t) pv->Max;
+  if (v2 > pv->Max) v2 = (uint8_t) pv->Min;
+  *pd = v2;
+}
+
 
 void adjustBool(uint8_t varIdx, void* data, int8_t increment) {
   const TUIVarEntry* pv = UI_VARIABLES + varIdx;
@@ -285,6 +295,42 @@ void adjustPumpState(uint8_t varIdx, void* d, int8_t increment) {
     setPumpOff(i);
   else
     setPumpOn(i);
+}
+
+//jak to działa -> otoz zmieniamy wartość zmiennej (i) ktora ma nr czujnika.
+void printDallasInfo(uint8_t varIdx, void* editCopy, char* buf) {
+  int idx = (int) UI_VARIABLES[varIdx].DataPtr;
+  if (editCopy == NULL) {
+    int idx2 = findDallasIndex(g_CurrentConfig.DallasAddress[idx]);
+    if (idx2 < 0) 
+      sprintf(buf, "%s", "-brak-");
+    else
+      printDallasInfo(idx2, buf); 
+  }
+  else {
+    idx = * ((int*) editCopy);
+    if (idx < 0) 
+      sprintf(buf, "%s", "-brak-");
+    else
+      printDallasInfo(idx, buf);
+  }
+}
+
+void* copyDallasInfo(uint8_t vIdx, void* pData, bool save) 
+{
+  int idx = (int) UI_VARIABLES[vIdx].DataPtr;
+  static int cidx;
+  if (!save) {
+    int i2 = findDallasIndex(g_CurrentConfig.DallasAddress[idx]);
+    cidx = i2 == idx ? idx : -1;
+    return &cidx;
+  } 
+  else 
+  {
+    if (cidx >= 0 && cidx < 8 && cidx != idx) {
+      swapDallasAddress(idx, cidx);
+    }
+  }
 }
 
 void adjustFeederState(uint8_t varIdx, void*d, int8_t increment) {
@@ -415,6 +461,9 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"P2 podawanie", 0, &g_CurrentConfig.BurnConfigs[STATE_P2].FuelSecT10, 0, 600, printUint16_10, adjustUint16, copyU16, commitConfig},
   {"P2 dmuchawa %", 0, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   {"P2 dmuchawa CZ", 0, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+
+  {"Czuj. CO", 0, TSENS_BOILER, 0, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig}
+  
   
 };
 
