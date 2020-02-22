@@ -33,4 +33,6 @@
 #define DISPLAY_TEXT_LINES 2
 #define DISPLAY_TEXT_LEN  16
 
+#define MPIEC_ENABLE_WEBSERVER
+
 #endif

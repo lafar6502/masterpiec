@@ -39,6 +39,9 @@ void setup() {
   Serial.println("inited the hardware");
   updateDallasSensorAssignmentFromConfig();
   initializeBurningLoop();
+#ifdef MPIEC_ENABLE_WEBSERVER
+  setupWebServer();
+#endif
   changeUIState('0');
 }
 
@@ -51,6 +54,9 @@ void loop() {
   burnControlTask();     //procedura kontroli spalania
   updateView();           //aktualizacja ui
   periodicDumpControlState();
+  #ifdef MPIEC_ENABLE_WEBSERVER
+    webHandlingTask();
+  #endif
   int m2 = millis();
   int d = 150 - (m2 - m);
   if (d > 0) 
