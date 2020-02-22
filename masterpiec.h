@@ -13,8 +13,8 @@ bool eepromRestoreConfig(uint8_t configSlot);
 //store current configuration in specified config slot
 void eepromSaveConfig(uint8_t configSlot);
 
-//reset config to default
 void eepromResetConfig(uint8_t configSlot);
 
-
+//reset config to default, but dont save it in eeprom
+void resetConfig();
 #endif

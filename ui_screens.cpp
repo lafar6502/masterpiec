@@ -42,14 +42,32 @@ void scrTime(uint8_t idx, char* lines[]) {
 }
 
 void scrBurnInfo(uint8_t idx, char* lines[]) {
-  sprintf(lines[0], "S%c", BURN_STATES[g_BurnState].Code); 
+  unsigned int tnow = millis();
+  if (g_BurnState == STATE_P0 || g_BurnState == STATE_P1 || g_BurnState == STATE_P2)
+  {
+    uint8_t cycle = g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle;
+    unsigned int burnCycleLen = g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec * 1000;
+    
+    sprintf(lines[0], "S%c T%d/%d", BURN_STATES[g_BurnState].Code, g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec - (tnow - g_CurStateStart) / 1000, (tnow - g_CurBurnCycleStart) / 1000); 
+    sprintf(lines[1], "P%d%% %d", getCurrentBlowerPower(), cycle);
+  }
+  else if (g_BurnState == STATE_REDUCE1 || g_BurnState == STATE_REDUCE2) 
+  {
+    sprintf(lines[0], "redukcja mocy");  
+  }
+  else if (g_BurnState == STATE_STOP) {
+    sprintf(lines[0], "STOP - tryb reczny");
+  }
+  else if (g_BurnState == STATE_ALARM) {
+    sprintf(lines[0], "ALARM");
+  }
 }
 
 uint16_t findNextView(uint16_t currentView, bool increment, bool (*f)(uint16_t))
 {
   int16_t c = currentView;
   int cnt = 0;
-  while(cnt < N_UI_SCREENS) {
+  while(cnt++ < N_UI_SCREENS) {
     c += increment ? 1 : -1;
     if (c < 0) c = N_UI_SCREENS - 1;
     if (c >= N_UI_SCREENS) c = 0;
@@ -62,9 +80,32 @@ bool viewCodeMatchesState(uint16_t n) {
   return UI_SCREENS[n].Code == UI_STATES[g_CurrentUIState].Code;
 }
 
+bool variableIsAdvanced(uint16_t n) {
+  return (UI_VARIABLES[n].Flags & VAR_ADVANCED) != 0;
+}
+
+bool variableIsNotAdvanced(uint16_t n) {
+  return (UI_VARIABLES[n].Flags & VAR_ADVANCED) == 0;
+}
+
+uint16_t findNextVariable(uint16_t currentVariable, bool increment, bool (*f)(uint16_t))
+{
+  int16_t c = currentVariable;
+  int cnt = 0;
+  while(cnt++ < N_UI_VARIABLES) {
+    c += increment ? 1 : -1;
+    if (c < 0) c = N_UI_VARIABLES - 1;
+    if (c >= N_UI_VARIABLES) c = 0;
+    if (f == NULL || f(c)) return c;
+  }
+  return currentVariable;
+}
+
 void stDefaultEventHandler(uint8_t ev, uint8_t arg) 
 {
-  //screens 0, 1, 2
+  if (ev == UI_EV_INITSTATE) {
+    return;
+  }
   if (ev == UI_EV_UP) {
     g_CurrentUIView = findNextView(g_CurrentUIView, true, viewCodeMatchesState);
   } else if (ev == UI_EV_DOWN) {
@@ -82,38 +123,34 @@ void stSelectVariableHandler(uint8_t ev, uint8_t arg)
   const TUIStateEntry* ps = UI_STATES + g_CurrentUIState;
   bool advanced = ps->Data.numV == 1;
   g_CurrentUIView = ps->DefaultView;
-
   if (g_CurrentlyEditedVariable > N_UI_VARIABLES) g_CurrentlyEditedVariable = 0;
-  while(advanced && (UI_VARIABLES[g_CurrentlyEditedVariable].Flags & VAR_ADVANCED != 0))
-  {
-    g_CurrentlyEditedVariable++;
-    if (g_CurrentlyEditedVariable >= N_UI_VARIABLES) g_CurrentlyEditedVariable = 0;
+  bool (*f)(uint16_t) = advanced ? variableIsAdvanced : variableIsNotAdvanced;
+  if (ev == UI_EV_INITSTATE) {
+    if (!f(g_CurrentlyEditedVariable)) g_CurrentlyEditedVariable = findNextVariable(g_CurrentlyEditedVariable, true, f);
+    return;
   }
-  Serial.print("selv:");
-  Serial.println(UI_VARIABLES[g_CurrentlyEditedVariable].Name);
   
-  if (ev == UI_EV_UP) {
-    do 
-    {
-      g_CurrentlyEditedVariable = (g_CurrentlyEditedVariable + 1) % N_UI_VARIABLES;
-    }
-    while(!advanced && (UI_VARIABLES[g_CurrentlyEditedVariable].Flags & VAR_ADVANCED != 0));
-    Serial.print("new var:");
+  
+  if (ev == UI_EV_UP) 
+  {
+    g_CurrentlyEditedVariable = findNextVariable(g_CurrentlyEditedVariable, true, f);
+    Serial.print("next var:");
     Serial.println(g_CurrentlyEditedVariable);
   }
   else if (ev == UI_EV_DOWN) 
   {
-    do 
-    {
-      g_CurrentlyEditedVariable = g_CurrentlyEditedVariable == 0 ? N_UI_VARIABLES - 1 : g_CurrentlyEditedVariable - 1;
-    }
-    while(!advanced && (UI_VARIABLES[g_CurrentlyEditedVariable].Flags & VAR_ADVANCED != 0));  
-    Serial.print("new var:");
+    g_CurrentlyEditedVariable = findNextVariable(g_CurrentlyEditedVariable, false, f);
+    Serial.print("next var:");
     Serial.println(g_CurrentlyEditedVariable);
   }
   else if (ev == UI_EV_BTNPRESS) 
   {
-    if ((UI_VARIABLES[g_CurrentlyEditedVariable].Flags | VAR_EDITABLE) != 0)
+    if ((UI_VARIABLES[g_CurrentlyEditedVariable].Flags & VAR_IMMEDIATE) != 0 && UI_VARIABLES[g_CurrentlyEditedVariable].Adjust != NULL)
+    {
+      UI_VARIABLES[g_CurrentlyEditedVariable].Adjust(g_CurrentlyEditedVariable, NULL, 1);
+      return;
+    }
+    if ((UI_VARIABLES[g_CurrentlyEditedVariable].Adjust) != NULL)
     {
       changeUIState('E');
     }  
@@ -178,7 +215,7 @@ void scrSelectVariable(uint8_t idx, char* lines[])
   const TUIVarEntry* pv = UI_VARIABLES + g_CurrentlyEditedVariable;
   sprintf(lines[0], "%s", pv->Name);
   sprintf(lines[1], "V:");
-  pv->PrintTo(g_CurrentlyEditedVariable, NULL, lines[1] + 2);
+  if (pv->PrintTo != NULL) pv->PrintTo(g_CurrentlyEditedVariable, NULL, lines[1] + 2);
 }
 
 void scrEditVariable(uint8_t idx, char* lines[])
@@ -186,7 +223,7 @@ void scrEditVariable(uint8_t idx, char* lines[])
   const TUIStateEntry* ps = UI_STATES + g_CurrentUIState;
   const TUIVarEntry* pv = UI_VARIABLES + g_CurrentlyEditedVariable;
   sprintf(lines[0], "<-%s->", pv->Name);
-  pv->PrintTo(g_CurrentlyEditedVariable, g_editCopy, lines[1]);
+  if (pv->PrintTo != NULL) pv->PrintTo(g_CurrentlyEditedVariable, g_editCopy, lines[1]);
 }
 
 
@@ -369,6 +406,11 @@ void adjustBlowerState(uint8_t varIdx, void* d, int8_t increment) {
   setBlowerPower(v);
 }
 
+void adjustUIState(uint8_t varIdx, void* d, int8_t increment) {
+  char c = (char) UI_VARIABLES[varIdx].DataPtr;
+  changeUIState(c);
+}
+
 void* copyU8(uint8_t varIdx, void* pData, bool save) 
 {
   static uint8_t _copy;
@@ -445,11 +487,12 @@ const TUIScreenEntry UI_SCREENS[]  = {
 const uint8_t N_UI_SCREENS = sizeof(UI_SCREENS) / sizeof(TUIScreenEntry);
 
 const TUIVarEntry UI_VARIABLES[] = {
-  {"Rok", 0, &RTC.yyyy, 2019, 3000, printUint16, adjustUint16, copyU16, queueCommitTime},
-  {"Miesiac", 0, &RTC.mm, 1, 12, printUint8, adjustUint8, copyU8, queueCommitTime},
-  {"Dzien", 0, &RTC.dd, 1, 31, printUint8, adjustUint8, copyU8, queueCommitTime},
-  {"Godzina", 0, &RTC.h, 1, 23, printUint8, adjustUint8, copyU8, queueCommitTime},
-  {"Minuta", 0, &RTC.m, 1, 59, printUint8, adjustUint8, copyU8, queueCommitTime},
+  {"Rok", VAR_ADVANCED, &RTC.yyyy, 2019, 3000, printUint16, adjustUint16, copyU16, queueCommitTime},
+  {"Miesiac", VAR_ADVANCED, &RTC.mm, 1, 12, printUint8, adjustUint8, copyU8, queueCommitTime},
+  {"Dzien", VAR_ADVANCED, &RTC.dd, 1, 31, printUint8, adjustUint8, copyU8, queueCommitTime},
+  {"Godzina", VAR_ADVANCED, &RTC.h, 1, 23, printUint8, adjustUint8, copyU8, queueCommitTime},
+  {"Minuta", VAR_ADVANCED, &RTC.m, 1, 59, printUint8, adjustUint8, copyU8, queueCommitTime},
+  
   {"Tryb reczny", 0, getManualControlMode, 0, 1, printVBoolSwitch, adjustBool, copyVBoolSwitch, NULL, {.setBoolF = setManualControlMode}},
   {"Pompa CO", 0, PUMP_CO1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
   {"Pompa CWU", 0, PUMP_CWU1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
@@ -461,38 +504,41 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Temp.CWU", 0, &g_CurrentConfig.TCWU, 20, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {"Temp.CWU2", 0, &g_CurrentConfig.TCWU2, 20, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {"Histereza CWU", 0, &g_CurrentConfig.THistCwu, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Temp.min.pomp", 0, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
-  {"DeltaT", 0, &g_CurrentConfig.TDeltaCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
-  {"DeltaCWU", 0, &g_CurrentConfig.TDeltaCWU, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
+  {"Temp.min.pomp", VAR_ADVANCED, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
+  {"DeltaT", VAR_ADVANCED, &g_CurrentConfig.TDeltaCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
+  {"DeltaCWU", VAR_ADVANCED, &g_CurrentConfig.TDeltaCWU, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
   
-  {"P0 cykl przedm.", 0, &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec, 0, 15, printUint16, adjustUint16, copyU16, commitConfig},
+  {"P0 cykl przedm.", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec, 0, 15, printUint16, adjustUint16, copyU16, commitConfig},
   
-  {"P0 cykl sek.", 0, &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec, 0, 3600, printUint16, adjustUint16, copyU16, commitConfig},
-  {"P0 podawanie", 0, &g_CurrentConfig.BurnConfigs[STATE_P0].FuelSecT10, 0, 600, printUint16_10, adjustUint16, copyU16, commitConfig},
-  {"P0 wegiel co", 0, &g_CurrentConfig.P0FuelFreq, 1, 5, printUint8, adjustUint8, copyU8, commitConfig},
-  {"P0 dmuchawa sek", 0, &g_CurrentConfig.P0BlowerTime, 1, 240, printUint8, adjustUint8, copyU8, commitConfig},
-  {"P0 dmuchawa %", 0, &g_CurrentConfig.BurnConfigs[STATE_P0].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
-  {"P0 dmuchawa CZ", 0, &g_CurrentConfig.BurnConfigs[STATE_P0].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {"P0 cykl sek.", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec, 0, 3600, printUint16, adjustUint16, copyU16, commitConfig},
+  {"P0 podawanie", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].FuelSecT10, 0, 600, printUint16_10, adjustUint16, copyU16, commitConfig},
+  {"P0 wegiel co", VAR_ADVANCED, &g_CurrentConfig.P0FuelFreq, 1, 5, printUint8, adjustUint8, copyU8, commitConfig},
+  {"P0 dmuchawa sek", VAR_ADVANCED, &g_CurrentConfig.P0BlowerTime, 1, 240, printUint8, adjustUint8, copyU8, commitConfig},
+  {"P0 dmuchawa %", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {"P0 dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   
-  {"P1 cykl sek.", 0, &g_CurrentConfig.BurnConfigs[STATE_P1].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
-  {"P1 podawanie", 0, &g_CurrentConfig.BurnConfigs[STATE_P1].FuelSecT10, 0, 600, printUint16_10, adjustUint16, copyU16, commitConfig},
-  {"P1 dmuchawa %", 0, &g_CurrentConfig.BurnConfigs[STATE_P1].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
-  {"P1 dmuchawa CZ", 0, &g_CurrentConfig.BurnConfigs[STATE_P1].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {"P1 cykl sek.", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
+  {"P1 podawanie", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].FuelSecT10, 0, 600, printUint16_10, adjustUint16, copyU16, commitConfig},
+  {"P1 dmuchawa %", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {"P1 dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
 
-  {"P2 cykl sek.", 0, &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
-  {"P2 podawanie", 0, &g_CurrentConfig.BurnConfigs[STATE_P2].FuelSecT10, 0, 600, printUint16_10, adjustUint16, copyU16, commitConfig},
-  {"P2 dmuchawa %", 0, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
-  {"P2 dmuchawa CZ", 0, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {"P2 cykl sek.", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
+  {"P2 podawanie", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].FuelSecT10, 0, 600, printUint16_10, adjustUint16, copyU16, commitConfig},
+  {"P2 dmuchawa %", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {"P2 dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
 
-  {"Czuj. CO", 0, TSENS_BOILER, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
-  {"Czuj. CWU", 0, TSENS_CWU, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
-  {"Czuj. podajnika", 0, TSENS_FEEDER, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
-  {"Czuj. powrotu", 0, TSENS_RETURN, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
-  {"Czuj. T zewn", 0, TSENS_EXTERNAL, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
-  {"Czuj. CWU 2", 0, TSENS_CWU2, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
-  {"Czuj. dod #1", 0, TSENS_USR1, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
-  {"Czuj. dod #2", 0, TSENS_USR2, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig}
-  
+  {"Czuj. CO", VAR_ADVANCED, TSENS_BOILER, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
+  {"Czuj. CWU", VAR_ADVANCED, TSENS_CWU, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
+  {"Czuj. podajnika", VAR_ADVANCED, TSENS_FEEDER, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
+  {"Czuj. powrotu",VAR_ADVANCED, TSENS_RETURN, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
+  {"Czuj. T zewn", VAR_ADVANCED, TSENS_EXTERNAL, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
+  {"Czuj. CWU 2",  VAR_ADVANCED, TSENS_CWU2, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
+  {"Czuj. dod #1", VAR_ADVANCED, TSENS_USR1, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
+  {"Czuj. dod #2", VAR_ADVANCED, TSENS_USR2, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
+
+  {"Ust.zaawansowane", VAR_IMMEDIATE, 'W', 0, 1, NULL, adjustUIState, NULL, NULL},
+  {"Wyjdz", VAR_IMMEDIATE, '0', 0, 1, NULL, adjustUIState, NULL, NULL},
+  {"Wyjdz", VAR_IMMEDIATE | VAR_ADVANCED, '0', 0, 1, NULL, adjustUIState, NULL, NULL},
 };
 
 const uint8_t N_UI_VARIABLES = sizeof(UI_VARIABLES) / sizeof(TUIVarEntry);

@@ -109,6 +109,7 @@ unsigned long g_CurBurnCycleStart = 0; //timestamp, w ms, w ktorym rozpoczelismy
 //api - switch to state
 void forceState(TSTATE st) {
   assert(st != STATE_UNDEFINED);
+  if (st == g_BurnState) return;
   g_BurnState = st;
   g_CurStateStart = millis();
   g_CurStateStartTempCO = g_TempCO;
@@ -136,6 +137,7 @@ void burnControlTask() {
 //inicjalizacja dla stanu grzania autom. P1 P2
 void workStateInitialize(TSTATE t) {
   assert(g_BurnState != STATE_UNDEFINED && g_BurnState != STATE_STOP && g_BurnState < N_BURN_STATES);
+  g_CurStateStart = millis();
   g_CurBurnCycleStart = g_CurStateStart;
   setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
 }
@@ -170,6 +172,7 @@ void workStateBurnLoop() {
 }
 
 void podtrzymanieStateInitialize(TSTATE t) {
+  g_CurStateStart = millis();
   g_CurBurnCycleStart = g_CurStateStart;
   setBlowerPower(0);
   setFeederOff();
