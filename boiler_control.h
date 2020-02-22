@@ -23,6 +23,8 @@ uint8_t getCurrentBlowerCycle();
 
 void initializeBlowerControl();
 
+bool isThermostatOn();
+
 
 
 

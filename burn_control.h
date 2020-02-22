@@ -73,6 +73,9 @@ void burnControlTask();
 void setManualControlMode(bool b);
 //czy mamy tryb automatyczny
 bool getManualControlMode();
+//check if heating is needed anywhere (for home or for cwu)
+bool needHeatingNow();
+
 void forceState(TSTATE st);
 
 extern const TBurnTransition  BURN_TRANSITIONS[];

@@ -32,7 +32,7 @@ void scrDefault(uint8_t idx, char* lines[])
   
   sprintf(lines[0], "T:%s/%s B:%s", buf2, buf1, buf3);
   
-  sprintf(lines[1], "S%c %2d%%         ", BURN_STATES[g_BurnState].Code, getCurrentBlowerPower()); 
+  sprintf(lines[1], "%c%c %2d%%         ", needHeatingNow() ? '!' : '_', BURN_STATES[g_BurnState].Code, getCurrentBlowerPower()); 
   
 }
 

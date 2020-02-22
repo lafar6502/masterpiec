@@ -43,7 +43,8 @@ void processSensorValues() {
   g_TempBurner = getLastThermocoupleValue(T2SENS_BURNER);
   if (g_CurrentConfig.HomeThermostat) 
   {
-    g_HomeThermostatOn = digitalRead(HW_THERMOSTAT_PIN) != LOW;
+    g_HomeThermostatOn = isThermostatOn();
+    if (g_HomeThermostatOn) Serial.println("T");
   }
   
   
@@ -285,12 +286,11 @@ bool cond_shouldHeatCWU1() {
   return false;
 }
 
-///kiedy potrzebujemy grzać grzejniki - tzn kiedy chcemy pompować wodę 
+///kiedy potrzebujemy grzać grzejniki - tzn kiedy jest zapotrzebowanie na grzanie w domowej instalacji, niezaleznie od akt. stanu kotła.
 bool cond_shouldHeatHome() {
   if (getManualControlMode()) return false;
-  if (g_CurrentConfig.HomeThermostat) {
-    return g_HomeThermostatOn;
-  }
+  if (g_CurrentConfig.SummerMode) return false;
+  if (g_CurrentConfig.HomeThermostat) return g_HomeThermostatOn;
   return true;
 }
 
@@ -382,6 +382,9 @@ bool cond_boilerOverheated() {
   return g_TempCO >= g_TargetTemp + g_CurrentConfig.TDeltaCO;
 }
 
+bool needHeatingNow() {
+  return cond_shouldHeatCWU1() || cond_shouldHeatHome();
+}
 //heating is needed and temp is below the target
 bool cond_needHeatingAndBelowTargetTemp() {
   if (g_TempCO >= g_TargetTemp) return false;

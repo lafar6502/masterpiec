@@ -134,9 +134,17 @@ void initializeBlowerControl() {
   digitalWrite(HW_PUMP_CO2_CTRL_PIN, LOW);
   digitalWrite(HW_PUMP_CIRC_CTRL_PIN, LOW);
   digitalWrite(HW_FEEDER_CTRL_PIN, LOW);
+  if (HW_THERMOSTAT_PIN != 0) 
+  {
+    pinMode(HW_THERMOSTAT_PIN, INPUT_PULLUP);  
+  }
 }
 
 
+bool isThermostatOn() {
+  if (HW_THERMOSTAT_PIN == 0) return false;
+  return digitalRead(HW_THERMOSTAT_PIN) == LOW;
+}
 
 uint8_t getCycleLengthForBlowerPower(uint8_t power) {
   return 7;
