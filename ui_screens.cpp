@@ -169,8 +169,7 @@ void scrEditVariable(uint8_t idx, char* lines[])
   const TUIStateEntry* ps = UI_STATES + g_CurrentUIState;
   const TUIVarEntry* pv = UI_VARIABLES + g_CurrentlyEditedVariable;
   sprintf(lines[0], "<-%s->", pv->Name);
-  sprintf(lines[1], "V:");
-  pv->PrintTo(g_CurrentlyEditedVariable, g_editCopy, lines[1] + 2);
+  pv->PrintTo(g_CurrentlyEditedVariable, g_editCopy, lines[1]);
 }
 
 
@@ -325,10 +324,16 @@ void* copyDallasInfo(uint8_t vIdx, void* pData, bool save)
     cidx = i2 == idx ? idx : -1;
     return &cidx;
   } 
-  else 
+  else if (cidx != idx || cidx < 0) 
   {
-    if (cidx >= 0 && cidx < 8 && cidx != idx) {
-      swapDallasAddress(idx, cidx);
+    if (cidx < 0 || cidx >= 8)
+    {
+      memset(g_CurrentConfig.DallasAddress[idx], 0, 8);
+    }
+    else 
+    {
+      getDallasAddress(cidx, g_CurrentConfig.DallasAddress[idx]);//copy to config
+      swapDallasAddress(idx, cidx); //move the sensor info
     }
   }
 }
@@ -462,8 +467,14 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"P2 dmuchawa %", 0, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   {"P2 dmuchawa CZ", 0, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
 
-  {"Czuj. CO", 0, TSENS_BOILER, 0, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig}
-  
+  {"Czuj. CO", 0, TSENS_BOILER, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
+  {"Czuj. CWU", 0, TSENS_CWU, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
+  {"Czuj. podajnika", 0, TSENS_FEEDER, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
+  {"Czuj. powrotu", 0, TSENS_RETURN, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
+  {"Czuj. T zewn", 0, TSENS_EXTERNAL, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
+  {"Czuj. CWU 2", 0, TSENS_CWU2, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
+  {"Czuj. dod #1", 0, TSENS_USR1, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
+  {"Czuj. dod #2", 0, TSENS_USR2, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig}
   
 };
 

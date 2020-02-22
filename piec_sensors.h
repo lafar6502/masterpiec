@@ -9,9 +9,9 @@
 #define TSENS_FEEDER 2 //temp podajn.
 #define TSENS_RETURN 3  //temp powrotu
 #define TSENS_EXTERNAL 4  //temp zewnetrzna
-#define TSENS_USR1 5  //temp user 1
-#define TSENS_USR2 6  //temp user 2 
-#define TSENS_USR3 7  //temp user 3
+#define TSENS_CWU2 5  //temp user 1
+#define TSENS_USR1 6  //temp user 2 
+#define TSENS_USR2 7  //temp user 3
 
 #define MAX_THERMOCOUPLES 2
 #define T2SENS_EXHAUST 0  //temp. spalin
