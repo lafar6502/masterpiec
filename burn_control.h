@@ -45,6 +45,7 @@ typedef struct ControlConfiguration {
   TBurnParams BurnConfigs[MAX_POWER_STATES]; //first one [0] is the podtrzymanie
   uint8_t DallasAddress[8][8]; //dallas sensor addresses. if zero - sensor not present
   uint8_t DefaultBlowerCycle;
+  uint8_t FeederTempLimit;
   
 } TControlConfiguration;
 
@@ -75,6 +76,9 @@ void setManualControlMode(bool b);
 bool getManualControlMode();
 //check if heating is needed anywhere (for home or for cwu)
 bool needHeatingNow();
+
+///sets alarm state and shows alarm message
+void setAlarm(const char* txt);
 
 void forceState(TSTATE st);
 
@@ -107,6 +111,6 @@ extern float g_TempBurner; //temp palnika
 extern TSTATE g_BurnState;  //aktualny stan grzania
 extern bool   g_HomeThermostatOn;  //true - termostat pokojowy kazał zaprzestać grzania
 extern float g_TempZewn; //aktualna temp. zewn
-
+extern char* g_Alarm;
 
 #endif

@@ -4,6 +4,7 @@
 #include "boiler_control.h"
 #include "hwsetup.h"
 #include "piec_sensors.h"
+#include "ui_handler.h"
 
 void initializeBurningLoop() {
   g_TargetTemp = g_CurrentConfig.TCO;
@@ -26,12 +27,15 @@ float g_TempBurner = 0;
 TSTATE g_BurnState = STATE_UNDEFINED;  //aktualny stan grzania
 bool   g_HomeThermostatOn = true;  //true - termostat pokojowy kazał zaprzestać grzania
 float g_TempZewn = 0.0; //aktualna temp. zewn
-bool g_Alert = false;
-char* g_AlertReason;
+char* g_Alarm;
 
 
 
-
+void setAlarm(const char* txt) {
+  if (txt != NULL) g_Alarm = txt;
+  forceState(STATE_ALARM);
+  
+}
 
 void processSensorValues() {
   g_TempCO = getLastDallasValue(TSENS_BOILER);
@@ -282,6 +286,7 @@ void manualStateLoop() {
 bool cond_shouldHeatCWU1() {
   //check if cwu1 heating is needed
   if (!isPumpEnabled(PUMP_CWU1)) return false;
+  if (!isDallasEnabled(TSENS_CWU)) return false;
   if (g_TempCWU < g_CurrentConfig.TCWU - g_CurrentConfig.THistCwu) return true;
   return false;
 }
@@ -348,17 +353,45 @@ void updatePumpStatus() {
 }
 
 
+bool isAlarm_HardwareProblem() {
+  if (!isDallasEnabled(TSENS_BOILER)) {
+    g_Alarm = "Czujnik temp CO";
+    return true;
+  }
+  if (g_CurrentConfig.FeederTempLimit > 0 && !isDallasEnabled(TSENS_FEEDER)) {
+    g_Alarm = "Czujnik podajnika";
+    return true;
+  }
+  return false;
+}
 
-
+bool isAlarm_Overheat() {
+  if (g_TempCO > 85.0) {
+    g_Alarm = "ZA GORACO";
+    return true;
+  }
+  if (g_CurrentConfig.FeederTempLimit > 0 && g_TempFeeder > g_CurrentConfig.FeederTempLimit) {
+    g_Alarm = "Temp. podajnika";
+    return true;
+  }
+}
 
 bool isAlarm_NoHeating() {
   //only for automatic heating cycles P1 P2
   return false;
 }
 
+bool isAlarm_Any() {
+  return isAlarm_HardwareProblem() || isAlarm_Overheat() || isAlarm_NoHeating();
+}
+
 bool cond_feederOnFire() {
   //is feeder on fire?
   return false;
+}
+
+void alarmStateInitialize(TSTATE t) {
+  changeUIState('0');
 }
 
 // kiedy przechodzimy z P0 do P2
@@ -398,9 +431,13 @@ bool cond_targetTempReachedAndHeatingNotNeeded() {
 
 const TBurnTransition  BURN_TRANSITIONS[]   = 
 {
-  {STATE_P0, STATE_ALARM, NULL, NULL},
-  {STATE_P1, STATE_ALARM, isAlarm_NoHeating, NULL},
-  {STATE_P2, STATE_ALARM, isAlarm_NoHeating, NULL},
+  {STATE_P0, STATE_ALARM, isAlarm_Any, NULL},
+  {STATE_P1, STATE_ALARM, isAlarm_Any, NULL},
+  {STATE_P2, STATE_ALARM, isAlarm_Any, NULL},
+  {STATE_REDUCE1, STATE_ALARM, isAlarm_Any, NULL},
+  {STATE_REDUCE2, STATE_ALARM, isAlarm_Any, NULL},
+  
+  
   {STATE_STOP, STATE_ALARM, NULL, NULL},
   
   {STATE_P1, STATE_P2, cond_belowHysteresis, NULL},
@@ -431,7 +468,7 @@ const TBurnStateConfig BURN_STATES[]  = {
   {STATE_P1, '1', workStateInitialize, workStateBurnLoop},
   {STATE_P2, '2', workStateInitialize, workStateBurnLoop},
   {STATE_STOP, 'S', stopStateInitialize, manualStateLoop},
-  {STATE_ALARM, 'A', NULL, NULL},
+  {STATE_ALARM, 'A', alarmStateInitialize, NULL},
   {STATE_REDUCE1, 'R', reductionStateInit, reductionStateLoop},
   {STATE_REDUCE2, 'r', reductionStateInit, reductionStateLoop},
 };

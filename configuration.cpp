@@ -40,7 +40,8 @@ TControlConfiguration defaultConfig() {
       }
     },
     {}, //dallas
-    5   //DefaultBlowerCycle
+    5,   //DefaultBlowerCycle
+    100  //feeder temp limit
   };
 }
 

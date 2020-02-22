@@ -60,6 +60,7 @@ void scrBurnInfo(uint8_t idx, char* lines[]) {
   }
   else if (g_BurnState == STATE_ALARM) {
     sprintf(lines[0], "ALARM");
+    if (g_Alarm != NULL) sprintf(lines[1], "%s", g_Alarm);
   }
 }
 
@@ -104,6 +105,7 @@ uint16_t findNextVariable(uint16_t currentVariable, bool increment, bool (*f)(ui
 void stDefaultEventHandler(uint8_t ev, uint8_t arg) 
 {
   if (ev == UI_EV_INITSTATE) {
+    if (g_BurnState == STATE_ALARM) g_CurrentUIView = 5;
     return;
   }
   if (ev == UI_EV_UP) {
@@ -513,10 +515,12 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Temp.min.pomp", VAR_ADVANCED, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {"DeltaT", VAR_ADVANCED, &g_CurrentConfig.TDeltaCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
   {"DeltaCWU", VAR_ADVANCED, &g_CurrentConfig.TDeltaCWU, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Zewn. termostat", VAR_ADVANCED, &g_CurrentConfig.HomeThermostat, 0, 11, printBool, adjustBool, NULL, commitConfig},
-  {"Tryb letni", VAR_ADVANCED, &g_CurrentConfig.SummerMode, 0, 11, printBool, adjustBool, NULL, commitConfig},
+  {"Zewn. termostat", VAR_ADVANCED, &g_CurrentConfig.HomeThermostat, 0, 1, printBool, adjustBool, NULL, commitConfig},
+  {"Tryb letni", VAR_ADVANCED, &g_CurrentConfig.SummerMode, 0, 1, printBool, adjustBool, NULL, commitConfig},
+  {"Max T podajnika", VAR_ADVANCED, &g_CurrentConfig.FeederTempLimit, 0, 200, printUint8, adjustUint8, copyU8, commitConfig},
   
   {"Dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.DefaultBlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  
   
   
   {"P0 cykl sek.", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec, 0, 3600, printUint16, adjustUint16, copyU16, commitConfig},
