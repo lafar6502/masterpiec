@@ -8,7 +8,7 @@
 void initializeBurningLoop() {
   g_TargetTemp = g_CurrentConfig.TCO;
   g_HomeThermostatOn = true;
-  forceState(STATE_STOP);
+  forceState(STATE_P0);
   Serial.println("Burn init");
 }
 
@@ -186,6 +186,34 @@ void workStateBurnLoop() {
   }
 }
 
+unsigned long _reductionStateEndMs = 0;
+
+void reductionStateInit(TSTATE prev) {
+  assert(g_BurnState == STATE_REDUCE1 || g_BurnState == STATE_REDUCE2);
+  assert(prev == STATE_P1 || prev == STATE_P2);
+  _reductionStateEndMs = (unsigned long) g_CurrentConfig.BurnConfigs[prev].CycleSec * 1000L;
+  g_CurStateStart = millis();
+  g_CurBurnCycleStart = g_CurStateStart;
+  setBlowerPower(g_CurrentConfig.BurnConfigs[prev].BlowerPower, g_CurrentConfig.BurnConfigs[prev].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[prev].BlowerCycle);
+  setFeederOff();
+  
+}
+
+void reductionStateLoop() {
+  assert(g_BurnState == STATE_REDUCE1 || g_BurnState == STATE_REDUCE2);
+  TSTATE prevState = g_BurnState == STATE_REDUCE1 ? STATE_P1 : STATE_P2;
+  unsigned long tNow = millis();
+  unsigned long burnCycleLen = (unsigned long) g_CurrentConfig.BurnConfigs[prevState].CycleSec * 1000L;
+  
+  if (tNow > _reductionStateEndMs + 100) 
+  {
+    Serial.print("reduction should end by now:");
+    Serial.println(g_CurBurnCycleStart);
+  }
+}
+
+
+
 void podtrzymanieStateInitialize(TSTATE t) {
   g_CurStateStart = millis();
   g_CurBurnCycleStart = g_CurStateStart;
@@ -327,6 +355,32 @@ bool cond_feederOnFire() {
 // 
 
 
+bool cond_belowHysteresis() {
+  return  g_TempCO < g_TargetTemp - g_CurrentHysteresis;
+}
+
+bool cond_cycleEnded() {
+  return _reductionStateEndMs <= millis();
+}
+
+bool cond_targetTempReached() {
+  return g_TempCO >= g_TargetTemp;
+}
+
+bool cond_boilerOverheated() {
+  return g_TempCO >= g_TargetTemp + g_CurrentConfig.TDeltaCO;
+}
+
+//heating is needed and temp is below the target
+bool cond_needHeatingAndBelowTargetTemp() {
+  if (g_TempCO >= g_TargetTemp) return false;
+  return cond_shouldHeatCWU1() || cond_shouldHeatHome();
+}
+
+bool cond_targetTempReachedAndHeatingNotNeeded() {
+  if (g_TempCO < g_TargetTemp) return false;
+  return !cond_shouldHeatHome() && !cond_shouldHeatCWU1();
+}
 
 const TBurnTransition  BURN_TRANSITIONS[]   = 
 {
@@ -335,20 +389,24 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_P2, STATE_ALARM, isAlarm_NoHeating, NULL},
   {STATE_STOP, STATE_ALARM, NULL, NULL},
   
-  {STATE_STOP, STATE_P2, NULL, NULL},  
-  {STATE_P2, STATE_P1, NULL, NULL},
-  {STATE_P1, STATE_P2, NULL, NULL},
-  {STATE_P1, STATE_P0, NULL, NULL},
-  {STATE_P0, STATE_P2, NULL, NULL},
-  {STATE_P2, STATE_P1, NULL, NULL},
+  {STATE_P1, STATE_P2, cond_belowHysteresis, NULL},
+  {STATE_P1, STATE_REDUCE1, cond_boilerOverheated, NULL}, //P1 -> P0
+  {STATE_P1, STATE_REDUCE1, cond_targetTempReachedAndHeatingNotNeeded, NULL}, //P1 -> P0
 
-  {STATE_P2, STATE_REDUCE2, NULL, NULL}, //P2 -> P1
-  {STATE_P1, STATE_REDUCE1, NULL, NULL}, //P1 -> P0
-  {STATE_REDUCE2, STATE_P1, NULL, NULL},
-  {STATE_REDUCE1, STATE_P0, NULL, NULL},
-  {STATE_REDUCE2, STATE_P2, NULL, NULL},
-  {STATE_REDUCE1, STATE_P1, NULL, NULL}, //juz nie redukujemy  - np sytuacja się zmieniła i temp. została podniesiona
-  {STATE_REDUCE1, STATE_P2, NULL, NULL}, //juz nie redukujemy
+  {STATE_P0, STATE_P2, cond_belowHysteresis, NULL},
+  {STATE_P0, STATE_P1, cond_needHeatingAndBelowTargetTemp, NULL},
+
+  {STATE_P2, STATE_REDUCE1, cond_boilerOverheated, NULL},  //P2 -> P0
+  {STATE_P2, STATE_REDUCE2, cond_targetTempReached, NULL}, //P2 -> P1
+  
+  {STATE_REDUCE2, STATE_P2, cond_belowHysteresis, NULL},
+  {STATE_REDUCE2, STATE_P2, cond_needHeatingAndBelowTargetTemp, NULL},
+  {STATE_REDUCE2, STATE_P1, cond_cycleEnded, NULL},
+  
+  {STATE_REDUCE1, STATE_P2, cond_belowHysteresis, NULL}, //juz nie redukujemy
+  {STATE_REDUCE1, STATE_P0, cond_cycleEnded, NULL},
+  {STATE_REDUCE1, STATE_P1, cond_needHeatingAndBelowTargetTemp, NULL}, //juz nie redukujemy  - np sytuacja się zmieniła i temp. została podniesiona
+  
   {STATE_UNDEFINED, STATE_UNDEFINED, NULL, NULL} //sentinel
 };
 
@@ -360,8 +418,8 @@ const TBurnStateConfig BURN_STATES[]  = {
   {STATE_P2, '2', workStateInitialize, workStateBurnLoop},
   {STATE_STOP, 'S', stopStateInitialize, manualStateLoop},
   {STATE_ALARM, 'A', NULL, NULL},
-  {STATE_REDUCE1, 'R', NULL, NULL},
-  {STATE_REDUCE2, 'r', NULL, NULL},
+  {STATE_REDUCE1, 'R', reductionStateInit, reductionStateLoop},
+  {STATE_REDUCE2, 'r', reductionStateInit, reductionStateLoop},
 };
 
 const uint8_t N_BURN_TRANSITIONS = sizeof(BURN_TRANSITIONS) / sizeof(TBurnTransition);

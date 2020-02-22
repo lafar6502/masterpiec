@@ -128,6 +128,7 @@ void initializeBlowerControl() {
   pinMode(HW_PUMP_CO2_CTRL_PIN, OUTPUT);
   pinMode(HW_PUMP_CIRC_CTRL_PIN, OUTPUT);
   pinMode(HW_FEEDER_CTRL_PIN, OUTPUT);
+  
   digitalWrite(HW_PUMP_CO1_CTRL_PIN, LOW);
   digitalWrite(HW_PUMP_CWU1_CTRL_PIN, LOW);
   digitalWrite(HW_PUMP_CO2_CTRL_PIN, LOW);
@@ -150,6 +151,9 @@ void setBlowerPower(uint8_t power, uint8_t powerCycle)
   breseInit(power, powerCycle);
 }
 
+uint8_t getCurrentBlowerCycle() {
+  return brese_cycle;
+}
 
 uint8_t getCurrentBlowerPower() {
   return brese_increment * 100.0 / brese_cycle;

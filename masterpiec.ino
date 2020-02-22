@@ -74,7 +74,9 @@ void periodicDumpControlState() {
     Serial.print(BURN_STATES[g_BurnState].Code);
     Serial.print(", dm:");
     Serial.print(getCurrentBlowerPower());
-    Serial.print(", pd:");
+    Serial.print(" (");
+    Serial.print(getCurrentBlowerCycle());
+    Serial.print("), pd:");
     Serial.print(isFeederOn() ? "ON": "OFF");
     Serial.print(", co:");
     Serial.print(isPumpOn(PUMP_CO1));
