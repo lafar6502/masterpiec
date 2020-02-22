@@ -23,9 +23,6 @@ uint8_t getCurrentBlowerPower();
 void initializeBlowerControl();
 
 
-//wlacz/wylacz tryb automatyczny
-void setManualControlMode(bool b);
-//czy mamy tryb automatyczny
-bool getManualControlMode();
+
 
 #endif
