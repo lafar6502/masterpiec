@@ -64,7 +64,6 @@ void loop() {
 unsigned long g_CurStateStart = 0;
 float  g_CurStateStartTempCO = 0; //temp pieca w momencie wejscia w bież. stan.
 unsigned long g_CurBurnCycleStart = 0; //timestamp, w ms, w ktorym rozpoczelismy akt. cykl palenia
-uint8_t  g_CurrentBlowerPower = 0;
 
 TControlConfiguration g_CurrentConfig;
 
@@ -191,12 +190,12 @@ void podtrzymanieStateLoop() {
 }
 
 void updatePumpStatus() {
-  
+  if (getManualControlMode()) return;
 }
 
-void setAutomaticHeatingMode(bool b)
+void setManualControlMode(bool b)
 {
-  if (b) {
+  if (!b) {
     if (g_BurnState == STATE_STOP) {
       forceState(STATE_P0);
     }
@@ -208,9 +207,9 @@ void setAutomaticHeatingMode(bool b)
   }
 }
 
-bool getAutomaticHeatingMode()
+bool getManualControlMode()
 {
-  return g_BurnState != STATE_STOP;
+  return g_BurnState == STATE_STOP;
 }
 
 void eepromRestoreConfig(uint8_t slot) {

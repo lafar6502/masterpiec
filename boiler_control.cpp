@@ -106,7 +106,13 @@ void initializeBlowerControl() {
   triacOff();
   pinMode(HW_ZERO_DETECT_PIN, INPUT);
   attachInterrupt(digitalPinToInterrupt(HW_ZERO_DETECT_PIN), zeroCrossHandler, RISING);  
+  pinMode(HW_PUMP_CO1_CTRL_PIN, OUTPUT);
+  pinMode(HW_PUMP_CWU1_CTRL_PIN, OUTPUT);
+  pinMode(HW_PUMP_CO2_CTRL_PIN, OUTPUT);
+  pinMode(HW_PUMP_CIRC_CTRL_PIN, OUTPUT);
+  pinMode(HW_FEEDER_CTRL_PIN, OUTPUT);
 }
+
 
 uint8_t getCycleLengthForBlowerPower(uint8_t power) {
   return 7;

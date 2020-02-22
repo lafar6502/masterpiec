@@ -24,8 +24,8 @@ void initializeBlowerControl();
 
 
 //wlacz/wylacz tryb automatyczny
-void setAutomaticHeatingMode(bool b);
+void setManualControlMode(bool b);
 //czy mamy tryb automatyczny
-bool getAutomaticHeatingMode();
+bool getManualControlMode();
 
 #endif

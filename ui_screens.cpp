@@ -223,12 +223,18 @@ void printUint16(uint8_t varIdx, void* editCopy, char* buf) {
   sprintf(buf, "%d", *pv);
 }
 
-
+void printFloat(uint8_t varIdx, void* editCopy, char* buf) {
+  float* pv = (float*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  char buf1[10];
+  dtostrf(*pv,2, 1, buf1);
+  strcpy(buf, buf1);
+}
 
 void printVBoolSwitch(uint8_t varIdx, void* editCopy, char* buf) {
+  bool* pd = (bool*) editCopy;
   BoolFun f = (BoolFun) UI_VARIABLES[varIdx].DataPtr;
-  if (f == NULL) return;
-  bool v = f();
+  if (pd == NULL && f == NULL) return;
+  bool v = pd == NULL ? f() : *pd;
   strcpy(buf, v ? "ON" : "OFF");
 }
 
@@ -267,7 +273,7 @@ void printPumpState(uint8_t varIdx, void* editCopy, char* buf) {
 void adjustPumpState(uint8_t varIdx, void* d, int8_t increment) {
   int i = (int) UI_VARIABLES[varIdx].DataPtr;
   if (!isPumpEnabled(i)) return;
-  if (getAutomaticHeatingMode()) return;
+  if (!getManualControlMode()) return;
   if (isPumpOn(i))
     setPumpOff(i);
   else
@@ -275,12 +281,12 @@ void adjustPumpState(uint8_t varIdx, void* d, int8_t increment) {
 }
 
 void adjustFeederState(uint8_t varIdx, void*d, int8_t increment) {
-  if (getAutomaticHeatingMode()) return;
+  if (!getManualControlMode()) return;
   setFeeder(!isFeederOn());
 }
 
 void adjustBlowerState(uint8_t varIdx, void* d, int8_t increment) {
-  if (getAutomaticHeatingMode()) return;
+  if (!getManualControlMode()) return;
   uint8_t v = getCurrentBlowerPower();
   v += increment;
   if (v < 0) v = 0;
@@ -304,10 +310,6 @@ void* copyU8(uint8_t varIdx, void* pData, bool save)
 
 void* copyU16(uint8_t varIdx, void* pData, bool save) 
 {
-  Serial.print("copy u16. ");
-  Serial.print("var:");
-  Serial.print(varIdx);
-  Serial.println(save ? " save":" copy");
   static uint16_t _copy;
   uint16_t* p = (uint16_t*) UI_VARIABLES[varIdx].DataPtr;
   if (save) {
@@ -369,12 +371,20 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Dzien", 0, &RTC.dd, 1, 31, printUint8, adjustUint8, copyU8, queueCommitTime},
   {"Godzina", 0, &RTC.h, 1, 23, printUint8, adjustUint8, copyU8, queueCommitTime},
   {"Minuta", 0, &RTC.m, 1, 59, printUint8, adjustUint8, copyU8, queueCommitTime},
-  {"Tryb reczny", 0, getAutomaticHeatingMode, 0, 1, printVBoolSwitch, adjustBool, copyVBoolSwitch, NULL, {.setBoolF = setAutomaticHeatingMode}},
+  {"Tryb reczny", 0, getManualControlMode, 0, 1, printVBoolSwitch, adjustBool, copyVBoolSwitch, NULL, {.setBoolF = setManualControlMode}},
   {"Pompa CO", 0, PUMP_CO1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
   {"Pompa CWU", 0, PUMP_CWU1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
   {"Pompa obieg", 0, PUMP_CIRC, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
   {"Dmuchawa", 0, getCurrentBlowerPower, 0, 100, printVU8, adjustBlowerState, NULL, NULL, NULL},
   {"Podajnik", 0, isFeederOn, 0, 1, printVBoolSwitch, adjustFeederState, NULL, NULL},
+  {"Temp.CO", 0, &g_CurrentConfig.TCO, 30, 80, printUint8, adjustUint8, copyU8, NULL},
+  {"Histereza CO", 0, &g_CurrentConfig.THistCO, 0, 15, printUint8, adjustUint8, copyU8, NULL},
+  {"Temp.CWU", 0, &g_CurrentConfig.TCWU, 20, 80, printUint8, adjustUint8, copyU8, NULL},
+  {"Histereza CWU", 0, &g_CurrentConfig.THistCwu, 0, 15, printUint8, adjustUint8, copyU8, NULL},
+  {"Temp.min.pomp", 0, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, NULL},
+  {"DeltaT", 0, &g_CurrentConfig.TDeltaCO, 0, 15, printUint8, adjustUint8, copyU8, NULL},
+  {"DeltaCWU", 0, &g_CurrentConfig.TDeltaCWU, 0, 15, printUint8, adjustUint8, copyU8, NULL},
+  
 };
 
 const uint8_t N_UI_VARIABLES = sizeof(UI_VARIABLES) / sizeof(TUIVarEntry);
