@@ -107,6 +107,10 @@ void initializeBurningLoop() {
 void burningProc() 
 {
   assert(g_BurnState != STATE_UNDEFINED && g_BurnState < N_BURN_STATES);
+  if (g_BurnState != BURN_STATES[g_BurnState].State) {
+    Serial.print("inv burn st");
+    Serial.println(g_BurnState);
+  }
   //1. check if we should change state
   for(int i=0; i < N_BURN_TRANSITIONS; i++)
   {
@@ -120,7 +124,7 @@ void burningProc()
         assert(g_BurnState != STATE_UNDEFINED && g_BurnState < N_BURN_STATES);
         g_CurStateStart = millis();
         g_CurStateStartTempCO = g_TempCO;
-        if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize();
+        if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize(g_BurnState);
         return;    
       }
     }
@@ -136,8 +140,8 @@ void forceState(TSTATE st) {
   g_BurnState = st;
   g_CurStateStart = millis();
   g_CurStateStartTempCO = g_TempCO;
-  if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize();
-  Serial.print("BS ");
+  if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize(g_BurnState);
+  Serial.print("BS->");
   Serial.println(BURN_STATES[g_BurnState].Code);
 }
 
@@ -145,7 +149,8 @@ static unsigned long burnCycleLen = 0;
 static unsigned long burnFeedLen = 0;
 static unsigned long burnCycleStart = 0;
 
-void workStateInitialize() {
+//inicjalizacja dla stanu grzania autom. P1 P2
+void workStateInitialize(TSTATE t) {
   assert(g_BurnState != STATE_UNDEFINED && g_BurnState != STATE_STOP && g_BurnState < N_BURN_STATES);
   burnCycleLen = g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec * 1000;
   burnFeedLen = g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 * 100;
@@ -154,7 +159,7 @@ void workStateInitialize() {
 }
 
 //przejscie do stanu recznego
-void stopStateInitialize() {
+void stopStateInitialize(TSTATE t) {
   assert(g_BurnState == STATE_STOP);
   setBlowerPower(0);
   setFeederOff();
@@ -168,31 +173,20 @@ void workStateBurnLoop() {
   static unsigned long tPrev = 0;
   if (tNow < burnCycleStart + burnFeedLen) 
   {
-    setFeederOn();
+    if (!isFeederOn()) setFeederOn();
   }
   else 
   {
-    setFeederOff();
+    if (isFeederOn()) setFeederOff();
   }
   if (tNow >= burnCycleStart + burnCycleLen) {
     burnCycleStart = millis(); //
     setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower);
   }
-  if (tPrev - tNow > 5000) {
-    Serial.print("Burn s");
-    Serial.print(g_BurnState);
-    Serial.print(", t ms:");
-    Serial.print(tNow - burnCycleStart);
-    Serial.print(", podajnik:");
-    Serial.print(isFeederOn());
-    Serial.print(", tot s:");
-    Serial.print((tNow - g_CurStateStart) / 1000);
-    Serial.println();
-  }
   tPrev = tNow;
 }
 
-void podtrzymanieStateInitialize() {
+void podtrzymanieStateInitialize(TSTATE t) {
   
 }
 
@@ -200,18 +194,12 @@ void podtrzymanieStateLoop() {
   unsigned long tNow = millis();
   static unsigned long tPrev = 0;
   
-  if (tPrev - tNow > 5000) {
-    Serial.print("PODT s");
-    Serial.print(g_BurnState);
-    Serial.print(", t ms:");
-    Serial.print(tNow - burnCycleStart);
-    Serial.print(", podajnik:");
-    Serial.print(isFeederOn());
-    Serial.print(", tot s:");
-    Serial.print((tNow - g_CurStateStart) / 1000);
-    Serial.println();
-  }
+  
   tPrev = tNow;
+}
+
+void manualStateLoop() {
+  
 }
 
 void updatePumpStatus() {
@@ -301,7 +289,7 @@ const TBurnStateConfig BURN_STATES[]  = {
   {STATE_P0, 'P', podtrzymanieStateInitialize, podtrzymanieStateLoop},
   {STATE_P1, '1', workStateInitialize, workStateBurnLoop},
   {STATE_P2, '2', workStateInitialize, workStateBurnLoop},
-  {STATE_STOP, 'S', stopStateInitialize, NULL},
+  {STATE_STOP, 'S', stopStateInitialize, manualStateLoop},
   {STATE_ALARM, 'A', NULL, NULL},
   {STATE_REDUCE1, 'R', NULL, NULL},
   {STATE_REDUCE2, 'r', NULL, NULL},

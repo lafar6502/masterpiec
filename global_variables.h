@@ -67,8 +67,8 @@ typedef struct BurnTransition {
 typedef struct BurnStateConfig {
   TSTATE State;
   char Code;
+  void (*fInitialize)(TSTATE s);
   void (*fLoop)();
-  void (*fInitialize)();
 } TBurnStateConfig;
 
 extern const TBurnTransition  BURN_TRANSITIONS[];

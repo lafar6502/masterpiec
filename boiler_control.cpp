@@ -31,7 +31,8 @@ void setPumpOff(uint8_t num) {
 
 bool isPumpOn(uint8_t num) {
   if (num >= sizeof(pump_ctrl_pins)/sizeof(tPumpPin)) return false;
-  return pump_ctrl_pins[num].On;
+  //return pump_ctrl_pins[num].On;
+  return digitalRead(pump_ctrl_pins[num].Pin) != LOW;
 }
 
 bool isPumpEnabled(uint8_t num) {
@@ -54,7 +55,7 @@ void setFeederOff() {
 }
 //czy podajnik działa
 bool isFeederOn() {
- return feeder;
+ return digitalRead(HW_FEEDER_CTRL_PIN) != LOW;
 }
 
 
