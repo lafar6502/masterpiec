@@ -52,9 +52,12 @@ void setFeeder(bool on) {
     g_LastFeederStart = m;
     digitalWriteFast(HW_FEEDER_CTRL_PIN, HIGH);
   } else {   
+    digitalWriteFast(HW_FEEDER_CTRL_PIN, LOW);
     g_FeederRunTime += m - g_LastFeederStart;
     g_LastFeederStart = m;
-    digitalWriteFast(HW_FEEDER_CTRL_PIN, LOW);
+    Serial.print(F("Feed stop. run time ms "));
+    Serial.println(g_FeederRunTime);
+    
   }
 }
 //uruchomienie podajnika
@@ -150,12 +153,18 @@ void initializeBlowerControl() {
   {
     pinModeFast(HW_THERMOSTAT_PIN, INPUT_PULLUP);  
   }
+  if (HW_THERMOSTAT_PIN_ALT != 0) 
+  {
+    pinModeFast(HW_THERMOSTAT_PIN_ALT, INPUT); 
+  }
 }
 
 
 bool isThermostatOn() {
-  if (HW_THERMOSTAT_PIN == 0) return false;
-  return digitalReadFast(HW_THERMOSTAT_PIN) == LOW;
+  if (HW_THERMOSTAT_PIN == 0 && HW_THERMOSTAT_PIN_ALT == 0) return false;
+  if (digitalReadFast(HW_THERMOSTAT_PIN) == LOW) return true;
+  if (digitalReadFast(HW_THERMOSTAT_PIN_ALT) == HIGH) return true;
+  return false;
 }
 
 uint8_t getCycleLengthForBlowerPower(uint8_t power) {
