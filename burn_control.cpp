@@ -17,11 +17,6 @@ void initializeBurningLoop() {
 }
 
 
-typedef struct {
-  unsigned long Ms;
-  float Val;
-} TReading;
-
 float g_TargetTemp = 0.1; //aktualnie zadana temperatura pieca (która może być wyższa od temp. zadanej w konfiguracji bo np grzejemy CWU)
 float g_TempCO = 0.0;
 float g_TempCWU = 0.0; 
@@ -39,9 +34,10 @@ float g_TempZewn = 0.0; //aktualna temp. zewn
 char* g_Alarm;
 unsigned long g_P1Time = 0;
 unsigned long g_P2Time = 0;
-TReading lastCOTemperatures[10];
+TReading lastCOTemperatures[11];
+TIntReading lastBurnStates[11];
 CircularBuffer<TReading> g_lastCOReads(lastCOTemperatures, sizeof(lastCOTemperatures)/sizeof(TReading));
-
+CircularBuffer<TIntReading> g_lastBurnStates(lastBurnStates, sizeof(lastBurnStates)/sizeof(TIntReading));
 
 void setAlarm(const char* txt) {
   if (txt != NULL) g_Alarm = txt;
@@ -62,7 +58,7 @@ void processSensorValues() {
     g_HomeThermostatOn = isThermostatOn();
   }
   unsigned long ms = millis();
-  if (g_lastCOReads.IsEmpty() || ms >= (g_lastCOReads.GetLast()->Ms + 5000)) {
+  if (g_lastCOReads.IsEmpty() || abs(g_lastCOReads.GetLast()->Val - g_TempCO >= 0.5)) {
     g_lastCOReads.Enqueue({ms, g_TempCO});
   }
 }
@@ -90,7 +86,7 @@ void burningProc()
           g_P1Time += (t - g_CurStateStart);
         else if (g_BurnState == STATE_P2)
           g_P2Time += (t - g_CurStateStart);
-        
+        g_lastBurnStates.Enqueue({t - g_CurStateStart, g_BurnState});
         Serial.print(F("BS: trans "));
         Serial.print(i);
         if (g_BurnState == STATE_P1) {
@@ -103,7 +99,7 @@ void burningProc()
         Serial.print(" ->");
         Serial.println(BURN_STATES[BURN_TRANSITIONS[i].To].Code);
         if (BURN_TRANSITIONS[i].fAction != NULL) BURN_TRANSITIONS[i].fAction(i);
-
+        
         //transition to new state
         g_BurnState = BURN_TRANSITIONS[i].To;
         assert(g_BurnState != STATE_UNDEFINED && g_BurnState < N_BURN_STATES);
@@ -160,6 +156,7 @@ void forceState(TSTATE st) {
     g_P1Time += (t - g_CurStateStart);
   else if (g_BurnState == STATE_P2)
     g_P2Time += (t - g_CurStateStart);
+  g_lastBurnStates.Enqueue({t - g_CurStateStart, g_BurnState});
   TSTATE old = g_BurnState;
   g_BurnState = st;
   g_CurStateStart = t;
@@ -505,7 +502,7 @@ bool cond_needCooling() {
     unsigned long t = millis();
     switch(_coolState) {
       case 1:
-        if ((t - _coolTs) > (unsigned long) g_CurrentConfig.CooloffTimeM10 * 60 * 1000) {//pause
+        if ((t - _coolTs) > (unsigned long) g_CurrentConfig.CooloffTimeM10 * 6L * 1000) {//pause
           _coolState = 2;
           _coolTs = t;
           Serial.println(F("Cool pause"));
@@ -513,7 +510,7 @@ bool cond_needCooling() {
         }
         return true;
       case 2:
-        if ((t - _coolTs) > (unsigned long) g_CurrentConfig.CooloffPauseM10 * 60 * 1000) {//pause
+        if ((t - _coolTs) > (unsigned long) g_CurrentConfig.CooloffPauseM10 * 6L * 1000) {//pause
           _coolState = 1;
           _coolTs = t;
           Serial.println(F("Cool resume"));

@@ -7,6 +7,7 @@
 #define PUMP_CWU1 1
 #define PUMP_CO2 2
 #define PUMP_CIRC 3
+#include "varholder.h"
 
 #define DAILY_LOG_ENTRIES 7
 
@@ -16,7 +17,20 @@ typedef struct {
   uint16_t P2TotalSec;
 } TDailyLogEntry;
 
+
+typedef struct {
+  unsigned long Ms;
+  float Val;
+} TReading;
+
+typedef struct {
+  unsigned long Ms;
+  uint16_t Val;
+} TIntReading;
+
 extern TDailyLogEntry g_DailyLogEntries[];
+extern CircularBuffer<TReading> g_lastCOReads;
+extern CircularBuffer<TIntReading> g_lastBurnStates;
 
 void loggingInit();
 void clearDailyLogs();
