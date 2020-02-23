@@ -14,7 +14,16 @@ typedef uint8_t TSTATE;
 
 #define MAX_POWER_STATES 3 //max liczba konfiguracji dla mocy. 1 - tylko podtrzymanie, 2 - podtrzymanie i praca, 3 - podtrzymanie i 2 moce pracy
 
+typedef uint8_t CWSTATE;
 
+#define CWSTATE_OK 1
+#define CWSTATE_HEAT 2
+
+#define NEED_HEAT_NONE 0
+#define NEED_HEAT_CO   1
+#define NEED_HEAT_CWU  2
+
+typedef uint8_t HEATNEED;
 
 //konfiguracja jednego z poziomów mocy
 typedef struct BurnParams {
@@ -80,7 +89,7 @@ void setManualControlMode(bool b);
 //czy mamy tryb automatyczny
 bool getManualControlMode();
 //check if heating is needed anywhere (for home or for cwu). 0 - no, 1 - co needed, 2 - cwu needed
-uint8_t needHeatingNow();
+HEATNEED needHeatingNow();
 
 ///sets alarm state and shows alarm message
 void setAlarm(const char* txt);
@@ -92,8 +101,8 @@ extern const TBurnStateConfig BURN_STATES[];
 extern const uint8_t N_BURN_TRANSITIONS;
 extern const uint8_t N_BURN_STATES;
 extern TSTATE g_BurnState;
-
-
+extern CWSTATE g_CWState;
+extern HEATNEED g_needHeat; //status variable: we need heating now (=cwu or co).
 //czas wejscia w bieżący BURN stan, ms
 extern unsigned long g_CurStateStart;
 extern float  g_CurStateStartTempCO; //temp pieca w momencie wejscia w bież. stan.
@@ -105,7 +114,6 @@ extern unsigned long g_CurBurnCycleStart; //timestamp, w ms, w ktorym rozpoczeli
 //
 
 extern float g_TargetTemp; //aktualnie zadana temperatura pieca (która może być wyższa od temp. zadanej w konfiguracji bo np grzejemy CWU)
-extern float g_CurrentHysteresis; //aktualna wartosc histerezy pieca
 extern float g_TempCO;
 extern float g_TempCWU; 
 extern float g_TempPowrot;  //akt. temp. powrotu

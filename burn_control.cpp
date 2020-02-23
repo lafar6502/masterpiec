@@ -23,7 +23,6 @@ typedef struct {
 } TReading;
 
 float g_TargetTemp = 0.1; //aktualnie zadana temperatura pieca (która może być wyższa od temp. zadanej w konfiguracji bo np grzejemy CWU)
-float g_CurrentHysteresis = 1.0;
 float g_TempCO = 0.0;
 float g_TempCWU = 0.0; 
 float g_TempPowrot = 0.0;  //akt. temp. powrotu
@@ -31,6 +30,9 @@ float g_TempSpaliny = 0.0; //akt. temp. spalin
 float g_TempFeeder = 0.1;
 float g_TempBurner = 0;
 TSTATE g_BurnState = STATE_UNDEFINED;  //aktualny stan grzania
+CWSTATE g_CWState = CWSTATE_OK; //current cw status
+HEATNEED g_needHeat = NEED_HEAT_NONE; //0, 1 or 2
+
 bool   g_HomeThermostatOn = true;  //true - termostat pokojowy kazał zaprzestać grzania
 float g_TempZewn = 0.0; //aktualna temp. zewn
 char* g_Alarm;
@@ -83,17 +85,24 @@ void burningProc()
     {
       if (BURN_TRANSITIONS[i].fCondition != NULL && BURN_TRANSITIONS[i].fCondition()) 
       {
-        Serial.print(F("BS: trans "));
-        Serial.print(i);
-        Serial.print(" ->");
-        Serial.println(BURN_STATES[BURN_TRANSITIONS[i].To].Code);
-        
         if (g_BurnState == STATE_P1)
           g_P1Time += (t - g_CurStateStart);
         else if (g_BurnState == STATE_P2)
           g_P2Time += (t - g_CurStateStart);
-          
+        
+        Serial.print(F("BS: trans "));
+        Serial.print(i);
+        if (g_BurnState == STATE_P1) {
+          Serial.print("tP1:");
+          Serial.print(g_P1Time);
+        } else if (g_BurnState == STATE_P2) {
+          Serial.print("tP2:");
+          Serial.print(g_P2Time);
+        }
+        Serial.print(" ->");
+        Serial.println(BURN_STATES[BURN_TRANSITIONS[i].To].Code);
         if (BURN_TRANSITIONS[i].fAction != NULL) BURN_TRANSITIONS[i].fAction(i);
+
         //transition to new state
         g_BurnState = BURN_TRANSITIONS[i].To;
         assert(g_BurnState != STATE_UNDEFINED && g_BurnState < N_BURN_STATES);
@@ -156,11 +165,15 @@ void forceState(TSTATE st) {
   g_CurStateStartTempCO = g_TempCO;
   if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize(old);
   Serial.print("BS->");
-  Serial.println(BURN_STATES[g_BurnState].Code);
+  Serial.print(BURN_STATES[g_BurnState].Code);
+  Serial.print(" tP1:");
+  Serial.print(g_P1Time);
+  Serial.print(" tP2:");
+  Serial.println(g_P2Time);
 }
 
 void updatePumpStatus();
-void adjustTargetTemperature();
+void handleHeatNeedStatus();
 
 //API 
 //to nasza procedura aktualizacji stanu hardware-u
@@ -168,7 +181,7 @@ void adjustTargetTemperature();
 void burnControlTask() {
   
   processSensorValues();
-  adjustTargetTemperature();
+  handleHeatNeedStatus();
   updatePumpStatus();
   burningProc();
 }
@@ -318,8 +331,7 @@ bool cond_shouldHeatCWU1() {
   //check if cwu1 heating is needed
   if (!isPumpEnabled(PUMP_CWU1)) return false;
   if (!isDallasEnabled(TSENS_CWU)) return false;
-  if (g_TempCWU < g_CurrentConfig.TCWU - g_CurrentConfig.THistCwu) return true;
-  return false;
+  return g_CWState == CWSTATE_HEAT;
 }
 
 ///kiedy potrzebujemy grzać grzejniki - tzn kiedy jest zapotrzebowanie na grzanie w domowej instalacji, niezaleznie od akt. stanu kotła.
@@ -332,16 +344,36 @@ bool cond_shouldHeatHome() {
 
 
 
-void adjustTargetTemperature() {
-  
-  g_TargetTemp = g_CurrentConfig.TCO;
-  g_CurrentHysteresis = g_CurrentConfig.THistCO;
-  if (cond_shouldHeatCWU1()) {
-     g_TargetTemp = max(g_CurrentConfig.TCO, g_CurrentConfig.TCWU + g_CurrentConfig.TDeltaCWU);
-     g_CurrentHysteresis = min(g_CurrentConfig.THistCO, g_CurrentConfig.TDeltaCWU);
+void handleHeatNeedStatus() {
+
+  if (g_CWState == CWSTATE_OK) {
+      if (g_TempCWU < g_CurrentConfig.TCWU - g_CurrentConfig.THistCwu) {
+        g_CWState = CWSTATE_HEAT; //start heating cwu
+        g_TargetTemp = max(g_CurrentConfig.TCO, g_CurrentConfig.TCWU + g_CurrentConfig.TDeltaCWU);
+        Serial.print(F("CWU heat - adjusted target temp to "));
+        Serial.println(g_TargetTemp);
+      }
   }
-  else if (cond_shouldHeatHome()) {
-    //nothing...
+  else if (g_CWState == CWSTATE_HEAT) {
+    if (g_TempCWU >= g_CurrentConfig.TCWU) {
+      g_CWState = CWSTATE_OK;
+      g_TargetTemp = g_CurrentConfig.TCO;
+      Serial.print(F("CWU ready - adjusted target temp to "));
+      Serial.println(g_TargetTemp);
+    }
+  }
+  else assert(false);
+
+  HEATNEED prev = g_needHeat;
+  g_needHeat = NEED_HEAT_NONE;
+  if (g_CWState == CWSTATE_HEAT) g_needHeat = NEED_HEAT_CWU;
+  if (!g_CurrentConfig.SummerMode && g_needHeat == NEED_HEAT_NONE)
+  {
+    if (!g_CurrentConfig.EnableThermostat || g_HomeThermostatOn) g_needHeat = NEED_HEAT_CO;
+  }
+  if (g_needHeat != prev) {
+    Serial.print(F("Heat needs changed:"));
+    Serial.println(g_needHeat);
   }
 }
 
@@ -351,7 +383,7 @@ bool cond_needCooling(); //below
 // cwu heating needed -> turn on cwu pump if current temp is above min pump temp and above cwu temp + delta
 //
 void updatePumpStatus() {
-  if (g_TempCO >= MAX_TEMP) {
+  if (g_TempCO >= MAX_TEMP) { //this should be the only time two pumps are allowed to work together
     if (isPumpEnabled(PUMP_CWU1)) setPumpOn(PUMP_CWU1);
     setPumpOn(PUMP_CO1);
     return;
@@ -362,32 +394,35 @@ void updatePumpStatus() {
     setPumpOff(PUMP_CWU1);
     return;
   }
-  if (cond_shouldHeatCWU1()) {
+  
+  if (g_needHeat == NEED_HEAT_CWU) {
     uint8_t minTemp = max(g_CurrentConfig.TMinPomp, g_TempCWU + g_CurrentConfig.TDeltaCWU);
     if (g_TempCO >= minTemp) {
       setPumpOn(PUMP_CWU1);
+      setPumpOff(PUMP_CO1);
     } 
     else {
       setPumpOff(PUMP_CWU1);
       //Serial.println(F("too low to heat cwu"));
     }
+    return;
   }
-  else if (cond_shouldHeatHome()) {
+  if (g_needHeat == NEED_HEAT_CO) { //co pump on - thermostat on or thermostat disabled (co pump always on)
     setPumpOn(PUMP_CO1);
+    setPumpOff(PUMP_CWU1); //just to be sure
+    return;
   }
-  else if (cond_needCooling()) {
-    if (g_CurrentConfig.SummerMode && isPumpEnabled(PUMP_CWU1)) {
-      setPumpOn(PUMP_CWU1);
+  if (cond_needCooling()) {
+    bool cw = false;
+    if (g_CurrentConfig.SummerMode && isPumpEnabled(PUMP_CWU1) && isDallasEnabled(TSENS_CWU)) {
+       cw = true;
     }
-    else {
-      setPumpOn(PUMP_CO1);
-    }
+    setPumpOn(cw ? PUMP_CWU1 : PUMP_CO1);
+    setPumpOff(cw ? PUMP_CO1 : PUMP_CWU1);
+    return;
   }
-  else 
-  {
-    setPumpOff(PUMP_CWU1);
-    setPumpOff(PUMP_CO1); 
-  }
+  setPumpOff(PUMP_CWU1);
+  setPumpOff(PUMP_CO1);
 }
 
 
@@ -506,9 +541,7 @@ bool cond_needCooling() {
 
 
 uint8_t needHeatingNow() {
-  if (cond_shouldHeatCWU1()) return 2;
-  if (cond_shouldHeatHome()) return 1;
-  return 0;
+  return g_needHeat;
 }
 //heating is needed and temp is below the target
 bool cond_needHeatingAndBelowTargetTemp() {

@@ -53,7 +53,7 @@ void setFeeder(bool on) {
     digitalWriteFast(HW_FEEDER_CTRL_PIN, HIGH);
   } else {   
     digitalWriteFast(HW_FEEDER_CTRL_PIN, LOW);
-    g_FeederRunTime += m - g_LastFeederStart;
+    g_FeederRunTime += (m - g_LastFeederStart);
     g_LastFeederStart = m;
     Serial.print(F("Feed stop. run time ms "));
     Serial.println(g_FeederRunTime);

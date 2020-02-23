@@ -1,29 +1,47 @@
 digraph G {
 
+HEAT [label="P2"]
+COOLOFF [label="P1"]
+MAINTAIN [label="P0"]
+
+HEAT->REDUCE2 [label="T >= tTarget", style=bold, color=blue]
+
+REDUCE2 -> COOLOFF [label="cycle end",style=bold, color=blue]
 
 
-HEAT->REDUCE2 [label="T >= tTarget", style=bold, color=darkgreen]
+REDUCE2 -> HEAT [label="A. SUDDEN HEAT and T < tTarget", color=orange]
+REDUCE2 -> HEAT [label="B. T < tTarget - hist0", color=green]
 
-REDUCE2 -> COOLOFF [label="cycle end",style=bold, color=darkgreen]
+COOLOFF->REDUCE1 [label="E. T >= tTarget + tDelta", style=bold, color=blue]
+COOLOFF->REDUCE1 [label="F. T >= tTarget and not NEED", style=bold, color=blue]
 
-
-REDUCE2 -> HEAT [label="2. NEED and T < tTarget"]
-REDUCE2 -> HEAT [label="1. T < tTarget - hist0"]
-
-COOLOFF->REDUCE1 [label="2. T >= tTarget + tDelta", style=bold, color=darkgreen]
-COOLOFF->REDUCE1 [label="3. T >= tTarget and not NEED", style=bold, color=darkgreen]
-
-REDUCE1 -> MAINTAIN [label="cycle end", style=bold, color=darkgreen]
+REDUCE1 -> MAINTAIN [label="cycle end", style=bold, color=blue]
 
 
-REDUCE1 -> HEAT [label="T <= tTarget - hist0"]
-REDUCE1 -> COOLOFF [label="2. NEED and T<tTarget"]
+REDUCE1 -> HEAT [label="A. SUDDEN HEAT and T < tTarget", color=orange]
+REDUCE1 -> HEAT [label="B. T <= tTarget - hist0", color=green]
 
-COOLOFF->HEAT [label="1. T <= tTarget - hist0"]
-HEAT -> REDUCE1 [label="1. T > tTarget + tDelta"]
-MAINTAIN -> HEAT [label="T <= tTarget - hist0", style=bold, color=darkgreen]
+
+//REDUCE1 -> COOLOFF [label="2. NEED and T<tTarget"]
+
+COOLOFF -> HEAT [label="A. SUDDEN HEAT and T < tTarget", color=orange]
+COOLOFF->HEAT [label="B. T <= tTarget - hist0", color=green]
+
+//HEAT -> REDUCE1 [label="1. T > tTarget + tDelta", color=green]
+MAINTAIN -> HEAT [label="A. SUDDEN HEAT and T < tTarget", style=bold, color=orange]
+MAINTAIN -> HEAT [label="B. T <= tTarget - hist0", style=bold, color=green]
+
 
 //MAINTAIN -> COOLOFF [label="NEED and T between tTarget - hist0 and tTarget", style=bold, color=darkgreen]
+
+
+
+subgraph CWU {
+    OK -> HEAT_CWU [label="Tcwu < Zcwu - Hcwu\r\nSet Tz for CWU"]
+    HEAT_CWU -> OK [label="Tcwu >= Zcwu\r\nSet Tz for CO"]
+    
+}
+
 
 
 }
