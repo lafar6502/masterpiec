@@ -47,12 +47,13 @@ void scrBurnInfo(uint8_t idx, char* lines[]) {
   if (g_BurnState == STATE_P0 || g_BurnState == STATE_P1 || g_BurnState == STATE_P2)
   {
     uint8_t cycle = g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle;
-    int tt = (tnow - g_CurStateStart) / 1000L;
+    unsigned long tt = (tnow - g_CurStateStart) / 1000L;
     sprintf(lines[0], "#%c T%d/%d", BURN_STATES[g_BurnState].Code, g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec - (tnow - g_CurBurnCycleStart) / 1000, tt); 
-    sprintf(lines[1], "P%d%% %d %ld", getCurrentBlowerPower(), cycle, g_CurStateStart);
+    sprintf(lines[1], "%c%d%% %d %ld", needHeatingNow() ? '!' : '_', getCurrentBlowerPower(), cycle, tt);
   }
   else if (g_BurnState == STATE_REDUCE1 || g_BurnState == STATE_REDUCE2) 
   {
+    int tt = (tnow - g_CurStateStart) / 1000L;
     sprintf(lines[0], "redukcja mocy");  
   }
   else if (g_BurnState == STATE_STOP) {
@@ -173,6 +174,11 @@ void stEditVariableHandler(uint8_t ev, uint8_t arg)
     g_editCopy = NULL;
     if (pv->Store != NULL) 
     {
+      Serial.print("cp1 ");
+      Serial.print(g_CurrentlyEditedVariable);
+      Serial.print(" ");
+      Serial.println((unsigned long) pv->DataPtr);
+      
       g_editCopy = pv->Store(g_CurrentlyEditedVariable, pv->DataPtr, false);
     };
     return;
@@ -181,15 +187,24 @@ void stEditVariableHandler(uint8_t ev, uint8_t arg)
   
   if (ev == UI_EV_UP || ev == UI_EV_DOWN) {
     if (pv->Adjust != NULL) {
+      Serial.print(F("adj var:"));
+      Serial.println(g_CurrentlyEditedVariable);
       pv->Adjust(g_CurrentlyEditedVariable, g_editCopy, ev == UI_EV_UP ? 1 : -1);
     }
   }
   else if (ev == UI_EV_BTNPRESS) 
   {
-    Serial.print("xsave var:");
+    Serial.print(F("xsave var:"));
     Serial.println(g_CurrentlyEditedVariable);
     if (pv->Store != NULL && g_editCopy != NULL)
     {
+      Serial.print("cp2 ");
+      Serial.print(g_CurrentlyEditedVariable);
+      Serial.print(" ");
+      Serial.print((unsigned long) g_editCopy);
+      Serial.print(" ");
+      Serial.println((unsigned long) pv->DataPtr);
+      
       pv->Store(g_CurrentlyEditedVariable, g_editCopy, true);
     }
     g_editCopy = NULL;
@@ -203,8 +218,8 @@ void stEditVariableHandler(uint8_t ev, uint8_t arg)
     changeUIState((pv->Flags & VAR_ADVANCED) != 0 ? 'W' : 'V');
   }
   else if (ev == UI_EV_IDLE) {
-    Serial.print("dont save var:");
-    Serial.println(g_CurrentlyEditedVariable);
+    //Serial.print("dont save var:");
+    //Serial.println(g_CurrentlyEditedVariable);
     
     changeUIState((pv->Flags & VAR_ADVANCED) != 0 ? 'W' : 'V');
   }
@@ -251,7 +266,15 @@ void adjustInt(uint8_t varIdx, void* data, int8_t increment) {
 void adjustBool(uint8_t varIdx, void* data, int8_t increment) {
   const TUIVarEntry* pv = UI_VARIABLES + varIdx;
   bool* pd = (bool*) (data == NULL ? pv->DataPtr : data);
-  if (increment != 0 && pv->Min != pv->Max) *pd = !*pd;
+  Serial.print(F("adjb var:"));
+  Serial.print(g_CurrentlyEditedVariable);
+  Serial.print(" ");
+  Serial.print((unsigned long) pv);
+  Serial.print(" ");
+  Serial.print(*pd);
+  Serial.print("->");
+  if (increment != 0) *pd = *pd == true ? false : true;
+  Serial.println(*pd);
 }
 
 
@@ -433,6 +456,20 @@ void* copyU8(uint8_t varIdx, void* pData, bool save)
   }
 }
 
+void* copyBool(uint8_t varIdx, void* pData, bool save) 
+{
+  static bool _copy;
+  bool* p = (bool*) UI_VARIABLES[varIdx].DataPtr;
+  if (save) {
+    *p = _copy ? true : false;
+    return p;
+  } else {
+    _copy = *p ? true : false;
+    return &_copy;
+  }
+}
+
+
 void* copyU16(uint8_t varIdx, void* pData, bool save) 
 {
   static uint16_t _copy;
@@ -462,7 +499,7 @@ void* copyFloat(uint8_t varIdx, void* pData, bool save)
 
 
 void commitTime(void* p) {
-  Serial.println("save time");
+  Serial.println(F("save time"));
   RTC.writeTime();
 };
 
@@ -513,12 +550,14 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Temp.CWU2", 0, &g_CurrentConfig.TCWU2, 20, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {"Histereza CWU", 0, &g_CurrentConfig.THistCwu, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
   {"Temp.min.pomp", VAR_ADVANCED, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
+  {"Zewn. termostat", VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 1, printBool, adjustBool, NULL, commitConfig},
+  {"Zewn. termos 2", VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 1, printBool, adjustBool, copyBool, commitConfig},
+  
   {"DeltaT", VAR_ADVANCED, &g_CurrentConfig.TDeltaCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
   {"DeltaCWU", VAR_ADVANCED, &g_CurrentConfig.TDeltaCWU, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Zewn. termostat", VAR_ADVANCED, &g_CurrentConfig.HomeThermostat, 0, 1, printBool, adjustBool, NULL, commitConfig},
-  {"Tryb letni", VAR_ADVANCED, &g_CurrentConfig.SummerMode, 0, 1, printBool, adjustBool, NULL, commitConfig},
-  {"Max T podajnika", VAR_ADVANCED, &g_CurrentConfig.FeederTempLimit, 0, 200, printUint8, adjustUint8, copyU8, commitConfig},
-  
+  {"Tryb letni", VAR_ADVANCED, &g_CurrentConfig.SummerMode, 0, 1, printBool, adjustBool, copyBool, commitConfig},
+  {"Max T podajnika", VAR_ADVANCED, &g_CurrentConfig.FeederTempLimit, 0, 200, printUint8, adjustUint8, copyU8, commitConfig}, 
+  {"Wygasniecie po", VAR_ADVANCED, &g_CurrentConfig.NoHeatAlarmTimeM, 0, 30, printUint8, adjustUint8, copyU8, commitConfig}, 
   {"Dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.DefaultBlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   
   

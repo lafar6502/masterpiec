@@ -3,6 +3,7 @@
 #include "piec_sensors.h"
 #include "boiler_control.h"
 #include "global_variables.h"
+#include "digitalWriteFast.h"
 
 struct tPumpPin {
   uint8_t Pin;
@@ -17,6 +18,8 @@ tPumpPin pump_ctrl_pins[] = {
   {HW_PUMP_CIRC_CTRL_PIN, false}
 };
 
+unsigned long g_FeederRunTime = 0;
+unsigned long g_LastFeederStart = 0;
 
 void setPumpOn(uint8_t num) {
   if (num >= sizeof(pump_ctrl_pins)/sizeof(tPumpPin)) return;
@@ -41,13 +44,22 @@ bool isPumpEnabled(uint8_t num) {
   return true;
 }
 
-bool feeder = false;
+
 void setFeeder(bool on) {
-  feeder = on;
-  digitalWrite(HW_FEEDER_CTRL_PIN, on ? HIGH : LOW);
+  if (isFeederOn() == on) return;
+  unsigned long m = millis();
+  if (on) {
+    g_LastFeederStart = m;
+    digitalWriteFast(HW_FEEDER_CTRL_PIN, HIGH);
+  } else {   
+    g_FeederRunTime += m - g_LastFeederStart;
+    g_LastFeederStart = m;
+    digitalWriteFast(HW_FEEDER_CTRL_PIN, LOW);
+  }
 }
 //uruchomienie podajnika
 void setFeederOn() {
+  
   setFeeder(true);
 }
 //zatrzymanie podajnika
@@ -56,17 +68,17 @@ void setFeederOff() {
 }
 //czy podajnik działa
 bool isFeederOn() {
- return digitalRead(HW_FEEDER_CTRL_PIN) != LOW;
+ return digitalReadFast(HW_FEEDER_CTRL_PIN) != LOW;
 }
 
 
 
 void triacOn() {
-  digitalWrite(HW_BLOWER_CTRL_PIN, HIGH);
+  digitalWriteFast(HW_BLOWER_CTRL_PIN, HIGH);
 }
 
 void triacOff() {
-  digitalWrite(HW_BLOWER_CTRL_PIN, LOW);
+  digitalWriteFast(HW_BLOWER_CTRL_PIN, LOW);
 }
 
 //pulse count
@@ -119,31 +131,31 @@ void breseInit(uint8_t power, uint8_t cycleLength) {
 }
 
 void initializeBlowerControl() {
-  pinMode(HW_BLOWER_CTRL_PIN, OUTPUT);
+  pinModeFast(HW_BLOWER_CTRL_PIN, OUTPUT);
   triacOff();
   pinMode(HW_ZERO_DETECT_PIN, INPUT);
   attachInterrupt(digitalPinToInterrupt(HW_ZERO_DETECT_PIN), zeroCrossHandler, RISING);  
-  pinMode(HW_PUMP_CO1_CTRL_PIN, OUTPUT);
-  pinMode(HW_PUMP_CWU1_CTRL_PIN, OUTPUT);
-  pinMode(HW_PUMP_CO2_CTRL_PIN, OUTPUT);
-  pinMode(HW_PUMP_CIRC_CTRL_PIN, OUTPUT);
-  pinMode(HW_FEEDER_CTRL_PIN, OUTPUT);
+  pinModeFast(HW_PUMP_CO1_CTRL_PIN, OUTPUT);
+  pinModeFast(HW_PUMP_CWU1_CTRL_PIN, OUTPUT);
+  pinModeFast(HW_PUMP_CO2_CTRL_PIN, OUTPUT);
+  pinModeFast(HW_PUMP_CIRC_CTRL_PIN, OUTPUT);
+  pinModeFast(HW_FEEDER_CTRL_PIN, OUTPUT);
   
-  digitalWrite(HW_PUMP_CO1_CTRL_PIN, LOW);
-  digitalWrite(HW_PUMP_CWU1_CTRL_PIN, LOW);
-  digitalWrite(HW_PUMP_CO2_CTRL_PIN, LOW);
-  digitalWrite(HW_PUMP_CIRC_CTRL_PIN, LOW);
-  digitalWrite(HW_FEEDER_CTRL_PIN, LOW);
+  digitalWriteFast(HW_PUMP_CO1_CTRL_PIN, LOW);
+  digitalWriteFast(HW_PUMP_CWU1_CTRL_PIN, LOW);
+  digitalWriteFast(HW_PUMP_CO2_CTRL_PIN, LOW);
+  digitalWriteFast(HW_PUMP_CIRC_CTRL_PIN, LOW);
+  digitalWriteFast(HW_FEEDER_CTRL_PIN, LOW);
   if (HW_THERMOSTAT_PIN != 0) 
   {
-    pinMode(HW_THERMOSTAT_PIN, INPUT_PULLUP);  
+    pinModeFast(HW_THERMOSTAT_PIN, INPUT_PULLUP);  
   }
 }
 
 
 bool isThermostatOn() {
   if (HW_THERMOSTAT_PIN == 0) return false;
-  return digitalRead(HW_THERMOSTAT_PIN) == LOW;
+  return digitalReadFast(HW_THERMOSTAT_PIN) == LOW;
 }
 
 uint8_t getCycleLengthForBlowerPower(uint8_t power) {

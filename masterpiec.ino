@@ -5,6 +5,7 @@
 #include "burn_control.h"
 #include "piec_sensors.h"
 #include "boiler_control.h"
+#include "script.h"
 
 void updateDallasSensorAssignmentFromConfig();
 /**
@@ -35,12 +36,15 @@ void setup() {
   initializeDallasSensors();
   initializeMax6675Sensors();
   initializeBlowerControl();
-  
+  loggingInit();
   Serial.println("inited the hardware");
   updateDallasSensorAssignmentFromConfig();
   initializeBurningLoop();
 #ifdef MPIEC_ENABLE_WEBSERVER
   setupWebServer();
+#endif
+#ifdef MPIEC_ENABLE_SCRIPT
+  setupSerialShell();
 #endif
   changeUIState('0');
 }
@@ -54,9 +58,13 @@ void loop() {
   burnControlTask();     //procedura kontroli spalania
   updateView();           //aktualizacja ui
   periodicDumpControlState();
-  #ifdef MPIEC_ENABLE_WEBSERVER
+#ifdef MPIEC_ENABLE_WEBSERVER
     webHandlingTask();
-  #endif
+#endif
+#ifdef MPIEC_ENABLE_SCRIPT
+    handleSerialShellTask();
+#endif
+  loggingTask();
   int m2 = millis();
   int d = 150 - (m2 - m);
   if (d > 0) 
@@ -76,7 +84,7 @@ void periodicDumpControlState() {
   if (t - lastDump > 5000)
   {
     lastDump = t;
-    Serial.print("s:");
+    Serial.print(F("s:"));
     Serial.print(BURN_STATES[g_BurnState].Code);
     Serial.print(", dm:");
     Serial.print(getCurrentBlowerPower());
@@ -110,7 +118,7 @@ void updateDallasSensorAssignmentFromConfig() {
     if (memcmp(p, zbuf, 8) == 0) continue;
     
     if (!ensureDallasSensorAtIndex(i, p)) {
-      Serial.print("Invalid dallas address ");
+      Serial.print(F("Invalid dallas address "));
       sprintf(buf, "%d: %02X%02X%02X%02X%02X%02X%02X%02X", i, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8]);     
       Serial.println(buf);    
     }
@@ -118,7 +126,7 @@ void updateDallasSensorAssignmentFromConfig() {
   for(uint8_t i=0; i<8; i++) 
   {
     printDallasInfo(i, buf);
-    Serial.print("czujnik ");
+    Serial.print(F("czujnik "));
     Serial.print(i);
     Serial.print(" ");
     Serial.println(buf);

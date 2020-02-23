@@ -21,9 +21,9 @@
 #define HW_PUMP_CIRC_CTRL_PIN  A8
 #define HW_THERMOSTAT_PIN 53
 
-#define MAX6675_0_SCK_PIN 52
-#define MAX6675_0_CS_PIN 49
-#define MAX6675_0_SO_PIN 50
+#define MAX6675_0_SCK_PIN 39
+#define MAX6675_0_CS_PIN 41
+#define MAX6675_0_SO_PIN 40
 
 #define MAX6675_1_SCK_PIN 0 //disable
 #define MAX6675_1_CS_PIN 44
@@ -34,5 +34,6 @@
 #define DISPLAY_TEXT_LEN  16
 
 #define MPIEC_ENABLE_WEBSERVER
+//#define MPIEC_ENABLE_SCRIPT
 
 #endif

@@ -40,13 +40,17 @@ typedef struct ControlConfiguration {
   uint8_t TDeltaCWU; //delta cwu - temp powyżej bojlera do ktorej rozgrzewamy piec
   uint8_t P0BlowerTime; //czas pracy dmuchawy w podtrzymaniu
   uint8_t P0FuelFreq; //podawanie wegla co x cykli przedmuchu
+  bool    _HomeThermostat;
   bool    SummerMode; //tryb letni
-  bool    HomeThermostat;
+  
   TBurnParams BurnConfigs[MAX_POWER_STATES]; //first one [0] is the podtrzymanie
   uint8_t DallasAddress[8][8]; //dallas sensor addresses. if zero - sensor not present
   uint8_t DefaultBlowerCycle;
   uint8_t FeederTempLimit;
   uint8_t NoHeatAlarmTimeM; //time needed to deterimine if we have the fire
+  uint8_t _dum1;
+  bool    _dum2;
+  bool    EnableThermostat;
   
 } TControlConfiguration;
 

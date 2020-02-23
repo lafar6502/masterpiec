@@ -10,8 +10,8 @@
 
 
 
-
-
+void loggingInit();
+void loggingTask();
 
 
 

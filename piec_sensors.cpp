@@ -79,20 +79,18 @@ int findDallasIndex(uint8_t addr[8])
 void initializeDallasSensors() {
   sensors.begin();
 
-  Serial.print("Scanning OneWire Dallas sensors...");
-  Serial.print("Found ");
+  Serial.print(F("Scanning OneWire Dallas sensors found "));
+  
   int deviceCount = sensors.getDeviceCount();
   Serial.print(deviceCount, DEC);
-  Serial.println(" devices.");
-  Serial.println("");
+  Serial.println();
   DeviceAddress tmp;
   sensors.setWaitForConversion(false);  
-  Serial.println("dallas requesting temp");
   int m = millis();
   sensors.requestTemperatures();
   for (int i = 0;  i < deviceCount;  i++)
   {
-    Serial.print("Sensor ");
+    Serial.print(F("Sensor "));
     Serial.print(i+1);
     Serial.print(". ");
     sensors.getAddress(tmp, i);
@@ -108,7 +106,7 @@ void initializeDallasSensors() {
     g_dallasSensors[i].LastReadMs = m;
   }
   int m2 = millis() - m;
-  Serial.print("Dallas scan done. time ms: ");
+  Serial.print(F("Dallas scan done. time ms: "));
   Serial.println(m2);
 }
 
@@ -146,7 +144,7 @@ void refreshSensorReadings() {
         g_dallasSensors[i].LastValue = sensors.getTempC(g_dallasSensors[i].Addr);
         if (g_dallasSensors[i].LastValue == DEVICE_DISCONNECTED_C) {
           g_dallasSensors[i].Active = false;
-          Serial.print("Dallas sensor disconnected ");
+          Serial.print(F("Dallas sensor disconnected "));
           Serial.print(i);
           printAddress(g_dallasSensors[i].Addr);
         }

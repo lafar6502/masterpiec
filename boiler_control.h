@@ -25,7 +25,8 @@ void initializeBlowerControl();
 
 bool isThermostatOn();
 
-
+//accumulated feeder run time, in ms
+extern unsigned long g_FeederRunTime;
 
 
 #endif

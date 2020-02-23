@@ -11,7 +11,6 @@ void initializeBurningLoop() {
   g_TargetTemp = g_CurrentConfig.TCO;
   g_HomeThermostatOn = true;
   forceState(STATE_P0);
-  Serial.println("Burn init");
 }
 
 
@@ -50,7 +49,7 @@ void processSensorValues() {
   g_TempZewn = getLastDallasValue(TSENS_EXTERNAL);
   g_TempSpaliny = getLastThermocoupleValue(T2SENS_EXHAUST);
   g_TempBurner = getLastThermocoupleValue(T2SENS_BURNER);
-  if (g_CurrentConfig.HomeThermostat) 
+  if (g_CurrentConfig.EnableThermostat) 
   {
     g_HomeThermostatOn = isThermostatOn();
   }
@@ -65,7 +64,7 @@ void burningProc()
 {
   assert(g_BurnState != STATE_UNDEFINED && g_BurnState < N_BURN_STATES);
   if (g_BurnState != BURN_STATES[g_BurnState].State) {
-    Serial.print("invalid burn st");
+    Serial.print(F("invalid burn st"));
     Serial.println(g_BurnState);
   }
 
@@ -77,7 +76,7 @@ void burningProc()
     {
       if (BURN_TRANSITIONS[i].fCondition != NULL && BURN_TRANSITIONS[i].fCondition()) 
       {
-        Serial.print("BS: trans ");
+        Serial.print(F("BS: trans "));
         Serial.print(i);
         Serial.print(" ->");
         Serial.println(BURN_STATES[BURN_TRANSITIONS[i].To].Code);
@@ -165,7 +164,7 @@ void workStateInitialize(TSTATE t) {
   g_CurStateStartTempCO = g_TempCO;
   curStateMaxTempCO = g_TempCO;
   setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
-  Serial.print("Burn init, cycle: ");
+  Serial.print(F("Burn init, cycle: "));
   Serial.println(g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec);
 }
 
@@ -176,7 +175,6 @@ void stopStateInitialize(TSTATE t) {
   setFeederOff();
   g_CurStateStart = millis();
   g_CurBurnCycleStart = g_CurStateStart;
-  Serial.println("Stop init");
 }
 
 ///pętla palenia dla stanu pracy
@@ -211,7 +209,7 @@ void reductionStateInit(TSTATE prev) {
   assert(g_BurnState == STATE_REDUCE1 || g_BurnState == STATE_REDUCE2);
   assert(prev == STATE_P1 || prev == STATE_P2);
   if (prev != STATE_P1 && prev != STATE_P2) {
-    Serial.print("red: wrong state");
+    Serial.print(F("red: wrong state"));
     Serial.println(prev);
     prev = STATE_P1;
   }
@@ -221,7 +219,7 @@ void reductionStateInit(TSTATE prev) {
   _reductionStateEndMs = g_CurStateStart + (unsigned long) g_CurrentConfig.BurnConfigs[prev].CycleSec * 1000L;
   setBlowerPower(g_CurrentConfig.BurnConfigs[prev].BlowerPower, g_CurrentConfig.BurnConfigs[prev].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[prev].BlowerCycle);
   setFeederOff();
-  Serial.print("red: cycle should end in ");
+  Serial.print(F("red: cycle should end in "));
   Serial.println((_reductionStateEndMs - g_CurStateStart) / 1000.0);
 }
 
@@ -233,7 +231,7 @@ void reductionStateLoop() {
   
   if (tNow > _reductionStateEndMs + 100) 
   {
-    Serial.print("reduction should end by now:");
+    Serial.print(F("reduction should end by now:"));
     Serial.println(g_CurBurnCycleStart);
   }
 }
@@ -245,8 +243,8 @@ void podtrzymanieStateInitialize(TSTATE t) {
   g_CurBurnCycleStart = g_CurStateStart;
   setBlowerPower(0);
   setFeederOff();
-  Serial.print("podtrz init. C:");
-  Serial.println(g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec);
+  //Serial.print("podtrz init. C:");
+  //Serial.println(g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec);
 }
 
 void podtrzymanieStateLoop() {
@@ -279,12 +277,12 @@ void podtrzymanieStateLoop() {
   {
     g_CurBurnCycleStart = tNow;
     cycleNum++;
-    Serial.print("rP:");
+    /*Serial.print("rP:");
     Serial.print(burnCycleLen);
     Serial.print(", ");
     Serial.print(g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec);
     Serial.print(", s:");
-    Serial.println(g_CurBurnCycleStart);
+    Serial.println(g_CurBurnCycleStart);*/
   }
 }
 
@@ -305,7 +303,7 @@ bool cond_shouldHeatCWU1() {
 bool cond_shouldHeatHome() {
   if (getManualControlMode()) return false;
   if (g_CurrentConfig.SummerMode) return false;
-  if (g_CurrentConfig.HomeThermostat) return g_HomeThermostatOn;
+  if (g_CurrentConfig.EnableThermostat) return g_HomeThermostatOn;
   return true;
 }
 
@@ -391,8 +389,8 @@ bool isAlarm_NoHeating() {
   //only for automatic heating cycles P1 P2
   if (g_BurnState != STATE_P1 && g_BurnState != STATE_P2) return false;
   unsigned long m = millis();
-  m = m - g_CurStateStartTempCO;
-  if (curStateMaxTempCO - g_CurStateStartTempCO < 2.0 && g_CurrentConfig.NoHeatAlarmTimeM > 0 && m > 60 * 1000L * g_CurrentConfig.NoHeatAlarmTimeM) 
+  m = m - g_CurStateStart;
+  if (g_CurrentConfig.NoHeatAlarmTimeM > 0 && m > 60 * 1000L * g_CurrentConfig.NoHeatAlarmTimeM && curStateMaxTempCO - g_CurStateStartTempCO < 2.0) 
   {
     g_Alarm = "Wygaslo";
     return true;

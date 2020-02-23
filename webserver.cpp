@@ -4,6 +4,8 @@
 #include "burn_control.h"
 
 
+
+
 byte mac[] = { 0xE1, 0xC9, 0x3E, 0xEC, 0x91, 0x22 };   //physical mac address
 byte ip[] = { 192, 168, 88, 8 };                      // ip in lan (that's what you need to use in your browser. ("192.168.1.178")
 byte gateway[] = { 192, 168, 88, 1 };                   // internet access via router
