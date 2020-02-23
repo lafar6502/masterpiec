@@ -48,10 +48,10 @@ typedef struct ControlConfiguration {
   uint8_t DefaultBlowerCycle;
   uint8_t FeederTempLimit;
   uint8_t NoHeatAlarmTimeM; //time needed to deterimine if we have the fire
-  uint8_t _dum1;
-  bool    _dum2;
-  bool    EnableThermostat;
-  
+  uint8_t EnableThermostat; //0 or 1
+  uint8_t CooloffTimeM10; //minutes * 10
+  uint16_t CooloffPauseM10; //minutes * 10
+  uint8_t _future[17];
 } TControlConfiguration;
 
 //bieżąca konfiguracja pieca
@@ -115,6 +115,9 @@ extern float g_TempBurner; //temp palnika
 
 extern TSTATE g_BurnState;  //aktualny stan grzania
 extern bool   g_HomeThermostatOn;  //true - termostat pokojowy kazał zaprzestać grzania
+extern unsigned long g_P1Time; //accumulated P1 time
+extern unsigned long g_P2Time; //accumulated P2 time
+
 extern float g_TempZewn; //aktualna temp. zewn
 extern char* g_Alarm;
 

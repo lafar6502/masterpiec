@@ -7,6 +7,9 @@
 #include "ui_handler.h"
 #include "varholder.h"
 
+
+#define MAX_TEMP 90
+
 void initializeBurningLoop() {
   g_TargetTemp = g_CurrentConfig.TCO;
   g_HomeThermostatOn = true;
@@ -31,6 +34,8 @@ TSTATE g_BurnState = STATE_UNDEFINED;  //aktualny stan grzania
 bool   g_HomeThermostatOn = true;  //true - termostat pokojowy kazał zaprzestać grzania
 float g_TempZewn = 0.0; //aktualna temp. zewn
 char* g_Alarm;
+unsigned long g_P1Time = 0;
+unsigned long g_P2Time = 0;
 TReading lastCOTemperatures[10];
 CircularBuffer<TReading> g_lastCOReads(lastCOTemperatures, sizeof(lastCOTemperatures)/sizeof(TReading));
 
@@ -59,7 +64,9 @@ void processSensorValues() {
   }
 }
 
-
+/***
+ * ---
+ */
 void burningProc() 
 {
   assert(g_BurnState != STATE_UNDEFINED && g_BurnState < N_BURN_STATES);
@@ -67,7 +74,7 @@ void burningProc()
     Serial.print(F("invalid burn st"));
     Serial.println(g_BurnState);
   }
-
+  unsigned long t = millis();
   
   //1. check if we should change state
   for(int i=0; i < N_BURN_TRANSITIONS; i++)
@@ -80,11 +87,17 @@ void burningProc()
         Serial.print(i);
         Serial.print(" ->");
         Serial.println(BURN_STATES[BURN_TRANSITIONS[i].To].Code);
+        
+        if (g_BurnState == STATE_P1)
+          g_P1Time += (t - g_CurStateStart);
+        else if (g_BurnState == STATE_P2)
+          g_P2Time += (t - g_CurStateStart);
+          
         if (BURN_TRANSITIONS[i].fAction != NULL) BURN_TRANSITIONS[i].fAction();
         //transition to new state
         g_BurnState = BURN_TRANSITIONS[i].To;
         assert(g_BurnState != STATE_UNDEFINED && g_BurnState < N_BURN_STATES);
-        g_CurStateStart = millis();
+        g_CurStateStart = t;
         g_CurBurnCycleStart = g_CurStateStart;
         g_CurStateStartTempCO = g_TempCO;
         if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize(BURN_TRANSITIONS[i].From);
@@ -130,8 +143,15 @@ float curStateMaxTempCO = 0;
 void forceState(TSTATE st) {
   assert(st != STATE_UNDEFINED);
   if (st == g_BurnState) return;
+  unsigned long t = millis();
+
+  if (g_BurnState == STATE_P1)
+    g_P1Time += (t - g_CurStateStart);
+  else if (g_BurnState == STATE_P2)
+    g_P2Time += (t - g_CurStateStart);
+    
   g_BurnState = st;
-  g_CurStateStart = millis();
+  g_CurStateStart = t;
   g_CurBurnCycleStart = g_CurStateStart;
   g_CurStateStartTempCO = g_TempCO;
   if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize(g_BurnState);
@@ -307,9 +327,6 @@ bool cond_shouldHeatHome() {
   return true;
 }
 
-bool cond_needsCooling() {
-  return g_TempCO > 90;
-}
 
 
 void adjustTargetTemperature() {
@@ -324,34 +341,43 @@ void adjustTargetTemperature() {
     //nothing...
   }
 }
+
+bool cond_needCooling(); //below
 //
 // which pumps and when
 // cwu heating needed -> turn on cwu pump if current temp is above min pump temp and above cwu temp + delta
 //
 void updatePumpStatus() {
-  if (getManualControlMode()) return;
+  if (g_TempCO >= MAX_TEMP) {
+    if (isPumpEnabled(PUMP_CWU1)) setPumpOn(PUMP_CWU1);
+    setPumpOn(PUMP_CO1);
+    return;
+  }
+  if (getManualControlMode()) return; //all below only in automatic mode.
+  if (g_TempCO < g_CurrentConfig.TMinPomp) {
+    setPumpOff(PUMP_CO1);
+    setPumpOff(PUMP_CWU1);
+    return;
+  }
   if (cond_shouldHeatCWU1()) {
     uint8_t minTemp = max(g_CurrentConfig.TMinPomp, g_TempCWU + g_CurrentConfig.TDeltaCWU);
     if (g_TempCO >= minTemp) {
       setPumpOn(PUMP_CWU1);
     } 
-    else 
-    {
+    else {
       setPumpOff(PUMP_CWU1);
     }
   }
   else if (cond_shouldHeatHome()) {
-    uint8_t minTemp = g_CurrentConfig.TMinPomp;
-    if (g_TempCO > minTemp) {
-      setPumpOn(PUMP_CO1);
-    } 
-    else {
-      setPumpOff(PUMP_CO1);
-    }
-  }
-  else if (cond_needsCooling()) {
     setPumpOn(PUMP_CO1);
-    if (isPumpEnabled(PUMP_CWU1)) setPumpOn(PUMP_CWU1);
+  }
+  else if (cond_needCooling()) {
+    if (g_CurrentConfig.SummerMode && isPumpEnabled(PUMP_CWU1)) {
+      setPumpOn(PUMP_CWU1);
+    }
+    else {
+      setPumpOn(PUMP_CO1);
+    }
   }
   else 
   {
@@ -374,7 +400,7 @@ bool isAlarm_HardwareProblem() {
 }
 
 bool isAlarm_Overheat() {
-  if (g_TempCO > 85.0) {
+  if (g_TempCO > MAX_TEMP) {
     g_Alarm = "ZA GORACO";
     return true;
   }
@@ -429,8 +455,51 @@ bool cond_targetTempReached() {
 }
 
 bool cond_boilerOverheated() {
-  return g_TempCO >= g_TargetTemp + g_CurrentConfig.TDeltaCO;
+  return g_TempCO >= g_TargetTemp + g_CurrentConfig.TDeltaCO || g_TempCO >= MAX_TEMP;
 }
+
+uint8_t _coolState = 0; //1-cool, 2-pause
+unsigned long _coolTs = 0;
+
+//temp too high, need cooling by running co or cwu pump
+bool cond_needCooling() {
+  if (g_TempCO >= MAX_TEMP) {_coolState = 0; return true;} //always
+  bool hot = (g_TempCO >= g_TargetTemp + g_CurrentConfig.TDeltaCO);
+  if (!getManualControlMode() && g_BurnState != STATE_ALARM && g_CurrentConfig.CooloffTimeM10 != 0 && hot) 
+  {
+    unsigned long t = millis();
+    switch(_coolState) {
+      case 1:
+        if ((t - _coolTs) > (unsigned long) g_CurrentConfig.CooloffTimeM10 * 60 * 1000) {//pause
+          _coolState = 2;
+          _coolTs = t;
+          Serial.println(F("Cool pause"));
+          return false;
+        }
+        return true;
+      case 2:
+        if ((t - _coolTs) > (unsigned long) g_CurrentConfig.CooloffPauseM10 * 60 * 1000) {//pause
+          _coolState = 1;
+          _coolTs = t;
+          Serial.println(F("Cool resume"));
+          return true;
+        }
+        return false;
+        break;
+      default:
+        _coolState = 1;
+        _coolTs = t;
+        Serial.println(F("Cool start"));
+        return true;
+    }
+  }
+  else 
+  {
+    _coolState = 0;
+    return false;  
+  }
+}
+
 
 bool needHeatingNow() {
   return cond_shouldHeatCWU1() || cond_shouldHeatHome();
@@ -440,6 +509,7 @@ bool cond_needHeatingAndBelowTargetTemp() {
   if (g_TempCO >= g_TargetTemp) return false;
   return cond_shouldHeatCWU1() || cond_shouldHeatHome();
 }
+
 
 bool cond_targetTempReachedAndHeatingNotNeeded() {
   if (g_TempCO < g_TargetTemp) return false;

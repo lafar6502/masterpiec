@@ -41,6 +41,24 @@ void scrTime(uint8_t idx, char* lines[]) {
   sprintf(lines[1], "%02d:%02d:%02d      ", RTC.h, RTC.m, RTC.s);
 }
 
+  
+void scrSensors1(uint8_t idx, char* lines[] ) {
+  char buf1[10], buf2[10];
+  dtostrf(g_TempSpaliny,3, 1, buf1);
+  dtostrf(g_TempBurner, 3, 1, buf2);
+  sprintf(lines[0], "TSpalin:%s", buf1);
+  sprintf(lines[1], "TPalnik:%s", buf2);
+}
+
+void scrSensors2(uint8_t idx, char* lines[] ) {
+  char buf1[10], buf2[10];
+  dtostrf(g_TempPowrot,2, 1, buf1);
+  dtostrf(g_TempFeeder,2, 1, buf2);
+  sprintf(lines[0], "TPowrot:%s", buf1);
+  sprintf(lines[1], "TPodaj:%s", buf2);
+}
+
+
 void scrBurnInfo(uint8_t idx, char* lines[]) {
   unsigned long tnow = millis();
   
@@ -225,6 +243,35 @@ void stEditVariableHandler(uint8_t ev, uint8_t arg)
   }
 }
 
+uint8_t _curDay;
+void stDailyLogsHandler(uint8_t ev, uint8_t arg) 
+{
+  if (ev == UI_EV_INITSTATE) {
+    _curDay = RTC.dow - 1;
+    g_CurrentUIView = 8;
+    return;
+  }
+  if (ev == UI_EV_UP) 
+  {
+    _curDay = _curDay >= 6 ? 0 : _curDay + 1;
+  } 
+  else if (ev == UI_EV_DOWN) 
+  {
+    _curDay = _curDay == 0 ? 6 : _curDay - 1;
+  }
+  else if (ev == UI_EV_BTNPRESS) {
+    changeUIState('0');
+  }
+}
+
+void scrLog(uint8_t idx, char* lines[]) 
+{
+  _curDay = _curDay % 7;
+  bool today = _curDay == RTC.dow - 1;
+  TDailyLogEntry ent = g_DailyLogEntries[_curDay];
+  sprintf(lines[0], "%c%d Pod: %d s", today ? '*' : ' ', _curDay + 1, ent.FeederTotalSec);
+  sprintf(lines[1], "P1: %d P2: %d", ent.P1TotalSec, ent.P2TotalSec);
+}
 
 void scrSelectVariable(uint8_t idx, char* lines[])
 {
@@ -306,6 +353,10 @@ void printUint8(uint8_t varIdx, void* editCopy, char* buf) {
   sprintf(buf, "%d", *pv);
 }
 
+void printUint8AsBool(uint8_t varIdx, void* editCopy, char* buf) {
+  uint8_t* pv = (uint8_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  sprintf(buf, "%s", *pv == 0 ? "OFF" : "ON");
+}
 void printUint16(uint8_t varIdx, void* editCopy, char* buf) {
   uint16_t* pv = (uint16_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
   sprintf(buf, "%d", *pv);
@@ -318,6 +369,15 @@ void printUint16_10(uint8_t varIdx, void* editCopy, char* buf) {
   dtostrf(f,2, 1, buf1);
   strcpy(buf, buf1);
 }
+
+void printUint8_10(uint8_t varIdx, void* editCopy, char* buf) {
+  uint8_t* pv = (uint8_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  float f = *pv / 10.0;
+  char buf1[10];
+  dtostrf(f,2, 1, buf1);
+  strcpy(buf, buf1);
+}
+
 
 void printFloat(uint8_t varIdx, void* editCopy, char* buf) {
   float* pv = (float*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
@@ -516,7 +576,7 @@ const TUIStateEntry UI_STATES[] = {
     {'V', {.numV=0}, 3 ,stSelectVariableHandler, NULL},
     {'W', {.numV=1}, 3,stSelectVariableHandler, NULL},
     {'E', NULL, 4, stEditVariableHandler, NULL},
-    
+    {'L', NULL, 8, stDailyLogsHandler, NULL}
     
 };
 
@@ -527,6 +587,9 @@ const TUIScreenEntry UI_SCREENS[]  = {
     {'V', NULL, scrSelectVariable},
     {'E', NULL, scrEditVariable},
     {'0', NULL, scrBurnInfo},
+    {'0', NULL, scrSensors1},
+    {'0', NULL, scrSensors2},
+    {'L', NULL, scrLog},
 };
 
 const uint8_t N_UI_SCREENS = sizeof(UI_SCREENS) / sizeof(TUIScreenEntry);
@@ -550,8 +613,10 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Temp.CWU2", 0, &g_CurrentConfig.TCWU2, 20, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {"Histereza CWU", 0, &g_CurrentConfig.THistCwu, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
   {"Temp.min.pomp", VAR_ADVANCED, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Zewn. termostat", VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 1, printBool, adjustBool, NULL, commitConfig},
+  {"Zewn. termostat", VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 1, printUint8AsBool, adjustUint8, NULL, commitConfig},
   {"Zewn. termos 2", VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 1, printBool, adjustBool, copyBool, commitConfig},
+  {"Chlodz. praca m", VAR_ADVANCED, &g_CurrentConfig.CooloffTimeM10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig},
+  {"Chlodz.przerwa m", VAR_ADVANCED, &g_CurrentConfig.CooloffPauseM10, 0, 1200, printUint16_10, adjustUint16, copyU16, commitConfig},
   
   {"DeltaT", VAR_ADVANCED, &g_CurrentConfig.TDeltaCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
   {"DeltaCWU", VAR_ADVANCED, &g_CurrentConfig.TDeltaCWU, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
@@ -589,6 +654,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Czuj. dod #2", VAR_ADVANCED, TSENS_USR2, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
 
   {"Ust.zaawansowane", VAR_IMMEDIATE, 'W', 0, 1, NULL, adjustUIState, NULL, NULL},
+  {"Logi", VAR_IMMEDIATE, 'L', 0, 1, NULL, adjustUIState, NULL, NULL},
   {"Wyjdz", VAR_IMMEDIATE, '0', 0, 1, NULL, adjustUIState, NULL, NULL},
   {"Wyjdz", VAR_IMMEDIATE | VAR_ADVANCED, '0', 0, 1, NULL, adjustUIState, NULL, NULL},
 };

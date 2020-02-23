@@ -197,8 +197,9 @@ void changeUIState(char code) {
       g_CurrentUIView = UI_STATES[i].DefaultView;
       if (UI_STATES[g_CurrentUIState].HandleEvent != NULL) UI_STATES[g_CurrentUIState].HandleEvent(UI_EV_INITSTATE, oldState);
       Serial.print("ui state:");
-      Serial.println(g_CurrentUIState);
-      
+      Serial.print(g_CurrentUIState);
+      Serial.print(", v");
+      Serial.println(g_CurrentUIView);
       return;
     }
   }
