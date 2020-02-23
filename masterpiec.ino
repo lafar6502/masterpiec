@@ -80,10 +80,13 @@ void loop() {
 
 void periodicDumpControlState() {
   static unsigned long lastDump = 0;
+  static TSTATE pstate = STATE_UNDEFINED;
+  
   unsigned long t = millis();
-  if (t - lastDump > 5000)
+  if (t - lastDump > 30000 || g_BurnState != pstate)
   {
     lastDump = t;
+    pstate = g_BurnState;
     Serial.print(F("s:"));
     Serial.print(BURN_STATES[g_BurnState].Code);
     Serial.print(", dm:");
@@ -104,7 +107,8 @@ void periodicDumpControlState() {
     Serial.print(g_TempSpaliny);
     Serial.print(", tpiec");
     Serial.print(g_TempCO);
-    
+    Serial.print(", need:");
+    Serial.print(g_needHeat);
     Serial.println();
   }
 }

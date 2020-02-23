@@ -32,7 +32,7 @@ void scrDefault(uint8_t idx, char* lines[])
   uint8_t nh = needHeatingNow(); 
   sprintf(lines[0], "T:%s/%s B:%s", buf2, buf1, buf3);
   
-  sprintf(lines[1], "%c%c %2d%%         ", nh == 0 ? '_' : nh == 1 ? '!' : '@', BURN_STATES[g_BurnState].Code, getCurrentBlowerPower()); 
+  sprintf(lines[1], "%c%c %2d%%         ", nh == NEED_HEAT_NONE ? '_' : nh == NEED_HEAT_CO ? '!' : '@', BURN_STATES[g_BurnState].Code, getCurrentBlowerPower()); 
   
 }
 
@@ -68,7 +68,7 @@ void scrBurnInfo(uint8_t idx, char* lines[]) {
     unsigned long tt = (tnow - g_CurStateStart) / 1000L;
     uint8_t nh = needHeatingNow();
     sprintf(lines[0], "#%c T%d/%d", BURN_STATES[g_BurnState].Code, g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec - (tnow - g_CurBurnCycleStart) / 1000, tt); 
-    sprintf(lines[1], "%c%d%% %d %ld", nh == 0 ? '_' : nh == 1 ? '!' : '@', getCurrentBlowerPower(), cycle, tt);
+    sprintf(lines[1], "%c%d%% %d %ld", nh == NEED_HEAT_NONE ? '_' : nh == NEED_HEAT_CO ? '!' : '@', getCurrentBlowerPower(), cycle, tt);
   }
   else if (g_BurnState == STATE_REDUCE1 || g_BurnState == STATE_REDUCE2) 
   {
