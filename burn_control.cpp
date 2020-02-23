@@ -32,6 +32,7 @@ float g_TempBurner = 0;
 TSTATE g_BurnState = STATE_UNDEFINED;  //aktualny stan grzania
 CWSTATE g_CWState = CWSTATE_OK; //current cw status
 HEATNEED g_needHeat = NEED_HEAT_NONE; //0, 1 or 2
+HEATNEED g_initialNeedHeat = NEED_HEAT_NONE; //heat needs at the beginning of current state
 
 bool   g_HomeThermostatOn = true;  //true - termostat pokojowy kazał zaprzestać grzania
 float g_TempZewn = 0.0; //aktualna temp. zewn
@@ -107,6 +108,7 @@ void burningProc()
         g_BurnState = BURN_TRANSITIONS[i].To;
         assert(g_BurnState != STATE_UNDEFINED && g_BurnState < N_BURN_STATES);
         g_CurStateStart = t;
+        g_initialNeedHeat = g_needHeat;
         g_CurBurnCycleStart = g_CurStateStart;
         g_CurStateStartTempCO = g_TempCO;
         if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize(BURN_TRANSITIONS[i].From);
@@ -161,6 +163,7 @@ void forceState(TSTATE st) {
   TSTATE old = g_BurnState;
   g_BurnState = st;
   g_CurStateStart = t;
+  g_initialNeedHeat = g_needHeat;
   g_CurBurnCycleStart = g_CurStateStart;
   g_CurStateStartTempCO = g_TempCO;
   if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize(old);
@@ -193,6 +196,7 @@ void burnControlTask() {
 void workStateInitialize(TSTATE prev) {
   assert(g_BurnState != STATE_UNDEFINED && g_BurnState != STATE_STOP && g_BurnState < N_BURN_STATES);
   g_CurStateStart = millis();
+  g_initialNeedHeat = g_needHeat;
   g_CurBurnCycleStart = g_CurStateStart;
   g_CurStateStartTempCO = g_TempCO;
   curStateMaxTempCO = g_TempCO;
@@ -207,6 +211,7 @@ void stopStateInitialize(TSTATE prev) {
   setBlowerPower(0);
   setFeederOff();
   g_CurStateStart = millis();
+  g_initialNeedHeat = g_needHeat;
   g_CurBurnCycleStart = g_CurStateStart;
 }
 
@@ -248,6 +253,7 @@ void reductionStateInit(TSTATE prev) {
   }
   
   g_CurStateStart = millis();
+  g_initialNeedHeat = g_needHeat;
   g_CurBurnCycleStart = g_CurStateStart;
   unsigned long adj = _reductionStateEndMs;
   _reductionStateEndMs = g_CurStateStart + (unsigned long) g_CurrentConfig.BurnConfigs[prev].CycleSec * 1000L + adj;
@@ -277,6 +283,7 @@ void reductionStateLoop() {
 void podtrzymanieStateInitialize(TSTATE prev) {
   g_CurStateStart = millis();
   g_CurBurnCycleStart = g_CurStateStart;
+  g_initialNeedHeat = g_needHeat;
   setBlowerPower(0);
   setFeederOff();
   //Serial.print("podtrz init. C:");
@@ -325,23 +332,6 @@ void podtrzymanieStateLoop() {
 void manualStateLoop() {
   
 }
-
-
-bool cond_shouldHeatCWU1() {
-  //check if cwu1 heating is needed
-  if (!isPumpEnabled(PUMP_CWU1)) return false;
-  if (!isDallasEnabled(TSENS_CWU)) return false;
-  return g_CWState == CWSTATE_HEAT;
-}
-
-///kiedy potrzebujemy grzać grzejniki - tzn kiedy jest zapotrzebowanie na grzanie w domowej instalacji, niezaleznie od akt. stanu kotła.
-bool cond_shouldHeatHome() {
-  if (getManualControlMode()) return false;
-  if (g_CurrentConfig.SummerMode) return false;
-  if (g_CurrentConfig.EnableThermostat) return g_HomeThermostatOn;
-  return true;
-}
-
 
 
 void handleHeatNeedStatus() {
@@ -481,8 +471,14 @@ void alarmStateInitialize(TSTATE prev) {
 // 
 
 
-bool cond_belowHysteresis() {
-  return  g_TempCO < g_TargetTemp - g_CurrentHysteresis;
+bool cond_B_belowHysteresis() {
+  if (g_TempCO < g_TargetTemp - g_CurrentConfig.THistCO) return true;
+  if (g_needHeat == NEED_HEAT_CWU) {
+    //we're below min temp to heat the cwu
+    return (g_TempCO < g_TempCWU + g_CurrentConfig.TDeltaCWU);
+  }
+  return false;
+  
 }
 
 bool cond_cycleEnded() {
@@ -544,25 +540,16 @@ uint8_t needHeatingNow() {
   return g_needHeat;
 }
 //heating is needed and temp is below the target
-bool cond_needHeatingAndBelowTargetTemp() {
+bool cond_A_needSuddenHeatAndBelowTargetTemp() {
   if (g_TempCO >= g_TargetTemp) return false;
-  bool r2 = cond_shouldHeatCWU1() || cond_shouldHeatHome();
-  return r2;
+  return g_needHeat != NEED_HEAT_NONE && g_initialNeedHeat == NEED_HEAT_NONE;
 }
-//to samo co wyzej, ale musialem dodac troche histerezy bo wpadamy w petle
-bool cond_needHeatingAndBelowTargetTemp_unreduce() {
-  if (g_TempCO >= g_TargetTemp - 1.1) return false;
-  bool r2 = cond_shouldHeatCWU1() || cond_shouldHeatHome();
-  return r2;
-}
-
 
 
 
 
 bool cond_targetTempReachedAndHeatingNotNeeded() {
-  if (g_TempCO < g_TargetTemp) return false;
-  return !cond_shouldHeatHome() && !cond_shouldHeatCWU1();
+  return g_TempCO >= g_TargetTemp && g_needHeat == NEED_HEAT_NONE;
 }
 
 void onSwitchToReduction(int trans) {
@@ -595,23 +582,23 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   
   {STATE_STOP, STATE_ALARM, NULL, NULL},
   
-  {STATE_P1, STATE_P2, cond_belowHysteresis, NULL},
+  {STATE_P1, STATE_P2, cond_B_belowHysteresis, NULL},
   {STATE_P1, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction}, //P1 -> P0
   {STATE_P1, STATE_REDUCE1, cond_targetTempReachedAndHeatingNotNeeded, onSwitchToReduction}, //10 P1 -> P0
 
-  {STATE_P0, STATE_P2, cond_belowHysteresis, NULL},
-  {STATE_P0, STATE_P1, cond_needHeatingAndBelowTargetTemp, NULL},
+  {STATE_P0, STATE_P2, cond_B_belowHysteresis, NULL},
+  {STATE_P0, STATE_P1, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
 
   {STATE_P2, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction},  //P2 -> P0
   {STATE_P2, STATE_REDUCE2, cond_targetTempReached, onSwitchToReduction}, //10 P2 -> P1
   
-  {STATE_REDUCE2, STATE_P2, cond_belowHysteresis, NULL},
-  {STATE_REDUCE2, STATE_P2, cond_needHeatingAndBelowTargetTemp_unreduce, NULL},
+  {STATE_REDUCE2, STATE_P2, cond_B_belowHysteresis, NULL},
+  {STATE_REDUCE2, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
   {STATE_REDUCE2, STATE_P1, cond_cycleEnded, NULL},
   
-  {STATE_REDUCE1, STATE_P2, cond_belowHysteresis, NULL}, //juz nie redukujemy
+  {STATE_REDUCE1, STATE_P2, cond_B_belowHysteresis, NULL}, //juz nie redukujemy
   {STATE_REDUCE1, STATE_P0, cond_cycleEnded, NULL},
-  {STATE_REDUCE1, STATE_P1, cond_needHeatingAndBelowTargetTemp_unreduce, NULL}, //juz nie redukujemy  - np sytuacja się zmieniła i temp. została podniesiona. uwaga - ten sam war. co w #10 - cykl
+  {STATE_REDUCE1, STATE_P1, cond_A_needSuddenHeatAndBelowTargetTemp, NULL}, //juz nie redukujemy  - np sytuacja się zmieniła i temp. została podniesiona. uwaga - ten sam war. co w #10 - cykl
   
   {STATE_UNDEFINED, STATE_UNDEFINED, NULL, NULL} //sentinel
 };
