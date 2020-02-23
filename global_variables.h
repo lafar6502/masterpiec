@@ -19,6 +19,7 @@ typedef struct {
 extern TDailyLogEntry g_DailyLogEntries[];
 
 void loggingInit();
+void clearDailyLogs();
 void loggingTask();
 
 

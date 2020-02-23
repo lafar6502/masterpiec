@@ -93,7 +93,7 @@ void burningProc()
         else if (g_BurnState == STATE_P2)
           g_P2Time += (t - g_CurStateStart);
           
-        if (BURN_TRANSITIONS[i].fAction != NULL) BURN_TRANSITIONS[i].fAction();
+        if (BURN_TRANSITIONS[i].fAction != NULL) BURN_TRANSITIONS[i].fAction(i);
         //transition to new state
         g_BurnState = BURN_TRANSITIONS[i].To;
         assert(g_BurnState != STATE_UNDEFINED && g_BurnState < N_BURN_STATES);
@@ -149,12 +149,12 @@ void forceState(TSTATE st) {
     g_P1Time += (t - g_CurStateStart);
   else if (g_BurnState == STATE_P2)
     g_P2Time += (t - g_CurStateStart);
-    
+  TSTATE old = g_BurnState;
   g_BurnState = st;
   g_CurStateStart = t;
   g_CurBurnCycleStart = g_CurStateStart;
   g_CurStateStartTempCO = g_TempCO;
-  if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize(g_BurnState);
+  if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize(old);
   Serial.print("BS->");
   Serial.println(BURN_STATES[g_BurnState].Code);
 }
@@ -177,7 +177,7 @@ void burnControlTask() {
 
 
 //inicjalizacja dla stanu grzania autom. P1 P2
-void workStateInitialize(TSTATE t) {
+void workStateInitialize(TSTATE prev) {
   assert(g_BurnState != STATE_UNDEFINED && g_BurnState != STATE_STOP && g_BurnState < N_BURN_STATES);
   g_CurStateStart = millis();
   g_CurBurnCycleStart = g_CurStateStart;
@@ -189,7 +189,7 @@ void workStateInitialize(TSTATE t) {
 }
 
 //przejscie do stanu recznego
-void stopStateInitialize(TSTATE t) {
+void stopStateInitialize(TSTATE prev) {
   assert(g_BurnState == STATE_STOP);
   setBlowerPower(0);
   setFeederOff();
@@ -223,7 +223,7 @@ void workStateBurnLoop() {
   }
 }
 
-unsigned long _reductionStateEndMs = 0;
+unsigned long _reductionStateEndMs = 0; //inside reduction state - this is the calculated end time. Outside (before reduction) - we put remaining P1 or P2 time there before going to reduction.
 
 void reductionStateInit(TSTATE prev) {
   assert(g_BurnState == STATE_REDUCE1 || g_BurnState == STATE_REDUCE2);
@@ -236,11 +236,14 @@ void reductionStateInit(TSTATE prev) {
   
   g_CurStateStart = millis();
   g_CurBurnCycleStart = g_CurStateStart;
-  _reductionStateEndMs = g_CurStateStart + (unsigned long) g_CurrentConfig.BurnConfigs[prev].CycleSec * 1000L;
+  unsigned long adj = _reductionStateEndMs;
+  _reductionStateEndMs = g_CurStateStart + (unsigned long) g_CurrentConfig.BurnConfigs[prev].CycleSec * 1000L + adj;
   setBlowerPower(g_CurrentConfig.BurnConfigs[prev].BlowerPower, g_CurrentConfig.BurnConfigs[prev].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[prev].BlowerCycle);
   setFeederOff();
   Serial.print(F("red: cycle should end in "));
-  Serial.println((_reductionStateEndMs - g_CurStateStart) / 1000.0);
+  Serial.print((_reductionStateEndMs - g_CurStateStart) / 1000.0);
+  Serial.print(F(", extra time s:"));
+  Serial.println(adj / 1000);
 }
 
 void reductionStateLoop() {
@@ -258,7 +261,7 @@ void reductionStateLoop() {
 
 
 
-void podtrzymanieStateInitialize(TSTATE t) {
+void podtrzymanieStateInitialize(TSTATE prev) {
   g_CurStateStart = millis();
   g_CurBurnCycleStart = g_CurStateStart;
   setBlowerPower(0);
@@ -366,6 +369,7 @@ void updatePumpStatus() {
     } 
     else {
       setPumpOff(PUMP_CWU1);
+      //Serial.println(F("too low to heat cwu"));
     }
   }
   else if (cond_shouldHeatHome()) {
@@ -433,7 +437,7 @@ bool cond_feederOnFire() {
   return false;
 }
 
-void alarmStateInitialize(TSTATE t) {
+void alarmStateInitialize(TSTATE prev) {
   changeUIState('0');
 }
 
@@ -501,19 +505,48 @@ bool cond_needCooling() {
 }
 
 
-bool needHeatingNow() {
-  return cond_shouldHeatCWU1() || cond_shouldHeatHome();
+uint8_t needHeatingNow() {
+  if (cond_shouldHeatCWU1()) return 2;
+  if (cond_shouldHeatHome()) return 1;
+  return 0;
 }
 //heating is needed and temp is below the target
 bool cond_needHeatingAndBelowTargetTemp() {
   if (g_TempCO >= g_TargetTemp) return false;
-  return cond_shouldHeatCWU1() || cond_shouldHeatHome();
+  bool r2 = cond_shouldHeatCWU1() || cond_shouldHeatHome();
+  return r2;
 }
+//to samo co wyzej, ale musialem dodac troche histerezy bo wpadamy w petle
+bool cond_needHeatingAndBelowTargetTemp_unreduce() {
+  if (g_TempCO >= g_TargetTemp - 1.1) return false;
+  bool r2 = cond_shouldHeatCWU1() || cond_shouldHeatHome();
+  return r2;
+}
+
+
+
 
 
 bool cond_targetTempReachedAndHeatingNotNeeded() {
   if (g_TempCO < g_TargetTemp) return false;
   return !cond_shouldHeatHome() && !cond_shouldHeatCWU1();
+}
+
+void onSwitchToReduction(int trans) {
+  assert(g_BurnState == STATE_P1 || g_BurnState == STATE_P2);
+  unsigned long t = millis();
+  _reductionStateEndMs = 0;
+  if (t < g_CurBurnCycleStart) return;
+  unsigned long diff = t - g_CurBurnCycleStart;
+  unsigned long fuelTimeMs =  g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 * 10000L; //feeder works at the start of P1 or P2 cycle
+  unsigned long cycleLen = g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec * 1000L;
+  _reductionStateEndMs = cycleLen - diff;
+  if (diff < fuelTimeMs) //during feed
+  {
+    _reductionStateEndMs = _reductionStateEndMs * ((float) diff / fuelTimeMs);
+  }
+  Serial.print(F("Remaining time for reduction (ms):"));
+  Serial.println(_reductionStateEndMs);
 }
 
 const TBurnTransition  BURN_TRANSITIONS[]   = 
@@ -530,22 +563,22 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_STOP, STATE_ALARM, NULL, NULL},
   
   {STATE_P1, STATE_P2, cond_belowHysteresis, NULL},
-  {STATE_P1, STATE_REDUCE1, cond_boilerOverheated, NULL}, //P1 -> P0
-  {STATE_P1, STATE_REDUCE1, cond_targetTempReachedAndHeatingNotNeeded, NULL}, //P1 -> P0
+  {STATE_P1, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction}, //P1 -> P0
+  {STATE_P1, STATE_REDUCE1, cond_targetTempReachedAndHeatingNotNeeded, onSwitchToReduction}, //10 P1 -> P0
 
   {STATE_P0, STATE_P2, cond_belowHysteresis, NULL},
   {STATE_P0, STATE_P1, cond_needHeatingAndBelowTargetTemp, NULL},
 
-  {STATE_P2, STATE_REDUCE1, cond_boilerOverheated, NULL},  //P2 -> P0
-  {STATE_P2, STATE_REDUCE2, cond_targetTempReached, NULL}, //10 P2 -> P1
+  {STATE_P2, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction},  //P2 -> P0
+  {STATE_P2, STATE_REDUCE2, cond_targetTempReached, onSwitchToReduction}, //10 P2 -> P1
   
   {STATE_REDUCE2, STATE_P2, cond_belowHysteresis, NULL},
-  {STATE_REDUCE2, STATE_P2, cond_needHeatingAndBelowTargetTemp, NULL},
+  {STATE_REDUCE2, STATE_P2, cond_needHeatingAndBelowTargetTemp_unreduce, NULL},
   {STATE_REDUCE2, STATE_P1, cond_cycleEnded, NULL},
   
   {STATE_REDUCE1, STATE_P2, cond_belowHysteresis, NULL}, //juz nie redukujemy
   {STATE_REDUCE1, STATE_P0, cond_cycleEnded, NULL},
-  {STATE_REDUCE1, STATE_P1, cond_needHeatingAndBelowTargetTemp, NULL}, //juz nie redukujemy  - np sytuacja się zmieniła i temp. została podniesiona
+  {STATE_REDUCE1, STATE_P1, cond_needHeatingAndBelowTargetTemp_unreduce, NULL}, //juz nie redukujemy  - np sytuacja się zmieniła i temp. została podniesiona. uwaga - ten sam war. co w #10 - cykl
   
   {STATE_UNDEFINED, STATE_UNDEFINED, NULL, NULL} //sentinel
 };

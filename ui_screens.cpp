@@ -29,10 +29,10 @@ void scrDefault(uint8_t idx, char* lines[])
   dtostrf(g_TempCO,3, 1, buf2);
   sprintf(buf3, "CW:");
   dtostrf(g_TempCWU,3, 1, buf3);
-  
+  uint8_t nh = needHeatingNow(); 
   sprintf(lines[0], "T:%s/%s B:%s", buf2, buf1, buf3);
   
-  sprintf(lines[1], "%c%c %2d%%         ", needHeatingNow() ? '!' : '_', BURN_STATES[g_BurnState].Code, getCurrentBlowerPower()); 
+  sprintf(lines[1], "%c%c %2d%%         ", nh == 0 ? '_' : nh == 1 ? '!' : '@', BURN_STATES[g_BurnState].Code, getCurrentBlowerPower()); 
   
 }
 
@@ -66,8 +66,9 @@ void scrBurnInfo(uint8_t idx, char* lines[]) {
   {
     uint8_t cycle = g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle;
     unsigned long tt = (tnow - g_CurStateStart) / 1000L;
+    uint8_t nh = needHeatingNow();
     sprintf(lines[0], "#%c T%d/%d", BURN_STATES[g_BurnState].Code, g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec - (tnow - g_CurBurnCycleStart) / 1000, tt); 
-    sprintf(lines[1], "%c%d%% %d %ld", needHeatingNow() ? '!' : '_', getCurrentBlowerPower(), cycle, tt);
+    sprintf(lines[1], "%c%d%% %d %ld", nh == 0 ? '_' : nh == 1 ? '!' : '@', getCurrentBlowerPower(), cycle, tt);
   }
   else if (g_BurnState == STATE_REDUCE1 || g_BurnState == STATE_REDUCE2) 
   {
@@ -394,21 +395,23 @@ void printBool(uint8_t varIdx, void* editCopy, char* buf) {
 void printVBoolSwitch(uint8_t varIdx, void* editCopy, char* buf) {
   bool* pd = (bool*) editCopy;
   BoolFun f = (BoolFun) UI_VARIABLES[varIdx].DataPtr;
-  if (pd == NULL && f == NULL) return;
-  bool v = pd == NULL ? f() : *pd;
+  bool v = false;
+  if (pd != NULL || f != NULL) {
+    v = pd == NULL ? f() : *pd;
+  }
   strcpy(buf, v ? "ON" : "OFF");
 }
 
 void* copyVBoolSwitch(uint8_t varIdx, void* pData, bool save) {
   BoolFun f = (BoolFun) UI_VARIABLES[varIdx].DataPtr;
   static bool _copy;
-  if (f == NULL) return;
+  
   if (save) {
     SetBoolFun sbf = UI_VARIABLES[varIdx].Data.setBoolF;
     if (sbf != NULL) sbf(_copy);
   }
   else {
-    _copy = f();
+    _copy = f == NULL ? false : f();
     return &_copy;
   }
 }
@@ -567,6 +570,11 @@ void commitConfig(uint8_t varIdx) {
   eepromSaveConfig(0);
 }
 
+void s_clearLogs(uint8_t varIdx) {
+  Serial.println(F("clr logs"));
+  clearDailyLogs();
+}
+
 void queueCommitTime(uint8_t varIdx) {
   g_uiBottomHalf = commitTime;
 }
@@ -652,7 +660,8 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Czuj. CWU 2",  VAR_ADVANCED, TSENS_CWU2, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
   {"Czuj. dod #1", VAR_ADVANCED, TSENS_USR1, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
   {"Czuj. dod #2", VAR_ADVANCED, TSENS_USR2, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
-
+  {"Wyczysc log", VAR_ADVANCED, NULL, 0, 1, printVBoolSwitch, adjustBool, copyVBoolSwitch, s_clearLogs},
+  
   {"Ust.zaawansowane", VAR_IMMEDIATE, 'W', 0, 1, NULL, adjustUIState, NULL, NULL},
   {"Logi", VAR_IMMEDIATE, 'L', 0, 1, NULL, adjustUIState, NULL, NULL},
   {"Wyjdz", VAR_IMMEDIATE, '0', 0, 1, NULL, adjustUIState, NULL, NULL},

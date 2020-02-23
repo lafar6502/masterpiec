@@ -61,7 +61,7 @@ typedef struct BurnTransition {
   TSTATE From;
   TSTATE To;
   bool (*fCondition)();
-  void (*fAction)(); //akcja wykonywana przy tym przejściu
+  void (*fAction)(int); //action executed on transition, before state change. int param = transition index in the table
 } TBurnTransition;
 
 typedef struct BurnStateConfig {
@@ -79,8 +79,8 @@ void burnControlTask();
 void setManualControlMode(bool b);
 //czy mamy tryb automatyczny
 bool getManualControlMode();
-//check if heating is needed anywhere (for home or for cwu)
-bool needHeatingNow();
+//check if heating is needed anywhere (for home or for cwu). 0 - no, 1 - co needed, 2 - cwu needed
+uint8_t needHeatingNow();
 
 ///sets alarm state and shows alarm message
 void setAlarm(const char* txt);
