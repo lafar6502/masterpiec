@@ -60,7 +60,9 @@ typedef struct ControlConfiguration {
   uint8_t EnableThermostat; //0 or 1
   uint8_t CooloffTimeM10; //minutes * 10
   uint16_t CooloffPauseM10; //minutes * 10
-  uint8_t _future[17];
+  uint16_t FuelGrH; //fuel grams per hour of feeder work. 10 kg=10000. 
+  uint16_t FuelHeatValueMJ10; //fuel heat in MJ, * 10 (100 = 10MJ)
+  uint8_t _future[13];
 } TControlConfiguration;
 
 //bieżąca konfiguracja pieca

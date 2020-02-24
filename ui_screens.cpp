@@ -124,8 +124,15 @@ uint16_t findNextVariable(uint16_t currentVariable, bool increment, bool (*f)(ui
 
 void stDefaultEventHandler(uint8_t ev, uint8_t arg) 
 {
+  const TUIStateEntry* ps = UI_STATES + g_CurrentUIState;
   if (ev == UI_EV_INITSTATE) {
-    if (g_BurnState == STATE_ALARM) g_CurrentUIView = 5;
+    
+    if (g_BurnState == STATE_ALARM) 
+      g_CurrentUIView = 5;
+    else
+    {
+      if (!viewCodeMatchesState(g_CurrentUIView)) g_CurrentUIView = findNextView(g_CurrentUIView, true, viewCodeMatchesState);
+    }
     return;
   }
   if (ev == UI_EV_UP) {
@@ -267,11 +274,13 @@ void stDailyLogsHandler(uint8_t ev, uint8_t arg)
 
 void scrLog(uint8_t idx, char* lines[]) 
 {
+  char buf[7];
   _curDay = _curDay % 7;
   bool today = _curDay == RTC.dow - 1;
   TDailyLogEntry ent = g_DailyLogEntries[_curDay];
-  sprintf(lines[0], "%c%d Pod: %d s", today ? '*' : ' ', _curDay + 1, ent.FeederTotalSec);
-  sprintf(lines[1], "P1: %d P2: %d", ent.P1TotalSec, ent.P2TotalSec);
+  dtostrf(calculateFuelWeightKg(ent.FeederTotalSec),3, 1, buf);
+  sprintf(lines[0], "%c%d %skg %ds", today ? '*' : ' ', _curDay + 1, ent.FeederTotalSec);
+  sprintf(lines[1], "P1:%d P2:%d", ent.P1TotalSec, ent.P2TotalSec);
 }
 
 void scrSelectVariable(uint8_t idx, char* lines[])
@@ -370,6 +379,23 @@ void printUint16_10(uint8_t varIdx, void* editCopy, char* buf) {
   dtostrf(f,2, 1, buf1);
   strcpy(buf, buf1);
 }
+
+
+void printFeedRate_WithHeatPower(uint8_t varIdx, void* editCopy, char* buf) {
+  uint16_t *pv = (uint16_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  uint16_t *pc = UI_VARIABLES[varIdx].Data.ptr;
+  float f = *pv / 10.0;
+  char buf1[10]; char buf2[10] = {0};
+  dtostrf(f,2, 1, buf1);
+  if (pc != NULL) {
+    float f2 = calculateHeatPowerFor(*pv, *pc);
+    dtostrf(f,2, 2, buf1);
+    sprintf(buf, "%s  %s kW");
+    return;
+  }
+  strcpy(buf, buf1);
+}
+
 
 void printUint8_10(uint8_t varIdx, void* editCopy, char* buf) {
   uint8_t* pv = (uint8_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
@@ -632,23 +658,25 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Max T podajnika", VAR_ADVANCED, &g_CurrentConfig.FeederTempLimit, 0, 200, printUint8, adjustUint8, copyU8, commitConfig}, 
   {"Wygasniecie po", VAR_ADVANCED, &g_CurrentConfig.NoHeatAlarmTimeM, 0, 30, printUint8, adjustUint8, copyU8, commitConfig}, 
   {"Dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.DefaultBlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {"Kg/h podajnik", VAR_ADVANCED, &g_CurrentConfig.FuelGrH, 0, 60000, printUint16_10, adjustUint16, copyU16, commitConfig},
+  {"MJ/Kg opal", VAR_ADVANCED, &g_CurrentConfig.FuelHeatValueMJ10, 0, 500, printUint16_10, adjustUint16, copyU16, commitConfig},
   
   
   
   {"P0 cykl sek.", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec, 0, 3600, printUint16, adjustUint16, copyU16, commitConfig},
-  {"P0 podawanie", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].FuelSecT10, 0, 600, printUint16_10, adjustUint16, copyU16, commitConfig},
+  {"P0 podawanie", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec}},
   {"P0 wegiel co", VAR_ADVANCED, &g_CurrentConfig.P0FuelFreq, 1, 5, printUint8, adjustUint8, copyU8, commitConfig},
   {"P0 dmuchawa sek", VAR_ADVANCED, &g_CurrentConfig.P0BlowerTime, 1, 240, printUint8, adjustUint8, copyU8, commitConfig},
   {"P0 dmuchawa %", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   {"P0 dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   
   {"P1 cykl sek.", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
-  {"P1 podawanie", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].FuelSecT10, 0, 600, printUint16_10, adjustUint16, copyU16, commitConfig},
+  {"P1 podawanie", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P1].CycleSec}},
   {"P1 dmuchawa %", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   {"P1 dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
 
   {"P2 cykl sek.", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
-  {"P2 podawanie", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].FuelSecT10, 0, 600, printUint16_10, adjustUint16, copyU16, commitConfig},
+  {"P2 podawanie", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec}},
   {"P2 dmuchawa %", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   {"P2 dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
 

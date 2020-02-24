@@ -35,7 +35,7 @@ extern CircularBuffer<TIntReading> g_lastBurnStates;
 void loggingInit();
 void clearDailyLogs();
 void loggingTask();
-
-
+float calculateHeatPowerFor(int feedTimePerCycle, int cycleLength);
+float calculateFuelWeightKg(unsigned long feedTimeSec);
 
 #endif
