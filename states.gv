@@ -19,18 +19,18 @@ REDUCE1 -> MAINTAIN [label="cycle end", style=bold, color=blue]
 
 
 REDUCE1 -> HEAT [label="A. SUDDEN HEAT and T < tTarget", color=orange]
-REDUCE1 -> HEAT [label="B. T <= tTarget - hist0", color=green]
-
+//REDUCE1 -> HEAT [label="B. T <= tTarget - hist0", color=green]
+REDUCE1 -> COOLOFF [label="C. not NEED and T < tTarget - hist0", color=red]
 
 //REDUCE1 -> COOLOFF [label="2. NEED and T<tTarget"]
 
 COOLOFF -> HEAT [label="A. SUDDEN HEAT and T < tTarget", color=orange]
-COOLOFF->HEAT [label="B. T <= tTarget - hist0", color=green]
+//COOLOFF->HEAT [label="B. T <= tTarget - hist0", color=green]
 
 //HEAT -> REDUCE1 [label="1. T > tTarget + tDelta", color=green]
 MAINTAIN -> HEAT [label="A. SUDDEN HEAT and T < tTarget", style=bold, color=orange]
-MAINTAIN -> HEAT [label="B. T <= tTarget - hist0", style=bold, color=green]
-
+//MAINTAIN -> HEAT [label="B. T <= tTarget - hist0", style=bold, color=green]
+MAINTAIN -> COOLOFF[label="C. not NEED and T < tTarget - hist0", color=red]
 
 //MAINTAIN -> COOLOFF [label="NEED and T between tTarget - hist0 and tTarget", style=bold, color=darkgreen]
 

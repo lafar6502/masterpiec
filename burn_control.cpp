@@ -340,7 +340,7 @@ void handleHeatNeedStatus() {
         g_TargetTemp = max(g_CurrentConfig.TCO, g_CurrentConfig.TCWU + g_CurrentConfig.TDeltaCWU);
         Serial.print(F("CWU heat - adjusted target temp to "));
         Serial.println(g_TargetTemp);
-      }
+      } else g_TargetTemp = g_CurrentConfig.TCO;
   }
   else if (g_CWState == CWSTATE_HEAT) {
     if (g_TempCWU >= g_CurrentConfig.TCWU) {
