@@ -10,6 +10,7 @@
 
 #define MAX_TEMP 90
 
+
 void initializeBurningLoop() {
   g_TargetTemp = g_CurrentConfig.TCO;
   g_HomeThermostatOn = true;
@@ -478,6 +479,12 @@ bool cond_B_belowHysteresis() {
   
 }
 
+//variant #2 of control 
+bool cond_C_belowHysteresisAndNoNeedToHeat() {
+  if (g_needHeat == NEED_HEAT_NONE and g_TempCO < g_TargetTemp - g_CurrentConfig.THistCO) return true;
+  return false;
+}
+
 bool cond_cycleEnded() {
   return _reductionStateEndMs <= millis();
 }
@@ -566,6 +573,8 @@ void onSwitchToReduction(int trans) {
   Serial.println(_reductionStateEndMs);
 }
 
+#define CONTROL_VARIANT 2
+
 const TBurnTransition  BURN_TRANSITIONS[]   = 
 {
   {STATE_P0, STATE_ALARM, isAlarm_Any, NULL},
@@ -579,23 +588,26 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   
   {STATE_STOP, STATE_ALARM, NULL, NULL},
   
-  {STATE_P1, STATE_P2, cond_B_belowHysteresis, NULL},
-  {STATE_P1, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction}, //P1 -> P0
-  {STATE_P1, STATE_REDUCE1, cond_targetTempReachedAndHeatingNotNeeded, onSwitchToReduction}, //10 P1 -> P0
+  //v1 {STATE_P1, STATE_P2, cond_B_belowHysteresis, NULL},
+  {STATE_P1, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction}, //E. P1 -> P0
+  {STATE_P1, STATE_REDUCE1, cond_targetTempReachedAndHeatingNotNeeded, onSwitchToReduction}, //F. P1 -> P0
+  {STATE_P1, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
 
-  {STATE_P0, STATE_P2, cond_B_belowHysteresis, NULL},
-  {STATE_P0, STATE_P1, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
+  //v1 {STATE_P0, STATE_P2, cond_B_belowHysteresis, NULL},
+  {STATE_P0, STATE_P1, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v2
+  {STATE_P0, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
 
-  {STATE_P2, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction},  //P2 -> P0
   {STATE_P2, STATE_REDUCE2, cond_targetTempReached, onSwitchToReduction}, //10 P2 -> P1
+  //{STATE_P2, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction},  //is this needed? P2 -> P0
   
   {STATE_REDUCE2, STATE_P2, cond_B_belowHysteresis, NULL},
   {STATE_REDUCE2, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
   {STATE_REDUCE2, STATE_P1, cond_cycleEnded, NULL},
   
-  {STATE_REDUCE1, STATE_P2, cond_B_belowHysteresis, NULL}, //juz nie redukujemy
+  //v1 {STATE_REDUCE1, STATE_P2, cond_B_belowHysteresis, NULL}, //juz nie redukujemy
   {STATE_REDUCE1, STATE_P0, cond_cycleEnded, NULL},
-  {STATE_REDUCE1, STATE_P1, cond_A_needSuddenHeatAndBelowTargetTemp, NULL}, //juz nie redukujemy  - np sytuacja się zmieniła i temp. została podniesiona. uwaga - ten sam war. co w #10 - cykl
+  {STATE_REDUCE1, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL}, //juz nie redukujemy  - np sytuacja się zmieniła i temp. została podniesiona. uwaga - ten sam war. co w #10 - cykl
+  {STATE_REDUCE1, STATE_P1, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v2
   
   {STATE_UNDEFINED, STATE_UNDEFINED, NULL, NULL} //sentinel
 };
