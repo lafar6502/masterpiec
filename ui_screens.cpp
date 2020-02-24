@@ -279,7 +279,7 @@ void scrLog(uint8_t idx, char* lines[])
   bool today = _curDay == RTC.dow - 1;
   TDailyLogEntry ent = g_DailyLogEntries[_curDay];
   dtostrf(calculateFuelWeightKg(ent.FeederTotalSec),3, 1, buf);
-  sprintf(lines[0], "%c%d %skg %ds", today ? '*' : ' ', _curDay + 1, ent.FeederTotalSec);
+  sprintf(lines[0], "%c%d %skg %d", today ? '*' : ' ', _curDay + 1, buf, ent.FeederTotalSec);
   sprintf(lines[1], "P1:%d P2:%d", ent.P1TotalSec, ent.P2TotalSec);
 }
 
@@ -380,6 +380,14 @@ void printUint16_10(uint8_t varIdx, void* editCopy, char* buf) {
   strcpy(buf, buf1);
 }
 
+void printUint16_1000(uint8_t varIdx, void* editCopy, char* buf) {
+  uint16_t* pv = (uint16_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  float f = *pv / 1000.0;
+  char buf1[10];
+  dtostrf(f,2, 1, buf1);
+  strcpy(buf, buf1);
+}
+
 
 void printFeedRate_WithHeatPower(uint8_t varIdx, void* editCopy, char* buf) {
   uint16_t *pv = (uint16_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
@@ -388,9 +396,9 @@ void printFeedRate_WithHeatPower(uint8_t varIdx, void* editCopy, char* buf) {
   char buf1[10]; char buf2[10] = {0};
   dtostrf(f,2, 1, buf1);
   if (pc != NULL) {
-    float f2 = calculateHeatPowerFor(*pv, *pc);
-    dtostrf(f,2, 2, buf1);
-    sprintf(buf, "%s  %s kW");
+    float f2 = calculateHeatPowerFor(f, *pc);
+    dtostrf(f2,2, 2, buf2);
+    sprintf(buf, "%s  %s kW", buf1, buf2);
     return;
   }
   strcpy(buf, buf1);
@@ -658,7 +666,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Max T podajnika", VAR_ADVANCED, &g_CurrentConfig.FeederTempLimit, 0, 200, printUint8, adjustUint8, copyU8, commitConfig}, 
   {"Wygasniecie po", VAR_ADVANCED, &g_CurrentConfig.NoHeatAlarmTimeM, 0, 30, printUint8, adjustUint8, copyU8, commitConfig}, 
   {"Dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.DefaultBlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Kg/h podajnik", VAR_ADVANCED, &g_CurrentConfig.FuelGrH, 0, 60000, printUint16_10, adjustUint16, copyU16, commitConfig},
+  {"Kg/h podajnik", VAR_ADVANCED, &g_CurrentConfig.FuelGrH, 0, 60000, printUint16_1000, adjustUint16, copyU16, commitConfig},
   {"MJ/Kg opal", VAR_ADVANCED, &g_CurrentConfig.FuelHeatValueMJ10, 0, 500, printUint16_10, adjustUint16, copyU16, commitConfig},
   
   

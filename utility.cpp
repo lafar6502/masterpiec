@@ -116,7 +116,18 @@ void loggingInit() {
 
 void clearDailyLogs() {
   memset(g_DailyLogEntries, 0, sizeof(g_DailyLogEntries));
-  EEPROM.put(DAILY_LOG_BASE, g_DailyLogEntries);
+  for (int i=0; i<7; i++) {
+    EEPROM.put(DAILY_LOG_BASE + i * sizeof(TDailyLogEntry), g_DailyLogEntries[i]);
+    TDailyLogEntry te;
+    EEPROM.get(DAILY_LOG_BASE + i * sizeof(TDailyLogEntry), te);
+    Serial.print("clr f=");
+    Serial.print(te.FeederTotalSec);
+    Serial.print(",");
+    Serial.print(te.P1TotalSec);
+    Serial.print(",");
+    Serial.println(te.P2TotalSec);
+  }
+  
 }
 
 void loggingTask() {
@@ -142,7 +153,7 @@ void loggingTask() {
     EEPROM.get(DAILY_LOG_BASE + (d * sizeof(TDailyLogEntry)), de);
     Serial.print(F("log saved "));
     if (memcmp(&de, g_DailyLogEntries + 1, sizeof(TDailyLogEntry)) != 0) {
-      Serial.print(F("!!! wrong wrong !!!"));
+      Serial.print(F(" wrong wrong !"));
     }
     Serial.println(d);
   }
@@ -152,12 +163,12 @@ float calculateFuelWeightKg(unsigned long feederCycleSec) {
   return  ((float) g_CurrentConfig.FuelGrH / 1000.0) * ((float) feederCycleSec / 3600.0);
 };
 ///fuel rate in grams/hr
-int calculateFuelRateGrH(int feedTimePerCycle, int cycleLen) {
+int calculateFuelRateGrH(float feedTimePerCycle, int cycleLen) {
   float f0 = ((float) feedTimePerCycle) / cycleLen;
   return (int) (g_CurrentConfig.FuelGrH * f0);
 }
 
-float calculateHeatPowerFor(int feedTimePerCycle, int cycleLength) {
+float calculateHeatPowerFor(float feedTimePerCycle, int cycleLength) {
   int grH = calculateFuelRateGrH(feedTimePerCycle, cycleLength);
   //how many MJ per h?
   float v = ((float) grH * (float) g_CurrentConfig.FuelHeatValueMJ10) / (10000.0 * 3.6); 
