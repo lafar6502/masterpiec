@@ -596,6 +596,7 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   //v1 {STATE_P0, STATE_P2, cond_B_belowHysteresis, NULL},
   {STATE_P0, STATE_P1, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v2
   {STATE_P0, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
+  {STATE_P0, STATE_P2, cond_B_belowHysteresis, NULL}, //this fires only if heat needed bc cond_C is earlier
 
   {STATE_P2, STATE_REDUCE2, cond_targetTempReached, onSwitchToReduction}, //10 P2 -> P1
   //{STATE_P2, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction},  //is this needed? P2 -> P0

@@ -29,6 +29,8 @@ COOLOFF -> HEAT [label="A. SUDDEN HEAT and T < tTarget", color=orange]
 
 //HEAT -> REDUCE1 [label="1. T > tTarget + tDelta", color=green]
 MAINTAIN -> HEAT [label="A. SUDDEN HEAT and T < tTarget", style=bold, color=orange]
+MAINTAIN -> HEAT [label="B. need HEAT and T < tTarget - hist0", style=bold, color=orange]
+
 //MAINTAIN -> HEAT [label="B. T <= tTarget - hist0", style=bold, color=green]
 MAINTAIN -> COOLOFF[label="C. not NEED and T < tTarget - hist0", color=red]
 
