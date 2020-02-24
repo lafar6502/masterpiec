@@ -23,6 +23,10 @@ typedef uint8_t CWSTATE;
 #define NEED_HEAT_CO   1
 #define NEED_HEAT_CWU  2
 
+#define COOLOFF_NONE 0
+#define COOLOFF_OVERHEAT 1 //first mode - run cooloff only when above set temp + delta
+#define COOLOFF_LOWER 2 //second mode- run cooloff while above the set temp
+
 typedef uint8_t HEATNEED;
 
 //konfiguracja jednego z poziomów mocy
@@ -62,6 +66,7 @@ typedef struct ControlConfiguration {
   uint16_t CooloffPauseM10; //minutes * 10
   uint16_t FuelGrH; //fuel grams per hour of feeder work. 10 kg=10000. 
   uint16_t FuelHeatValueMJ10; //fuel heat in MJ, * 10 (100 = 10MJ)
+  uint8_t  CooloffMode; //0 - none
   uint8_t _future[13];
 } TControlConfiguration;
 

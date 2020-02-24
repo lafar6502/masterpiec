@@ -659,6 +659,8 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Zewn. termos 2", VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 1, printBool, adjustBool, copyBool, commitConfig},
   {"Chlodz. praca m", VAR_ADVANCED, &g_CurrentConfig.CooloffTimeM10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig},
   {"Chlodz.przerwa m", VAR_ADVANCED, &g_CurrentConfig.CooloffPauseM10, 0, 1200, printUint16_10, adjustUint16, copyU16, commitConfig},
+  {"Chlodz. tryb", VAR_ADVANCED, &g_CurrentConfig.CooloffMode, 0, 2, printUint8, adjustUint8, copyU8, commitConfig},
+  
   
   {"DeltaT", VAR_ADVANCED, &g_CurrentConfig.TDeltaCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
   {"DeltaCWU", VAR_ADVANCED, &g_CurrentConfig.TDeltaCWU, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},

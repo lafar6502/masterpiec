@@ -503,7 +503,7 @@ unsigned long _coolTs = 0;
 //temp too high, need cooling by running co or cwu pump
 bool cond_needCooling() {
   if (g_TempCO >= MAX_TEMP) {_coolState = 0; return true;} //always
-  bool hot = (g_TempCO >= g_TargetTemp + g_CurrentConfig.TDeltaCO);
+  bool hot = g_CurrentConfig.CooloffMode == COOLOFF_NONE ? false : g_CurrentConfig.CooloffMode == COOLOFF_LOWER ? (g_TempCO > g_TargetTemp + 0.2) : (g_TempCO > g_TargetTemp + g_CurrentConfig.TDeltaCO);
   if (!getManualControlMode() && g_BurnState != STATE_ALARM && g_CurrentConfig.CooloffTimeM10 != 0 && hot) 
   {
     unsigned long t = millis();

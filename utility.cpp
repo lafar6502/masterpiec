@@ -51,7 +51,8 @@ TControlConfiguration defaultConfig() {
     20,
     300, //cooloff pause m10
     10000,
-    260
+    260,
+    COOLOFF_OVERHEAT
   };
 }
 
@@ -143,9 +144,9 @@ void loggingTask() {
     }
     g_DailyLogEntries[d].FeederTotalSec += g_FeederRunTime / 1000L;
     g_FeederRunTime = 0;
-    g_DailyLogEntries[d].FeederTotalSec += g_P1Time / 1000L;
+    g_DailyLogEntries[d].P1TotalSec += g_P1Time / 1000L;
     g_P1Time = 0;
-    g_DailyLogEntries[d].FeederTotalSec += g_P2Time / 1000L;
+    g_DailyLogEntries[d].P2TotalSec += g_P2Time / 1000L;
     g_P2Time = 0;
     pdow = d;
     TDailyLogEntry de = g_DailyLogEntries[d];

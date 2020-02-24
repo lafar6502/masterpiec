@@ -134,6 +134,7 @@ void breseInit(uint8_t power, uint8_t cycleLength) {
 }
 
 void initializeBlowerControl() {
+  brese_cycle = g_CurrentConfig.DefaultBlowerCycle;
   pinModeFast(HW_BLOWER_CTRL_PIN, OUTPUT);
   triacOff();
   pinMode(HW_ZERO_DETECT_PIN, INPUT);
@@ -168,11 +169,11 @@ bool isThermostatOn() {
 }
 
 uint8_t getCycleLengthForBlowerPower(uint8_t power) {
-  return 7;
+  return g_CurrentConfig.DefaultBlowerCycle;
 }
 
 void setBlowerPower(uint8_t power) {
-  breseInit(power, getCycleLengthForBlowerPower(power));
+  breseInit(power, brese_cycle == 0 ? getCycleLengthForBlowerPower(power) : brese_cycle);
 }
 
 void setBlowerPower(uint8_t power, uint8_t powerCycle) 
