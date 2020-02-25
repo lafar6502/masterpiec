@@ -175,3 +175,32 @@ float calculateHeatPowerFor(float feedTimePerCycle, int cycleLength) {
   float v = ((float) grH * (float) g_CurrentConfig.FuelHeatValueMJ10) / (10000.0 * 3.6); 
   return v;
 }
+
+char g_command[40];
+
+void commandHandlingTask() {
+  static uint8_t len = 0;
+  int c;
+  while((c = Serial.read()) > 0) 
+  {
+    if (c == '\r' || c == '\n') {
+      if (len > 0) {
+        processCommand(g_command);
+        len = 0;
+      }
+      continue;
+    }
+    g_command[len++] = (char) c;
+    if (len < sizeof(g_command)) {
+      g_command[len] = 0;
+    }
+    else {
+      g_command[len - 1] = 0;
+    }
+  }
+}
+
+void processCommand(const char* cmd) {
+  Serial.println(cmd);
+  int p = strchr(cmd, '=');
+}

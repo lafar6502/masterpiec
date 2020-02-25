@@ -37,5 +37,7 @@ void clearDailyLogs();
 void loggingTask();
 float calculateHeatPowerFor(float feedTimePerCycle, int cycleLength);
 float calculateFuelWeightKg(unsigned long feedTimeSec);
+void commandHandlingTask();
+void processCommand(const char*);
 
 #endif

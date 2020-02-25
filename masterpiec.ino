@@ -65,6 +65,7 @@ void loop() {
     handleSerialShellTask();
 #endif
   loggingTask();
+  commandHandlingTask();
   int m2 = millis();
   int d = 150 - (m2 - m);
   if (d > 0) 
