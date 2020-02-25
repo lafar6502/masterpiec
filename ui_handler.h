@@ -2,7 +2,7 @@
 #define _UI_HANDLER_H_INCLUDED_
 
 #include "hwsetup.h"
-
+#include <avr/pgmspace.h>
 //ui - display and user input handlers
 
 //zdarzenia ui
@@ -80,14 +80,14 @@ extern char* g_DisplayBuf[];
 #define VAR_INPLACE 16 //variable can be edited in place, without making a temporary copy
 
 typedef struct UIVariableEntry {
-  const char* Name; //nazwa zmiennej
+  const  char* Name; //nazwa zmiennej
   uint16_t Flags; //flagi
   void* DataPtr; //variable pointer or some other context data
   float Min; //minimum val.
   float Max; //max val
-  void (*PrintTo)(uint8_t varIdx, void* dataPtr, char* buf); //function to print the value to the buffer
+  void (*PrintTo)(uint8_t varIdx, void* dataPtr, char* buf, bool parseString); //function to print the value to the buffer. parseString -> reverse operation, buf has string data and dataPtr is place to put the parsed value
   void (*Adjust)(uint8_t varIdx, void* dataPtr, int8_t increment); //call to adjust changes the value by specified increment. commit - saves the value immediately, false - we're just editing a temp value. call with increment=0, commit=false -> we cancel the edit. call with increment=0,commit=true to save the edit
-  void* (*Store)(uint8_t varIdx, void* dataPtr, bool save); //call to commit the value(store). if save == false then we want to cancel edit and return to original value.
+  void* (*Store)(uint8_t varIdx, void* dataPtr, uint8_t save); //call to commit the value(store). if save == false then we want to cancel edit and return to original value.
   void (*Commit)(uint8_t varIdx); //additional function to call after saving
   VarHolder Data;
 } TUIVarEntry;
@@ -104,6 +104,6 @@ extern void* g_uiBottomHalfCtx;
 
 void changeUIState(char code);
 
-
+void updateVariableFromText(uint8_t varIdx, const char* valueText);
 
 #endif

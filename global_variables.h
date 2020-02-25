@@ -13,8 +13,9 @@
 
 typedef struct {
   uint16_t FeederTotalSec;
-  uint16_t P1TotalSec;
-  uint16_t P2TotalSec;
+  uint16_t P1TotalSec2; //number of P1 seconds, divided by 2
+  uint16_t P2TotalSec2; //number of P2 seconds, divided by 2
+  uint16_t P0TotalSec2; //we're missing one bit here, so we store numbr of seconds div by 2
 } TDailyLogEntry;
 
 
@@ -38,6 +39,7 @@ void loggingTask();
 float calculateHeatPowerFor(float feedTimePerCycle, int cycleLength);
 float calculateFuelWeightKg(unsigned long feedTimeSec);
 void commandHandlingTask();
-void processCommand(const char*);
+void processCommand(char*);
+bool updateVariableFromString(uint8_t varIdx, const char* str);
 
 #endif

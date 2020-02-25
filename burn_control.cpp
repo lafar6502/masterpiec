@@ -35,6 +35,8 @@ float g_TempZewn = 0.0; //aktualna temp. zewn
 char* g_Alarm;
 unsigned long g_P1Time = 0;
 unsigned long g_P2Time = 0;
+unsigned long g_P0Time = 0;
+
 TReading lastCOTemperatures[11];
 TIntReading lastBurnStates[11];
 CircularBuffer<TReading> g_lastCOReads(lastCOTemperatures, sizeof(lastCOTemperatures)/sizeof(TReading));
@@ -83,10 +85,13 @@ void burningProc()
     {
       if (BURN_TRANSITIONS[i].fCondition != NULL && BURN_TRANSITIONS[i].fCondition()) 
       {
-        if (g_BurnState == STATE_P1)
+        if (g_BurnState == STATE_P1 || g_BurnState == STATE_REDUCE1)
           g_P1Time += (t - g_CurStateStart);
-        else if (g_BurnState == STATE_P2)
+        else if (g_BurnState == STATE_P2  || g_BurnState == STATE_REDUCE2)
           g_P2Time += (t - g_CurStateStart);
+        else if (g_BurnState == STATE_P0) 
+          g_P0Time += (t - g_CurStateStart);
+          
         g_lastBurnStates.Enqueue({t - g_CurStateStart, g_BurnState});
         Serial.print(F("BS: trans "));
         Serial.print(i);
@@ -153,10 +158,13 @@ void forceState(TSTATE st) {
   if (st == g_BurnState) return;
   unsigned long t = millis();
 
-  if (g_BurnState == STATE_P1)
+  if (g_BurnState == STATE_P1 || g_BurnState == STATE_REDUCE1)
     g_P1Time += (t - g_CurStateStart);
-  else if (g_BurnState == STATE_P2)
+  else if (g_BurnState == STATE_P2  || g_BurnState == STATE_REDUCE2)
     g_P2Time += (t - g_CurStateStart);
+  else if (g_BurnState == STATE_P0) 
+    g_P0Time += (t - g_CurStateStart);
+    
   g_lastBurnStates.Enqueue({t - g_CurStateStart, g_BurnState});
   TSTATE old = g_BurnState;
   g_BurnState = st;

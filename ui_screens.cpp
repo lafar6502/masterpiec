@@ -279,8 +279,8 @@ void scrLog(uint8_t idx, char* lines[])
   bool today = _curDay == RTC.dow - 1;
   TDailyLogEntry ent = g_DailyLogEntries[_curDay];
   dtostrf(calculateFuelWeightKg(ent.FeederTotalSec),3, 1, buf);
-  sprintf(lines[0], "%c%d %skg %d", today ? '*' : ' ', _curDay + 1, buf, ent.FeederTotalSec);
-  sprintf(lines[1], "P1:%d P2:%d", ent.P1TotalSec, ent.P2TotalSec);
+  sprintf(lines[0], "%c%d %skg %d", today ? '*' : ' ', _curDay + 1, buf, ent.FeederTotalSec + today ? (g_FeederRunTime / 1000): 0);
+  sprintf(lines[1], "P %d %d %d", (ent.P0TotalSec2 + today ? (g_P0Time / 1000) : 0) / 30, (ent.P1TotalSec2 + today ? (g_P1Time / 1000) : 0) / 30, (ent.P2TotalSec2 + today ? (g_P2Time / 1000) : 0) / 30);
 }
 
 void scrSelectVariable(uint8_t idx, char* lines[])
@@ -289,7 +289,7 @@ void scrSelectVariable(uint8_t idx, char* lines[])
   const TUIVarEntry* pv = UI_VARIABLES + g_CurrentlyEditedVariable;
   sprintf(lines[0], "%s", pv->Name);
   sprintf(lines[1], "V:");
-  if (pv->PrintTo != NULL) pv->PrintTo(g_CurrentlyEditedVariable, NULL, lines[1] + 2);
+  if (pv->PrintTo != NULL) pv->PrintTo(g_CurrentlyEditedVariable, NULL, lines[1] + 2, false);
 }
 
 void scrEditVariable(uint8_t idx, char* lines[])
@@ -297,7 +297,7 @@ void scrEditVariable(uint8_t idx, char* lines[])
   const TUIStateEntry* ps = UI_STATES + g_CurrentUIState;
   const TUIVarEntry* pv = UI_VARIABLES + g_CurrentlyEditedVariable;
   sprintf(lines[0], "<-%s->", pv->Name);
-  if (pv->PrintTo != NULL) pv->PrintTo(g_CurrentlyEditedVariable, g_editCopy, lines[1]);
+  if (pv->PrintTo != NULL) pv->PrintTo(g_CurrentlyEditedVariable, g_editCopy, lines[1], false);
 }
 
 
@@ -358,30 +358,55 @@ void adjustFloat(uint8_t varIdx, void* data, int8_t increment) {
   *pd = v2;
 }
 
-void printUint8(uint8_t varIdx, void* editCopy, char* buf) {
+void printUint8(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   uint8_t* pv = (uint8_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  if (parseString) {
+    if (pv == NULL) return;
+    *pv = (uint8_t) atoi(buf);
+    return;
+  }
   sprintf(buf, "%d", *pv);
 }
 
-void printUint8AsBool(uint8_t varIdx, void* editCopy, char* buf) {
+void printUint8AsBool(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   uint8_t* pv = (uint8_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  if (parseString) {
+    if (pv == NULL) return;
+    *pv = strcasecmp(buf, "ON") == 0 || strcmp(buf, "1") == 0 || strcasecmp(buf, "true") == 0 ? 1 : 0;
+    return;
+  }
   sprintf(buf, "%s", *pv == 0 ? "OFF" : "ON");
 }
-void printUint16(uint8_t varIdx, void* editCopy, char* buf) {
+void printUint16(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   uint16_t* pv = (uint16_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  if (parseString) {
+    if (pv == NULL) return;
+    *pv = (uint16_t) atoi(buf);
+    return;
+  }
   sprintf(buf, "%d", *pv);
 }
 
-void printUint16_10(uint8_t varIdx, void* editCopy, char* buf) {
+void printUint16_10(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   uint16_t* pv = (uint16_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  if (parseString) {
+    if (pv == NULL) return;
+    *pv = (uint16_t) (atof(buf) * 10);
+    return;
+  }
   float f = *pv / 10.0;
   char buf1[10];
   dtostrf(f,2, 1, buf1);
   strcpy(buf, buf1);
 }
 
-void printUint16_1000(uint8_t varIdx, void* editCopy, char* buf) {
+void printUint16_1000(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   uint16_t* pv = (uint16_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  if (parseString) {
+    if (pv == NULL) return;
+    *pv = (uint16_t) (atof(buf) * 1000);
+    return;
+  }
   float f = *pv / 1000.0;
   char buf1[10];
   dtostrf(f,2, 1, buf1);
@@ -389,9 +414,14 @@ void printUint16_1000(uint8_t varIdx, void* editCopy, char* buf) {
 }
 
 
-void printFeedRate_WithHeatPower(uint8_t varIdx, void* editCopy, char* buf) {
+void printFeedRate_WithHeatPower(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   uint16_t *pv = (uint16_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
   uint16_t *pc = UI_VARIABLES[varIdx].Data.ptr;
+  if (parseString) {
+    if (pv == NULL) return;
+    *pv = (uint16_t) (atof(buf) * 10);
+    return;
+  }
   float f = *pv / 10.0;
   char buf1[10]; char buf2[10] = {0};
   dtostrf(f,2, 1, buf1);
@@ -405,8 +435,13 @@ void printFeedRate_WithHeatPower(uint8_t varIdx, void* editCopy, char* buf) {
 }
 
 
-void printUint8_10(uint8_t varIdx, void* editCopy, char* buf) {
+void printUint8_10(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   uint8_t* pv = (uint8_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  if (parseString) {
+    if (pv == NULL) return;
+    *pv = (uint8_t) (atof(buf) * 10);
+    return;
+  }
   float f = *pv / 10.0;
   char buf1[10];
   dtostrf(f,2, 1, buf1);
@@ -414,21 +449,36 @@ void printUint8_10(uint8_t varIdx, void* editCopy, char* buf) {
 }
 
 
-void printFloat(uint8_t varIdx, void* editCopy, char* buf) {
+void printFloat(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   float* pv = (float*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  if (parseString) {
+    if (pv == NULL) return;
+    *pv = atof(buf);
+    return;
+  }
   char buf1[10];
   dtostrf(*pv,2, 1, buf1);
   strcpy(buf, buf1);
 }
 
-void printBool(uint8_t varIdx, void* editCopy, char* buf) {
+void printBool(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   bool* pv = (bool*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  if (parseString) {
+    if (pv == NULL) return;
+    *pv = strcasecmp(buf, "ON") == 0 || strcmp(buf, "1") == 0 || strcasecmp(buf, "true") == 0 ? true : false;
+    return;
+  }
   strcpy(buf, *pv ? "ON" : "OFF");
 }
 
-void printVBoolSwitch(uint8_t varIdx, void* editCopy, char* buf) {
+void printVBoolSwitch(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   bool* pd = (bool*) editCopy;
   BoolFun f = (BoolFun) UI_VARIABLES[varIdx].DataPtr;
+  if (parseString) {
+    if (pd == NULL) return;
+    *pd = strcasecmp(buf, "ON") == 0 || strcmp(buf, "1") == 0 || strcasecmp(buf, "true") == 0 ? true : false;
+    return;
+  }
   bool v = false;
   if (pd != NULL || f != NULL) {
     v = pd == NULL ? f() : *pd;
@@ -450,15 +500,21 @@ void* copyVBoolSwitch(uint8_t varIdx, void* pData, bool save) {
   }
 }
 typedef uint8_t (*U8Fun)();
-void printVU8(uint8_t varIdx, void* editCopy, char* buf) {
+void printVU8(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   U8Fun f = (U8Fun) UI_VARIABLES[varIdx].DataPtr;
+  if (parseString) {
+    if (editCopy == NULL) return;
+    uint8_t* pv = (uint8_t*) editCopy;
+    *pv = (uint8_t) (atof(buf) * 10);
+    return;
+  }
   if (f == NULL) return;
   uint8_t v = f();
   sprintf(buf, "%d", v);
 }
 
 
-void printPumpState(uint8_t varIdx, void* editCopy, char* buf) {
+void printPumpState(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   int i = (int) UI_VARIABLES[varIdx].DataPtr;
   if (!isPumpEnabled(i)) {
     strcpy(buf, "BRAK");
@@ -479,8 +535,15 @@ void adjustPumpState(uint8_t varIdx, void* d, int8_t increment) {
 }
 
 //jak to działa -> otoz zmieniamy wartość zmiennej (i) ktora ma nr czujnika.
-void printDallasInfo(uint8_t varIdx, void* editCopy, char* buf) {
+void printDallasInfo(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   int idx = (int) UI_VARIABLES[varIdx].DataPtr;
+  if (parseString) 
+  {
+    if (editCopy == NULL) return; //error
+    //buf has the address in hex, parse it and put in the editcopy.
+    //assert(false);//todo
+    return;
+  }
   if (editCopy == NULL) {
     int idx2 = findDallasIndex(g_CurrentConfig.DallasAddress[idx]);
     if (idx2 < 0) 
@@ -708,3 +771,20 @@ const TUIVarEntry UI_VARIABLES[] = {
 
 const uint8_t N_UI_VARIABLES = sizeof(UI_VARIABLES) / sizeof(TUIVarEntry);
 const uint8_t N_UI_STATES = sizeof(UI_STATES) / sizeof(TUIStateEntry);
+
+
+
+
+bool updateVariableFromString(uint8_t varIdx, const char* str) {
+  const TUIVarEntry& ent = UI_VARIABLES[varIdx];
+  void* editCopy = NULL;
+  if (ent.Store != NULL) {
+    editCopy = ent.Store(varIdx, ent.DataPtr, false);
+  }
+  if (editCopy == NULL) return false;
+  if (ent.PrintTo == NULL) return false;
+  ent.PrintTo(varIdx, editCopy, str, true);
+  if (ent.Store != NULL) {
+    ent.Store(varIdx, editCopy, true);
+  }
+}

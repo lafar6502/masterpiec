@@ -132,6 +132,7 @@ extern TSTATE g_BurnState;  //aktualny stan grzania
 extern bool   g_HomeThermostatOn;  //true - termostat pokojowy kazał zaprzestać grzania
 extern unsigned long g_P1Time; //accumulated P1 time
 extern unsigned long g_P2Time; //accumulated P2 time
+extern unsigned long g_P0Time; //accumulated P0 time
 
 extern float g_TempZewn; //aktualna temp. zewn
 extern char* g_Alarm;

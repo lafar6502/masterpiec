@@ -1,9 +1,12 @@
 #include <arduino.h>
+#include <avr/pgmspace.h>
+#include <wstring.h>
 #include "global_variables.h"
 #include "masterpiec.h"
 #include "boiler_control.h"
 #include <EEPROM.h>
 #include <MD_DS1307.h>
+#include "ui_handler.h"
 
 #define MAX_CFG_SLOTS 4
 #define AFTER_CONFIG_STORAGE (MAX_CFG_SLOTS * sizeof(TControlConfiguration)) + 8
@@ -124,9 +127,9 @@ void clearDailyLogs() {
     Serial.print("clr f=");
     Serial.print(te.FeederTotalSec);
     Serial.print(",");
-    Serial.print(te.P1TotalSec);
+    Serial.print(te.P0TotalSec2);
     Serial.print(",");
-    Serial.println(te.P2TotalSec);
+    Serial.println(te.P2TotalSec2);
   }
   
 }
@@ -144,10 +147,12 @@ void loggingTask() {
     }
     g_DailyLogEntries[d].FeederTotalSec += g_FeederRunTime / 1000L;
     g_FeederRunTime = 0;
-    g_DailyLogEntries[d].P1TotalSec += g_P1Time / 1000L;
+    g_DailyLogEntries[d].P1TotalSec2 += g_P1Time / 2000L; //2000 because number of secs is div by 2
     g_P1Time = 0;
-    g_DailyLogEntries[d].P2TotalSec += g_P2Time / 1000L;
+    g_DailyLogEntries[d].P2TotalSec2 += g_P2Time / 2000L;
     g_P2Time = 0;
+    g_DailyLogEntries[d].P0TotalSec2 += g_P0Time / 2000L;
+    g_P0Time = 0;
     pdow = d;
     TDailyLogEntry de = g_DailyLogEntries[d];
     EEPROM.put(DAILY_LOG_BASE + (d * sizeof(TDailyLogEntry)), g_DailyLogEntries[d]);
@@ -200,7 +205,41 @@ void commandHandlingTask() {
   }
 }
 
-void processCommand(const char* cmd) {
+void dumpVariablesToSerial();
+
+void processCommand(char* cmd) {
   Serial.println(cmd);
-  int p = strchr(cmd, '=');
+  char* p = strchr(cmd, '=');
+  if (cmd[0] == 0 || cmd[0] == ';' || cmd[0] == '#') return;
+  if (p > 0) {
+    p[0] = 0;
+    p++;
+    bool found = false;
+    for(int i=0; i<N_UI_VARIABLES; i++) {
+      if (strcmp(cmd, UI_VARIABLES[i].Name) == 0) {
+        updateVariableFromString(i, p);
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      Serial.print(F("Variable not found:"));
+      Serial.println(cmd);
+    }
+  }
+  else if (strcmp(cmd, "get") == 0) {
+    dumpVariablesToSerial();
+  }
+}
+
+void dumpVariablesToSerial() {
+  char buf[20];
+  for(int i=0; i<N_UI_VARIABLES; i++) {
+    const TUIVarEntry& ent = UI_VARIABLES[i];
+    if (ent.PrintTo == NULL) continue;
+    ent.PrintTo(i, NULL, buf, false);
+    Serial.print(ent.Name);
+    Serial.print('=');
+    Serial.println(buf);
+  }
 }
