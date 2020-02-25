@@ -138,7 +138,7 @@ void loggingTask() {
   static unsigned long lastRun = 0;
   
   unsigned long t = millis();
-  if (t - lastRun > 5L * 60 * 1000) {
+  if (t - lastRun > 15L * 60 * 1000) {
     lastRun = t;
     uint8_t d = RTC.dow - 1;
     if (pdow != d) {
@@ -158,7 +158,7 @@ void loggingTask() {
     EEPROM.put(DAILY_LOG_BASE + (d * sizeof(TDailyLogEntry)), g_DailyLogEntries[d]);
     EEPROM.get(DAILY_LOG_BASE + (d * sizeof(TDailyLogEntry)), de);
     Serial.print(F("log saved "));
-    if (memcmp(&de, g_DailyLogEntries + 1, sizeof(TDailyLogEntry)) != 0) {
+    if (memcmp(&de, g_DailyLogEntries + d, sizeof(TDailyLogEntry)) != 0) {
       Serial.print(F(" wrong wrong !"));
     }
     Serial.println(d);

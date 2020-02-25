@@ -96,13 +96,15 @@ void burningProc()
         Serial.print(F("BS: trans "));
         Serial.print(i);
         if (g_BurnState == STATE_P1) {
-          Serial.print("tP1:");
+          Serial.print(" tP1:");
           Serial.print(g_P1Time);
         } else if (g_BurnState == STATE_P2) {
-          Serial.print("tP2:");
+          Serial.print(" tP2:");
           Serial.print(g_P2Time);
         }
-        Serial.print(" ->");
+        Serial.print(" ");
+        Serial.print(BURN_STATES[BURN_TRANSITIONS[i].From].Code);
+        Serial.print("->");
         Serial.println(BURN_STATES[BURN_TRANSITIONS[i].To].Code);
         if (BURN_TRANSITIONS[i].fAction != NULL) BURN_TRANSITIONS[i].fAction(i);
         
@@ -477,15 +479,16 @@ void alarmStateInitialize(TSTATE prev) {
 // 
 
 
-bool cond_B_belowHysteresis() {
-  if (g_TempCO < g_TargetTemp - g_CurrentConfig.THistCO) return true;
+
+bool cond_B_belowHysteresisAndNeedHeat() {
+  if (g_needHeat != NEED_HEAT_NONE && g_TempCO < g_TargetTemp - g_CurrentConfig.THistCO) return true;
   if (g_needHeat == NEED_HEAT_CWU) {
     //we're below min temp to heat the cwu
     return (g_TempCO < g_TempCWU + g_CurrentConfig.TDeltaCWU);
   }
-  return false;
-  
+  return false;  
 }
+
 
 //variant #2 of control 
 bool cond_C_belowHysteresisAndNoNeedToHeat() {
@@ -585,6 +588,31 @@ void onSwitchToReduction(int trans) {
 
 const TBurnTransition  BURN_TRANSITIONS[]   = 
 {
+
+  //v1 {STATE_P0, STATE_P2, cond_B_belowHysteresis, NULL},
+  {STATE_P0, STATE_P1, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v2
+  {STATE_P0, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
+  {STATE_P0, STATE_P2, cond_B_belowHysteresisAndNeedHeat, NULL}, //this fires only if heat needed bc cond_C is earlier
+
+  {STATE_P1, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction}, //E. P1 -> P0
+  {STATE_P1, STATE_REDUCE1, cond_targetTempReachedAndHeatingNotNeeded, onSwitchToReduction}, //F. P1 -> P0
+  {STATE_P1, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
+  {STATE_P1, STATE_P2, cond_B_belowHysteresisAndNeedHeat, NULL},
+  
+  
+  {STATE_REDUCE1, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL}, //juz nie redukujemy  - np sytuacja się zmieniła i temp. została podniesiona. uwaga - ten sam war. co w #10 - cykl
+  {STATE_REDUCE1, STATE_P2, cond_B_belowHysteresisAndNeedHeat, NULL},
+  {STATE_REDUCE1, STATE_P1, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v2
+  {STATE_REDUCE1, STATE_P0, cond_cycleEnded, NULL},
+
+  
+  {STATE_P2, STATE_REDUCE2, cond_targetTempReached, onSwitchToReduction}, //10 P2 -> P1
+  
+  {STATE_REDUCE2, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
+  {STATE_REDUCE2, STATE_P2, cond_B_belowHysteresisAndNeedHeat, NULL},
+  {STATE_REDUCE2, STATE_P1, cond_cycleEnded, NULL},
+  
+  
   {STATE_P0, STATE_ALARM, isAlarm_Any, NULL},
   {STATE_P1, STATE_ALARM, isAlarm_Any, NULL},
   {STATE_P1, STATE_ALARM, isAlarm_NoHeating, NULL},
@@ -592,33 +620,7 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_P2, STATE_ALARM, isAlarm_NoHeating, NULL},
   {STATE_REDUCE1, STATE_ALARM, isAlarm_Any, NULL},
   {STATE_REDUCE2, STATE_ALARM, isAlarm_Any, NULL},
-  
-  
   {STATE_STOP, STATE_ALARM, NULL, NULL},
-  
-  //v1 {STATE_P1, STATE_P2, cond_B_belowHysteresis, NULL},
-  {STATE_P1, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction}, //E. P1 -> P0
-  {STATE_P1, STATE_REDUCE1, cond_targetTempReachedAndHeatingNotNeeded, onSwitchToReduction}, //F. P1 -> P0
-  {STATE_P1, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
-  {STATE_P1, STATE_P2, cond_B_belowHysteresis, NULL},
-  
-
-  //v1 {STATE_P0, STATE_P2, cond_B_belowHysteresis, NULL},
-  {STATE_P0, STATE_P1, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v2
-  {STATE_P0, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
-  {STATE_P0, STATE_P2, cond_B_belowHysteresis, NULL}, //this fires only if heat needed bc cond_C is earlier
-
-  {STATE_P2, STATE_REDUCE2, cond_targetTempReached, onSwitchToReduction}, //10 P2 -> P1
-  //{STATE_P2, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction},  //is this needed? P2 -> P0
-  
-  {STATE_REDUCE2, STATE_P2, cond_B_belowHysteresis, NULL},
-  {STATE_REDUCE2, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
-  {STATE_REDUCE2, STATE_P1, cond_cycleEnded, NULL},
-  
-  //v1 {STATE_REDUCE1, STATE_P2, cond_B_belowHysteresis, NULL}, //juz nie redukujemy
-  {STATE_REDUCE1, STATE_P0, cond_cycleEnded, NULL},
-  {STATE_REDUCE1, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL}, //juz nie redukujemy  - np sytuacja się zmieniła i temp. została podniesiona. uwaga - ten sam war. co w #10 - cykl
-  {STATE_REDUCE1, STATE_P1, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v2
   
   {STATE_UNDEFINED, STATE_UNDEFINED, NULL, NULL} //sentinel
 };
