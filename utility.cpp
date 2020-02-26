@@ -104,6 +104,18 @@ void eepromResetConfig(uint8_t configSlot) {
 #define DAILY_LOG_BASE AFTER_CONFIG_STORAGE
 
 uint8_t pdow = 200;
+
+
+void resetLogEntry(uint8_t d, bool writeEeprom) {
+  memset(&g_DailyLogEntries[d], 0, sizeof(TDailyLogEntry));
+  g_DailyLogEntries[d].MDay = RTC.mm;
+  if (writeEeprom) {
+    EEPROM.put(DAILY_LOG_BASE + (d * sizeof(TDailyLogEntry)), g_DailyLogEntries[d]); 
+  }
+}
+//so what is the rule for 
+// updating daily logs? we're running modulo 7 so there will be need to overwrite previous week
+// how do we know if it's today or 7 days ago? by looking at mday
 void loggingInit() {
   Serial.print(F("Logging init. config entries:"));
   Serial.print(MAX_CFG_SLOTS * sizeof(TControlConfiguration));
@@ -114,9 +126,17 @@ void loggingInit() {
   for (int i=0; i<7; i++) {
     EEPROM.get(AFTER_CONFIG_STORAGE + i*sizeof(TDailyLogEntry), g_DailyLogEntries[i]);
   }
-  Serial.println(". loaded");
+  
   pdow = RTC.dow - 1;
+  if (g_DailyLogEntries[pdow].MDay != RTC.mm) {
+    resetLogEntry(pdow, true);
+    Serial.print(F(" cleared entry "));
+    Serial.print(pdow);
+  }
+  Serial.println(". loaded");
 }
+
+
 
 void clearDailyLogs() {
   memset(g_DailyLogEntries, 0, sizeof(g_DailyLogEntries));
@@ -142,10 +162,14 @@ void loggingTask() {
   
   if (pdow != d) {
       EEPROM.put(DAILY_LOG_BASE + (pdow * sizeof(TDailyLogEntry)), g_DailyLogEntries[pdow]); //prev day - save
-      memset(&g_DailyLogEntries[d], 0, sizeof(TDailyLogEntry)); //zero the new entry for today
       pdow = d;
+      resetLogEntry(d, true);
   }
-  
+  if (g_DailyLogEntries[d].MDay != RTC.mm) {
+    Serial.print(d);
+    Serial.print(F("! wrong mday:"));
+    Serial.println(g_DailyLogEntries[d].MDay);
+  }
   g_DailyLogEntries[d].FeederTotalSec += g_FeederRunTime / 1000L;
   g_FeederRunTime = 0;
   g_DailyLogEntries[d].P1TotalSec2 += g_P1Time / 2000L; //2000 because number of secs is div by 2
@@ -173,7 +197,8 @@ void loggingTask() {
     Serial.print(F(",p0="));
     Serial.println(g_DailyLogEntries[d].P0TotalSec2);
     if (memcmp(&de, g_DailyLogEntries + d, sizeof(TDailyLogEntry)) != 0) {
-      Serial.print(F("log entry check fail !"));
+      Serial.print(d);
+      Serial.println(F("! log entry check fail !"));
     }
   }
 }
