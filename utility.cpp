@@ -103,7 +103,7 @@ void eepromResetConfig(uint8_t configSlot) {
 
 #define DAILY_LOG_BASE AFTER_CONFIG_STORAGE
 
-uint8_t pdow;
+uint8_t pdow = 200;
 void loggingInit() {
   Serial.print(F("Logging init. config entries:"));
   Serial.print(MAX_CFG_SLOTS * sizeof(TControlConfiguration));
@@ -136,32 +136,45 @@ void clearDailyLogs() {
 
 void loggingTask() {
   static unsigned long lastRun = 0;
-  
+  uint8_t d = RTC.dow - 1;
+  if (pdow > 7) pdow = d;
   unsigned long t = millis();
-  if (t - lastRun > 15L * 60 * 1000) {
+  
+  if (pdow != d) {
+      EEPROM.put(DAILY_LOG_BASE + (pdow * sizeof(TDailyLogEntry)), g_DailyLogEntries[pdow]); //prev day - save
+      memset(&g_DailyLogEntries[d], 0, sizeof(TDailyLogEntry)); //zero the new entry for today
+      pdow = d;
+  }
+  
+  g_DailyLogEntries[d].FeederTotalSec += g_FeederRunTime / 1000L;
+  g_FeederRunTime = 0;
+  g_DailyLogEntries[d].P1TotalSec2 += g_P1Time / 2000L; //2000 because number of secs is div by 2
+  g_P1Time = 0;
+  g_DailyLogEntries[d].P2TotalSec2 += g_P2Time / 2000L;
+  g_P2Time = 0;
+  g_DailyLogEntries[d].P0TotalSec2 += (g_P0Time / 2000L);
+  g_P0Time = 0;
+  
+  
+  if (t - lastRun > 15L * 60 * 1000) //save every 15 m
+  {
     lastRun = t;
-    uint8_t d = RTC.dow - 1;
-    if (pdow != d) {
-      EEPROM.put(DAILY_LOG_BASE + (pdow * sizeof(TDailyLogEntry)), g_DailyLogEntries[pdow]); //prev day
-      memset(&g_DailyLogEntries[d], 0, sizeof(TDailyLogEntry)); //zero the new entry 
-    }
-    g_DailyLogEntries[d].FeederTotalSec += g_FeederRunTime / 1000L;
-    g_FeederRunTime = 0;
-    g_DailyLogEntries[d].P1TotalSec2 += g_P1Time / 2000L; //2000 because number of secs is div by 2
-    g_P1Time = 0;
-    g_DailyLogEntries[d].P2TotalSec2 += g_P2Time / 2000L;
-    g_P2Time = 0;
-    g_DailyLogEntries[d].P0TotalSec2 += g_P0Time / 2000L;
-    g_P0Time = 0;
-    pdow = d;
     TDailyLogEntry de = g_DailyLogEntries[d];
     EEPROM.put(DAILY_LOG_BASE + (d * sizeof(TDailyLogEntry)), g_DailyLogEntries[d]);
     EEPROM.get(DAILY_LOG_BASE + (d * sizeof(TDailyLogEntry)), de);
     Serial.print(F("log saved "));
+    Serial.print(d);
+    Serial.print(F(",feed="));
+    Serial.print(g_DailyLogEntries[d].FeederTotalSec);
+    Serial.print(F(",p1="));
+    Serial.print(g_DailyLogEntries[d].P1TotalSec2);
+    Serial.print(F(",p2="));
+    Serial.print(g_DailyLogEntries[d].P2TotalSec2);
+    Serial.print(F(",p0="));
+    Serial.println(g_DailyLogEntries[d].P0TotalSec2);
     if (memcmp(&de, g_DailyLogEntries + d, sizeof(TDailyLogEntry)) != 0) {
-      Serial.print(F(" wrong wrong !"));
+      Serial.print(F("log entry check fail !"));
     }
-    Serial.println(d);
   }
 }
 

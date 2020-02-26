@@ -278,9 +278,9 @@ void scrLog(uint8_t idx, char* lines[])
   _curDay = _curDay % 7;
   bool today = _curDay == (RTC.dow - 1);
   TDailyLogEntry ent = g_DailyLogEntries[_curDay];
-  dtostrf(calculateFuelWeightKg(ent.FeederTotalSec + (today ? g_FeederRunTime / 1000 : 0)), 3, 1, buf);
-  sprintf(lines[0], "%c%d %skg %d", today ? '*' : ' ', _curDay + 1, buf, ent.FeederTotalSec + (today ? g_FeederRunTime / 1000 : 0);
-  sprintf(lines[1], "P %d %d %d", ent.P0TotalSec2 / 30 + (today ? g_P0Time / 1000 : 0), ent.P1TotalSec2 / 30 + (today ? g_P1Time / 1000 : 0), ent.P2TotalSec2 / 30 + (today ? g_P2Time / 1000 : 0));
+  dtostrf(calculateFuelWeightKg(ent.FeederTotalSec), 3, 1, buf);
+  sprintf(lines[0], "%c%d %skg %d", today ? '*' : ' ', _curDay + 1, buf, ent.FeederTotalSec);
+  sprintf(lines[1], "P %d %d %d", ent.P0TotalSec2 / 30, ent.P1TotalSec2 / 30, ent.P2TotalSec2 / 30);
 }
 
 void scrSelectVariable(uint8_t idx, char* lines[])
