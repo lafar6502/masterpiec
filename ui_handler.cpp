@@ -160,12 +160,7 @@ void processUIEvent(uint8_t event, int8_t arg)
 }
 
 void updateView() {
-  if (g_uiBottomHalf != NULL) 
-  {
-    g_uiBottomHalf(g_uiBottomHalfCtx);
-    g_uiBottomHalf = NULL;
-    g_uiBottomHalfCtx = NULL;
-  }
+  
   //assert(g_CurrentUIState >= 0 && g_CurrentUIState < sizeof(UI_STATES) / sizeof(TUIStateEntry));
   if (UI_STATES[g_CurrentUIState].UpdateView != NULL) 
   {

@@ -699,6 +699,7 @@ void s_clearLogs(uint8_t varIdx) {
 
 void queueCommitTime(uint8_t varIdx) {
   g_uiBottomHalf = commitTime;
+  g_uiBottomHalfCtx = UI_VARIABLES[varIdx].DataPtr;
 }
 
 const TUIStateEntry UI_STATES[] = {
@@ -750,6 +751,10 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Chlodz. praca m", VAR_ADVANCED, &g_CurrentConfig.CooloffTimeM10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig},
   {"Chlodz.przerwa m", VAR_ADVANCED, &g_CurrentConfig.CooloffPauseM10, 0, 1200, printUint16_10, adjustUint16, copyU16, commitConfig},
   {"Chlodz. tryb", VAR_ADVANCED, &g_CurrentConfig.CooloffMode, 0, 2, printUint8, adjustUint8, copyU8, commitConfig},
+  {"Cykl cyrkul. min", VAR_ADVANCED, &g_CurrentConfig.CircCycleMin, 0, 120, printUint8, adjustUint8, copyU8, commitConfig},
+  {"Cyrkulacja sek", VAR_ADVANCED, &g_CurrentConfig.CircWorkTimeS10, 0, 240, printUint8, adjustUint8, copyU8, commitConfig},
+  
+  
   
   
   {"DeltaT", VAR_ADVANCED, &g_CurrentConfig.TDeltaCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},

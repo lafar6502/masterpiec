@@ -52,12 +52,19 @@ void setup() {
 
 void loop() {
   uint64_t m = millis();
+  if (g_uiBottomHalf != NULL) 
+  {
+    g_uiBottomHalf(g_uiBottomHalfCtx);
+    g_uiBottomHalf = NULL;
+    g_uiBottomHalfCtx = NULL;
+  }
   RTC.readTime();
   refreshSensorReadings();
-  
-  burnControlTask();     //procedura kontroli spalania
-  updateView();           //aktualizacja ui
+  burnControlTask();     
+  circulationControlTask();
+  updateView();          
   periodicDumpControlState();
+  
 #ifdef MPIEC_ENABLE_WEBSERVER
     webHandlingTask();
 #endif

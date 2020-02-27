@@ -95,6 +95,11 @@ typedef struct BurnStateConfig {
 void initializeBurningLoop();
 //periodically run burn control task to handle automatic burning alg.
 void burnControlTask();
+
+///functions additional to main boiler control loop
+// f.ex. circulation pump
+void circulationControlTask();
+
 //wlacz/wylacz tryb automatyczny
 void setManualControlMode(bool b);
 //czy mamy tryb automatyczny

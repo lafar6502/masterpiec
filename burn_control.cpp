@@ -6,7 +6,7 @@
 #include "piec_sensors.h"
 #include "ui_handler.h"
 #include "varholder.h"
-
+#include <MD_DS1307.h>
 
 #define MAX_TEMP 90
 
@@ -66,6 +66,25 @@ void processSensorValues() {
   }
 }
 
+void circulationControlTask() {
+  if (!isPumpEnabled(PUMP_CIRC)) return;
+  if (g_CurrentConfig.CircCycleMin == 0) return;
+  uint8_t cmin = RTC.m % g_CurrentConfig.CircCycleMin;
+  uint16_t secs = cmin * 60 + RTC.s;
+  bool pumpOn = secs < g_CurrentConfig.CircWorkTimeS10 * 10;
+  bool zoneIn = true;
+  if ((RTC.h > 23 || RTC.h < 6))
+        zoneIn = false;
+  pumpOn = zoneIn && pumpOn;
+        
+  if (pumpOn) {
+    if (!isPumpOn(PUMP_CIRC)) Serial.println("Circ pump start");
+    setPumpOn(PUMP_CIRC);
+  } else {
+    if (isPumpOn(PUMP_CIRC)) Serial.println("Circ pump stop");
+    setPumpOff(PUMP_CIRC);
+  }
+};
 /***
  * ---
  */
