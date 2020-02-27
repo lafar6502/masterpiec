@@ -229,15 +229,15 @@ void workStateBurnLoop() {
   assert(g_BurnState == STATE_P1 || g_BurnState == STATE_P2);
   unsigned long tNow = millis();
   unsigned long burnCycleLen = (unsigned long) g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec * 1000L;
-  unsigned long burnFeedLen = (unsigned long) g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 * 100L;
+  unsigned long burnFeedLen = (unsigned long) g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 * 100L + (g_CurrentConfig.FuelCorrection10 * g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10) / 10;
   
   if (tNow < g_CurBurnCycleStart + burnFeedLen) 
   {
-    if (!isFeederOn()) setFeederOn();
+    setFeederOn();
   }
   else 
   {
-    if (isFeederOn()) setFeederOff();
+    setFeederOff();
   }
   if (g_TempCO > curStateMaxTempCO) curStateMaxTempCO = g_TempCO;
   if (tNow >= g_CurBurnCycleStart + burnCycleLen) 
@@ -303,7 +303,7 @@ void podtrzymanieStateLoop() {
   unsigned long tNow = millis();
   static uint8_t cycleNum = 0;
   unsigned long burnCycleLen = (unsigned long) g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec * 1000L;
-  unsigned long burnFeedLen = (unsigned long) g_CurrentConfig.BurnConfigs[STATE_P0].FuelSecT10 * 100L;
+  unsigned long burnFeedLen = (unsigned long) g_CurrentConfig.BurnConfigs[STATE_P0].FuelSecT10 * 100L + (g_CurrentConfig.FuelCorrection10 * g_CurrentConfig.BurnConfigs[STATE_P0].FuelSecT10) / 10;
   unsigned long blowerStart = burnCycleLen - (unsigned long) g_CurrentConfig.P0BlowerTime * 1000L;
   
   if (tNow >= g_CurBurnCycleStart + blowerStart) 
@@ -317,11 +317,11 @@ void podtrzymanieStateLoop() {
 
   if (tNow >= g_CurBurnCycleStart + blowerStart && tNow <= g_CurBurnCycleStart + blowerStart + burnFeedLen && (cycleNum % g_CurrentConfig.P0FuelFreq) == 0) 
   {
-    if (!isFeederOn()) setFeederOn();
+    setFeederOn();
   } 
   else 
   {
-    if (isFeederOn()) setFeederOff();
+    setFeederOff();
   }
   
   if (tNow >= g_CurBurnCycleStart + burnCycleLen) 

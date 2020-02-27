@@ -5,64 +5,99 @@
 #include "global_variables.h"
 #include "digitalWriteFast.h"
 
-struct tPumpPin {
+struct tPowerControlPin {
   uint8_t Pin;
+  uint8_t Mask;
   bool    Enabled;
   bool    On;
 };
 
-tPumpPin pump_ctrl_pins[] = {
-  {HW_PUMP_CO1_CTRL_PIN, false},
-  {HW_PUMP_CWU1_CTRL_PIN, false},
-  {HW_PUMP_CO2_CTRL_PIN, false},
-  {HW_PUMP_CIRC_CTRL_PIN, false}
+//flags for synced turning on/off of port K bits
+uint8_t g_powerFlags = 0;
+uint8_t g_powerBits = 0;
+
+//PINTK, PO
+#define POWER_PORT_MASK 0b11111111
+
+tPowerControlPin pump_ctrl_pins[] = {
+  {HW_PUMP_CO1_CTRL_PIN,  MASK_PUMP_CO1, false},
+  {HW_PUMP_CWU1_CTRL_PIN, MASK_PUMP_CWU1, false},
+  {HW_PUMP_CO2_CTRL_PIN, MASK_PUMP_CO2, false},
+  {HW_PUMP_CIRC_CTRL_PIN, MASK_PUMP_CIRC, false},
+ 
+  {HW_FEEDER_CTRL_PIN, MASK_FEEDER, true},
+  {HW_BLOWER_CTRL_PIN, MASK_BLOWER, true},
+  
 };
 
 unsigned long g_FeederRunTime = 0;
 unsigned long g_LastFeederStart = 0;
 
+
+void setTriacOutOn(uint8_t num) {
+  g_powerFlags |= pump_ctrl_pins[num].Mask;
+}
+
+void setTriacOutOff(uint8_t num) {
+   g_powerFlags &= ~pump_ctrl_pins[num].Mask;
+}
+
+bool isTriacOutOnNow(uint8_t num) {
+  return (PINK & pump_ctrl_pins[num].Mask) != 0;
+}
+
 void setPumpOn(uint8_t num) {
-  if (num >= sizeof(pump_ctrl_pins)/sizeof(tPumpPin)) return;
+  if (num >= sizeof(pump_ctrl_pins)/sizeof(tPowerControlPin)) return;
   pump_ctrl_pins[num].On = true;
-  digitalWrite(pump_ctrl_pins[num].Pin, HIGH);
+  setTriacOutOn(num);
+  //digitalWrite(pump_ctrl_pins[num].Pin, HIGH);
 }
 
 void setPumpOff(uint8_t num) {
-  if (num >= sizeof(pump_ctrl_pins)/sizeof(tPumpPin)) return;
+  if (num >= sizeof(pump_ctrl_pins)/sizeof(tPowerControlPin)) return;
   pump_ctrl_pins[num].On = false;
-  digitalWrite(pump_ctrl_pins[num].Pin, LOW);
+  setTriacOutOff(num);
+  //g_powerFlags &= ~pump_ctrl_pins[num].Mask;
+  //digitalWrite(pump_ctrl_pins[num].Pin, LOW);
 }
 
 bool isPumpOn(uint8_t num) {
-  if (num >= sizeof(pump_ctrl_pins)/sizeof(tPumpPin)) return false;
+  if (num >= sizeof(pump_ctrl_pins)/sizeof(tPowerControlPin)) return false;
   //return pump_ctrl_pins[num].On;
-  return digitalRead(pump_ctrl_pins[num].Pin) != LOW;
+  
+  //return digitalRead(pump_ctrl_pins[num].Pin) != LOW;
+  return isTriacOutOnNow(num);
 }
 
 bool isPumpEnabled(uint8_t num) {
-  if (num >= sizeof(pump_ctrl_pins)/sizeof(tPumpPin)) return false;
+  if (num >= sizeof(pump_ctrl_pins)/sizeof(tPowerControlPin)) return false;
   return true;
 }
 
 
 void setFeeder(bool on) {
-  if (isFeederOn() == on) return;
+  bool pr = (g_powerFlags & MASK_FEEDER) != 0;
+  if (on) 
+    g_powerFlags |= MASK_FEEDER;
+  else
+    g_powerFlags &= ~MASK_FEEDER;
+  
+  if (pr == on) return; // no change of state
+  
   unsigned long m = millis();
+  
   if (on) {
-    g_LastFeederStart = m;
-    digitalWriteFast(HW_FEEDER_CTRL_PIN, HIGH);
+    g_LastFeederStart = m;  
   } else {   
-    digitalWriteFast(HW_FEEDER_CTRL_PIN, LOW);
     g_FeederRunTime += (m - g_LastFeederStart);
     g_LastFeederStart = m;
     Serial.print(F("Feed stop. run time ms "));
     Serial.println(g_FeederRunTime);
-    
   }
 }
+
 //uruchomienie podajnika
-void setFeederOn() {
-  
+void setFeederOn() {  
   setFeeder(true);
 }
 //zatrzymanie podajnika
@@ -71,7 +106,8 @@ void setFeederOff() {
 }
 //czy podajnik działa
 bool isFeederOn() {
- return digitalReadFast(HW_FEEDER_CTRL_PIN) != LOW;
+  return (PINK & MASK_FEEDER) != 0;
+ //return digitalReadFast(HW_FEEDER_CTRL_PIN) != LOW;
 }
 
 
@@ -112,13 +148,26 @@ void zeroCrossHandler() {
   uint8_t stp = breseControlStep();
   if (stp) {
     power_counter++;
+    
     triacOn();
   }
   else {
     triacOff();
   }
 }
-
+ void zeroCrossHandler2() {
+  counter++;
+  uint8_t vals = PINK & POWER_PORT_MASK;
+  uint8_t stp = breseControlStep();
+  if (stp) {
+    power_counter++;
+    g_powerFlags |= MASK_BLOWER;
+  }
+  else {
+    g_powerFlags &= ~MASK_BLOWER;
+  }
+  PORTK = g_powerFlags & POWER_PORT_MASK; //put all bits at once
+ }
 
 
 //power in % 0..100, cycleLength 1..255
@@ -138,7 +187,7 @@ void initializeBlowerControl() {
   pinModeFast(HW_BLOWER_CTRL_PIN, OUTPUT);
   triacOff();
   pinMode(HW_ZERO_DETECT_PIN, INPUT);
-  attachInterrupt(digitalPinToInterrupt(HW_ZERO_DETECT_PIN), zeroCrossHandler, RISING);  
+  attachInterrupt(digitalPinToInterrupt(HW_ZERO_DETECT_PIN), zeroCrossHandler2, RISING);  
   pinModeFast(HW_PUMP_CO1_CTRL_PIN, OUTPUT);
   pinModeFast(HW_PUMP_CWU1_CTRL_PIN, OUTPUT);
   pinModeFast(HW_PUMP_CO2_CTRL_PIN, OUTPUT);

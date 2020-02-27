@@ -28,7 +28,7 @@ void setup() {
   //initialize hardware
   Serial.begin(9600);
   if (!RTC.isRunning()) RTC.control(DS1307_CLOCK_HALT, DS1307_OFF);
-  
+  RTC.readTime();
   // put your setup code here, to run once:
   eepromRestoreConfig(0);
   initializeEncoder();

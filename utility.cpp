@@ -1,6 +1,6 @@
 #include <arduino.h>
-#include <avr/pgmspace.h>
-#include <wstring.h>
+
+
 #include "global_variables.h"
 #include "masterpiec.h"
 #include "boiler_control.h"
@@ -55,7 +55,10 @@ TControlConfiguration defaultConfig() {
     300, //cooloff pause m10
     10000,
     260,
-    COOLOFF_OVERHEAT
+    COOLOFF_OVERHEAT, //cooloff mode
+    0, //FuelCorrection10; 
+    0, //CircCycleMin; 
+    0, //CircWorkTimeS10; 
   };
 }
 
@@ -124,16 +127,18 @@ void loggingInit() {
   Serial.print(F(" stored at"));
   Serial.print(DAILY_LOG_BASE);
   for (int i=0; i<7; i++) {
-    EEPROM.get(AFTER_CONFIG_STORAGE + i*sizeof(TDailyLogEntry), g_DailyLogEntries[i]);
+    EEPROM.get(DAILY_LOG_BASE + i*sizeof(TDailyLogEntry), g_DailyLogEntries[i]);
   }
   
   pdow = RTC.dow - 1;
   if (g_DailyLogEntries[pdow].MDay != RTC.mm) {
     resetLogEntry(pdow, true);
+    g_DailyLogEntries[pdow].MDay = RTC.mm;
     Serial.print(F(" cleared entry "));
     Serial.print(pdow);
   }
-  Serial.println(". loaded");
+  Serial.print(F(". loaded mday "));
+  Serial.println(g_DailyLogEntries[pdow].MDay);
 }
 
 

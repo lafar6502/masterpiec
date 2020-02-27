@@ -2,7 +2,7 @@
 #define _UI_HANDLER_H_INCLUDED_
 
 #include "hwsetup.h"
-#include <avr/pgmspace.h>
+
 //ui - display and user input handlers
 
 //zdarzenia ui

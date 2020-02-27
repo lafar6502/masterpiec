@@ -310,12 +310,24 @@ void adjustUint8(uint8_t varIdx, void* data, int8_t increment) {
   *pd = v2;
 }
 
+void adjustint8(uint8_t varIdx, void* data, int8_t increment) {
+  const TUIVarEntry* pv = UI_VARIABLES + varIdx;
+  int8_t* pd = (int8_t*) (data == NULL ? pv->DataPtr : data);
+  int8_t v2 = *pd + increment;
+  if (v2 < pv->Min) v2 = (int8_t) pv->Min;
+  if (v2 > pv->Max) v2 = (int8_t) pv->Max;
+  *pd = v2;
+}
+
+
+
+
 void adjustInt(uint8_t varIdx, void* data, int8_t increment) {
   const TUIVarEntry* pv = UI_VARIABLES + varIdx;
   int* pd = (int*) (data == NULL ? pv->DataPtr : data);
   int v2 = *pd + increment;
-  if (v2 < pv->Min) v2 = (uint8_t) pv->Max;
-  if (v2 > pv->Max) v2 = (uint8_t) pv->Min;
+  if (v2 < pv->Min) v2 = (int) pv->Max;
+  if (v2 > pv->Max) v2 = (int) pv->Min;
   *pd = v2;
 }
 
@@ -440,6 +452,19 @@ void printUint8_10(uint8_t varIdx, void* editCopy, char* buf, bool parseString) 
   if (parseString) {
     if (pv == NULL) return;
     *pv = (uint8_t) (atof(buf) * 10);
+    return;
+  }
+  float f = *pv / 10.0;
+  char buf1[10];
+  dtostrf(f,2, 1, buf1);
+  strcpy(buf, buf1);
+}
+
+void printint8_10(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
+  int8_t* pv = (int8_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  if (parseString) {
+    if (pv == NULL) return;
+    *pv = (int8_t) (atof(buf) * 10);
     return;
   }
   float f = *pv / 10.0;
@@ -717,6 +742,8 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Temp.CWU", 0, &g_CurrentConfig.TCWU, 20, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {"Temp.CWU2", 0, &g_CurrentConfig.TCWU2, 20, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {"Histereza CWU", 0, &g_CurrentConfig.THistCwu, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
+  {"Korekta opalu%", 0, &g_CurrentConfig.FuelCorrection10, -125, 125, printint8_10, adjustint8, copyU8, commitConfig},
+  
   {"Temp.min.pomp", VAR_ADVANCED, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {"Zewn. termostat", VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 1, printUint8AsBool, adjustUint8, NULL, commitConfig},
   {"Zewn. termos 2", VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 1, printBool, adjustBool, copyBool, commitConfig},
@@ -733,6 +760,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.DefaultBlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   {"Kg/h podajnik", VAR_ADVANCED, &g_CurrentConfig.FuelGrH, 0, 60000, printUint16_1000, adjustUint16, copyU16, commitConfig},
   {"MJ/Kg opal", VAR_ADVANCED, &g_CurrentConfig.FuelHeatValueMJ10, 0, 500, printUint16_10, adjustUint16, copyU16, commitConfig},
+  
   
   
   

@@ -67,7 +67,11 @@ typedef struct ControlConfiguration {
   uint16_t FuelGrH; //fuel grams per hour of feeder work. 10 kg=10000. 
   uint16_t FuelHeatValueMJ10; //fuel heat in MJ, * 10 (100 = 10MJ)
   uint8_t  CooloffMode; //0 - none
-  uint8_t _future[13];
+  int8_t  FuelCorrection10; //0 - none, fuel feed correction % x 20 (100 = + 20%, -100 = -20%)
+  uint8_t CircCycleMin; //60, 30, 15, 10, 6
+  uint8_t CircWorkTimeS10; //circ pump working time per cycle, sec*10 (10 = 100 sec)
+  
+  uint8_t _future[10];
 } TControlConfiguration;
 
 //bieżąca konfiguracja pieca
