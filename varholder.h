@@ -53,8 +53,13 @@ template<class T> class CircularBuffer
 
     const T* GetAt(int16_t idx) {
       if (_head == _tail) return NULL;
-      uint16_t f = _tail + idx;
-      return _buf + (f >= _bufLen? f - _bufLen : f);
+      if (idx >= 0) {
+        uint16_t f = _tail + idx;
+        return _buf + (f >= _bufLen? f - _bufLen : f);  
+      }
+      else {
+        return GetAt(idx + _bufLen);
+      }
     }
     
     void CopyTo(T* buf, int16_t count) {

@@ -136,6 +136,9 @@ extern float g_TempPowrot;  //akt. temp. powrotu
 extern float g_TempSpaliny; //akt. temp. spalin
 extern float g_TempFeeder;
 extern float g_TempBurner; //temp palnika
+extern float g_dT60; //delta temp in 1 minute
+extern uint8_t g_ReductionsToP0; //reductions P1 -> P0 or P2 -> P0 which we dont ave 
+extern uint8_t g_ReductionsToP1; //reductions P2 -> P1
 
 extern TSTATE g_BurnState;  //aktualny stan grzania
 extern bool   g_HomeThermostatOn;  //true - termostat pokojowy kazał zaprzestać grzania

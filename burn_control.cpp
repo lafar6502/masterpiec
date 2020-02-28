@@ -48,6 +48,8 @@ void setAlarm(const char* txt) {
   
 }
 
+float g_dT60; //1-minute temp delta
+
 void processSensorValues() {
   g_TempCO = getLastDallasValue(TSENS_BOILER);
   g_TempCWU = getLastDallasValue(TSENS_CWU);
@@ -64,6 +66,26 @@ void processSensorValues() {
   if (g_lastCOReads.IsEmpty() || abs(g_lastCOReads.GetLast()->Val - g_TempCO >= 0.5)) {
     g_lastCOReads.Enqueue({ms, g_TempCO});
   }
+  unsigned long m2 = ms - 60 *1000; //1 min back
+  g_dT60 = 0.0;
+  int i=0;
+  TReading r2 {ms, g_TempCO};
+  for(i=0; i<g_lastCOReads.GetCount(); i++) {
+    if (g_lastCOReads.GetAt(-i)->Ms < m2) break;
+  }
+  if (i < g_lastCOReads.GetCount()) {
+    TReading r1 = *g_lastCOReads.GetAt(-i);
+    if (i < g_lastCOReads.GetCount() - 1) {
+      r2 = *g_lastCOReads.GetAt(-i + 1); //next read
+    }
+    //now interpolate btw r and r2;
+    float tdT = r2.Val - r1.Val;
+    unsigned int tm0 = r2.Ms - r1.Ms;
+    float tx = r1.Val + (tdT / tm0) * ((m2 - r1.Ms) / tm0);
+    g_dT60 = tx;
+  }
+  //calculate the temp diff
+  
 }
 
 void circulationControlTask() {
@@ -515,6 +537,11 @@ bool cond_C_belowHysteresisAndNoNeedToHeat() {
   return false;
 }
 
+bool cond_D_belowTargetTempAndNeedHeat() {
+  if (g_needHeat != NEED_HEAT_NONE and g_TempCO < g_TargetTemp - 0.5) return true;
+  return false;
+}
+
 bool cond_cycleEnded() {
   return _reductionStateEndMs <= millis();
 }
@@ -603,6 +630,20 @@ void onSwitchToReduction(int trans) {
   Serial.println(_reductionStateEndMs);
 }
 
+uint8_t g_ReductionsToP0 = 0; //reductions P1 -> P0 or P2 -> P0 which we dont ave 
+uint8_t g_ReductionsToP1 = 0; //reductions P2 -> P1
+
+void onReductionCycleEnded(int trans) {
+  const TBurnTransition &t = BURN_TRANSITIONS[trans];
+  if (t.To == STATE_P0) {
+    g_ReductionsToP0++;
+  }
+  else if (t.To == STATE_P1) {
+    g_ReductionsToP1++;
+  }
+}
+
+
 #define CONTROL_VARIANT 2
 
 const TBurnTransition  BURN_TRANSITIONS[]   = 
@@ -610,9 +651,10 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
 
   //v1 {STATE_P0, STATE_P2, cond_B_belowHysteresis, NULL},
   {STATE_P0, STATE_P1, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v2
-  {STATE_P0, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
   {STATE_P0, STATE_P2, cond_B_belowHysteresisAndNeedHeat, NULL}, //this fires only if heat needed bc cond_C is earlier
-
+  {STATE_P0, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
+  {STATE_P0, STATE_P1, cond_D_belowTargetTempAndNeedHeat, NULL},
+  
   {STATE_P1, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction}, //E. P1 -> P0
   {STATE_P1, STATE_REDUCE1, cond_targetTempReachedAndHeatingNotNeeded, onSwitchToReduction}, //F. P1 -> P0
   {STATE_P1, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
@@ -622,14 +664,15 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_REDUCE1, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL}, //juz nie redukujemy  - np sytuacja się zmieniła i temp. została podniesiona. uwaga - ten sam war. co w #10 - cykl
   {STATE_REDUCE1, STATE_P2, cond_B_belowHysteresisAndNeedHeat, NULL},
   {STATE_REDUCE1, STATE_P1, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v2
-  {STATE_REDUCE1, STATE_P0, cond_cycleEnded, NULL},
+  {STATE_REDUCE1, STATE_P1, cond_D_belowTargetTempAndNeedHeat, NULL},
+  {STATE_REDUCE1, STATE_P0, cond_cycleEnded, onReductionCycleEnded},
 
   
   {STATE_P2, STATE_REDUCE2, cond_targetTempReached, onSwitchToReduction}, //10 P2 -> P1
   
   {STATE_REDUCE2, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
   {STATE_REDUCE2, STATE_P2, cond_B_belowHysteresisAndNeedHeat, NULL},
-  {STATE_REDUCE2, STATE_P1, cond_cycleEnded, NULL},
+  {STATE_REDUCE2, STATE_P1, cond_cycleEnded, onReductionCycleEnded},
   
   
   {STATE_P0, STATE_ALARM, isAlarm_Any, NULL},

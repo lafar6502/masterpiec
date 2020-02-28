@@ -97,26 +97,28 @@ void periodicDumpControlState() {
     pstate = g_BurnState;
     Serial.print(F("s:"));
     Serial.print(BURN_STATES[g_BurnState].Code);
-    Serial.print(", dm:");
+    Serial.print(F(", dm:"));
     Serial.print(getCurrentBlowerPower());
-    Serial.print(" (");
+    Serial.print(F(" ("));
     Serial.print(getCurrentBlowerCycle());
-    Serial.print("), pd:");
+    Serial.print(F("), pd:"));
     Serial.print(isFeederOn() ? "ON": "OFF");
-    Serial.print(", co:");
+    Serial.print(F(", co:"));
     Serial.print(isPumpOn(PUMP_CO1));
-    Serial.print(", cwu:");
+    Serial.print(F(", cwu:"));
     Serial.print(isPumpOn(PUMP_CWU1));
-    Serial.print(", stime:");
+    Serial.print(F(", stime:"));
     Serial.print((t - g_CurStateStart) / 1000);
-    Serial.print(", btime:");
+    Serial.print(F(", btime:"));
     Serial.print((t - g_CurBurnCycleStart) / 1000);
-    Serial.print(", tspalin");
+    Serial.print(F(", tspalin:"));
     Serial.print(g_TempSpaliny);
-    Serial.print(", tpiec");
+    Serial.print(F(", tpiec:"));
     Serial.print(g_TempCO);
-    Serial.print(", need:");
+    Serial.print(F(", need:"));
     Serial.print(g_needHeat);
+    Serial.print(F(", dT60"));
+    Serial.print(g_dT60);
     Serial.println();
   }
 }
