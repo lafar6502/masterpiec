@@ -117,8 +117,12 @@ void periodicDumpControlState() {
     Serial.print(g_TempCO);
     Serial.print(F(", need:"));
     Serial.print(g_needHeat);
-    Serial.print(F(", dT60"));
+    Serial.print(F(", dT60:"));
     Serial.print(g_dT60);
+    Serial.print(F(", dTl3:"));
+    Serial.print(g_dTl3);
+    Serial.print(F(", lastT:"));
+    Serial.print(g_lastCOReads.IsEmpty() ? 0.0 : g_lastCOReads.GetLast()->Val);
     Serial.println();
   }
 }

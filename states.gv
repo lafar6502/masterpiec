@@ -1,4 +1,7 @@
 digraph G {
+subgraph MAIN 
+{
+    
 
 HEAT [label="P2"]
 COOLOFF [label="P1"]
@@ -37,10 +40,11 @@ MAINTAIN -> HEAT [label="B. need HEAT and T < tTarget - hist0", style=bold, colo
 
 //MAINTAIN -> HEAT [label="B. T <= tTarget - hist0", style=bold, color=green]
 MAINTAIN -> COOLOFF[label="C. not NEED and T < tTarget - hist0", color=red]
-
+MAINTAIN -> COOLOFF[label="D. NEED and T<tTarget", color=brown, style=dashed]
+REDUCE1 -> COOLOFF[label="D. NEED and T<tTarget", color=brown, style=dashed]
 //MAINTAIN -> COOLOFF [label="NEED and T between tTarget - hist0 and tTarget", style=bold, color=darkgreen]
 
-
+}
 
 subgraph CWU {
     OK -> HEAT_CWU [label="Tcwu < Zcwu - Hcwu\r\nSet Tz for CWU"]

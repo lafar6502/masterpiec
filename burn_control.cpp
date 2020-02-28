@@ -49,6 +49,41 @@ void setAlarm(const char* txt) {
 }
 
 float g_dT60; //1-minute temp delta
+float g_dTl3; //last 3 readings diff
+
+float interpolate(const TReading& r1, const TReading& r2, unsigned long t0) {
+  float tdT = r2.Val - r1.Val;
+  unsigned long tm0 = r2.Ms - r1.Ms;
+  //printf("interpolate (%ld,%f), (%ld, %f) at %ld: dt is %ld\r\n", r1.Ms, r1.Val, r2.Ms, r2.Val, t0, tm0);
+  if (tm0==0) tm0 = 1;
+  float tx = r1.Val + tdT * (t0 - r1.Ms) / tm0; // (tdT / tm0) * ((t0 - r1.Ms) / tm0);
+  return tx;
+}
+
+float calcDT60() {
+    unsigned long m  = millis();
+    unsigned long m2 = m - 60 * 1000;
+    TReading r2 {m, g_TempCO};
+    int i;
+    for (i = g_lastCOReads.GetCount() - 1; i >= 0; i--) {
+        if (g_lastCOReads.GetAt(i)->Ms < m2) break;
+    }
+    if (i >= 0) {
+        //printf("found reading at %d ms=%d, v=%f\r\n", i, g_reads.GetAt(i)->Ms, g_reads.GetAt(i)->Val);
+        const TReading& r1 = *g_lastCOReads.GetAt(i);
+        if (i < g_lastCOReads.GetCount() - 1) {
+          r2 = *g_lastCOReads.GetAt(i + 1); //next read
+        }
+        float newPoint = interpolate(r1, r2, m2);
+        float dx = (g_TempCO - newPoint);// * 1000 / (m - m2);
+        //now interpolate btw r and r2
+        return dx;
+    }
+    else {
+        //printf("did not find reading");
+        return 0;
+    }
+}
 
 void processSensorValues() {
   g_TempCO = getLastDallasValue(TSENS_BOILER);
@@ -63,27 +98,20 @@ void processSensorValues() {
     g_HomeThermostatOn = isThermostatOn();
   }
   unsigned long ms = millis();
-  if (g_lastCOReads.IsEmpty() || abs(g_lastCOReads.GetLast()->Val - g_TempCO >= 0.5)) {
+  if (g_lastCOReads.IsEmpty() || abs(g_lastCOReads.GetLast()->Val - g_TempCO) >= 0.5) {
     g_lastCOReads.Enqueue({ms, g_TempCO});
+    Serial.print(F("Added T:"));
+    Serial.print(g_TempCO);
+    Serial.print(F(" n="));
+    Serial.print(g_lastCOReads.GetCount());
+    Serial.print(F(", first"));
+    Serial.print(g_lastCOReads.GetFirst()->Val);
+    Serial.print(F(" sec="));
+    Serial.println((ms - g_lastCOReads.GetFirst()->Ms) / 1000);
   }
   unsigned long m2 = ms - 60 *1000; //1 min back
-  g_dT60 = 0.0;
-  int i=0;
-  TReading r2 {ms, g_TempCO};
-  for(i=0; i<g_lastCOReads.GetCount(); i++) {
-    if (g_lastCOReads.GetAt(-i)->Ms < m2) break;
-  }
-  if (i < g_lastCOReads.GetCount()) {
-    TReading r1 = *g_lastCOReads.GetAt(-i);
-    if (i < g_lastCOReads.GetCount() - 1) {
-      r2 = *g_lastCOReads.GetAt(-i + 1); //next read
-    }
-    //now interpolate btw r and r2;
-    float tdT = r2.Val - r1.Val;
-    unsigned int tm0 = r2.Ms - r1.Ms;
-    float tx = r1.Val + (tdT / tm0) * ((m2 - r1.Ms) / tm0);
-    g_dT60 = tx;
-  }
+  g_dT60 = calcDT60();
+  g_dTl3 = g_lastCOReads.GetCount() >= 3 ? (g_TempCO - g_lastCOReads.GetAt(-3)->Val) * 60.0 * 1000.0 / (ms - g_lastCOReads.GetAt(-3)->Ms) : 0.0;
   //calculate the temp diff
   
 }

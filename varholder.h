@@ -58,7 +58,7 @@ template<class T> class CircularBuffer
         return _buf + (f >= _bufLen? f - _bufLen : f);  
       }
       else {
-        return GetAt(idx + _bufLen);
+        return GetAt(idx + GetCount());
       }
     }
     

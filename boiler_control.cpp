@@ -13,8 +13,8 @@ struct tPowerControlPin {
 };
 
 //flags for synced turning on/off of port K bits
-uint8_t g_powerFlags = 0;
-uint8_t g_powerBits = 0;
+volatile uint8_t g_powerFlags = 0;
+volatile uint8_t g_powerBits = 0;
 
 //PINTK, PO
 #define POWER_PORT_MASK 0b11111111
