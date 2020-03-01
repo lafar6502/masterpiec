@@ -332,8 +332,11 @@ void reductionStateInit(TSTATE prev) {
   g_CurStateStart = millis();
   g_initialNeedHeat = g_needHeat;
   g_CurBurnCycleStart = g_CurStateStart;
-  unsigned long adj = _reductionStateEndMs;
-  _reductionStateEndMs = g_CurStateStart + (unsigned long) g_CurrentConfig.BurnConfigs[prev].CycleSec * 1000L + adj;
+  unsigned long adj = _reductionStateEndMs; //remaining time from P2 or P1
+  
+  _reductionStateEndMs = (unsigned long) g_CurrentConfig.BurnConfigs[prev].CycleSec * 1000L;
+  if (prev == STATE_P2) adj += ((unsigned long) g_CurrentConfig.ReductionP2ExtraTime * (unsigned long) g_CurrentConfig.BurnConfigs[prev].CycleSec * 10L); // * 1000 / 100;
+  _reductionStateEndMs = g_CurStateStart + _reductionStateEndMs + adj; //
   setBlowerPower(g_CurrentConfig.BurnConfigs[prev].BlowerPower, g_CurrentConfig.BurnConfigs[prev].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[prev].BlowerCycle);
   setFeederOff();
   Serial.print(F("red: cycle should end in "));
@@ -566,7 +569,7 @@ bool cond_C_belowHysteresisAndNoNeedToHeat() {
 }
 
 bool cond_D_belowTargetTempAndNeedHeat() {
-  if (g_needHeat != NEED_HEAT_NONE and g_TempCO < g_TargetTemp - 0.5) return true;
+  if (g_needHeat != NEED_HEAT_NONE && g_TempCO < g_TargetTemp - 0.5) return true;
   return false;
 }
 
@@ -576,6 +579,20 @@ bool cond_cycleEnded() {
 
 bool cond_targetTempReached() {
   return g_TempCO >= g_TargetTemp;
+}
+
+bool cond_willReachTargetSoon() {
+  if (g_TempCO < g_TargetTemp - g_CurrentConfig.THistCO) return false;
+  if (g_dTl3 < (g_needHeat == NEED_HEAT_NONE ? 0.2 : 0.5)) return false;
+  if (g_TempCO + 2.5 * g_dTl3 > g_TargetTemp) return true; //we will be there in max 2.5 minutes
+  return false;
+}
+
+bool cond_willFallBelowHysteresisSoon() {
+  if (g_needHeat == NEED_HEAT_NONE) return false;
+  if (g_dTl3 > -0.5) return false;
+  if (g_TempCO + 2 * g_dTl3 < g_TargetTemp - g_CurrentConfig.THistCO) return true;
+  return false;
 }
 
 bool cond_boilerOverheated() {
@@ -588,7 +605,7 @@ unsigned long _coolTs = 0;
 //temp too high, need cooling by running co or cwu pump
 bool cond_needCooling() {
   if (g_TempCO >= MAX_TEMP) {_coolState = 0; return true;} //always
-  bool hot = g_CurrentConfig.CooloffMode == COOLOFF_NONE ? false : g_CurrentConfig.CooloffMode == COOLOFF_LOWER ? (g_TempCO > g_TargetTemp + 0.2) : (g_TempCO > g_TargetTemp + g_CurrentConfig.TDeltaCO);
+  bool hot = g_CurrentConfig.CooloffMode == COOLOFF_NONE ? false : g_CurrentConfig.CooloffMode == COOLOFF_LOWER ? (g_TempCO > g_TargetTemp + (_coolState == 1 ? 0.0 : 0.3)) : (g_TempCO > g_TargetTemp + g_CurrentConfig.TDeltaCO);
   if (!getManualControlMode() && g_BurnState != STATE_ALARM && g_CurrentConfig.CooloffTimeM10 != 0 && hot) 
   {
     unsigned long t = millis();
@@ -647,12 +664,12 @@ void onSwitchToReduction(int trans) {
   _reductionStateEndMs = 0;
   if (t < g_CurBurnCycleStart) return;
   unsigned long diff = t - g_CurBurnCycleStart;
-  unsigned long fuelTimeMs =  g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 * 10000L; //feeder works at the start of P1 or P2 cycle
+  unsigned long burnFeedLen = (unsigned long) g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 * 100L + (g_CurrentConfig.FuelCorrection10 * g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10) / 10;
   unsigned long cycleLen = g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec * 1000L;
   _reductionStateEndMs = cycleLen - diff;
-  if (diff < fuelTimeMs) //during feed
+  if (diff < burnFeedLen) //during feed
   {
-    _reductionStateEndMs = _reductionStateEndMs * ((float) diff / fuelTimeMs);
+    _reductionStateEndMs = _reductionStateEndMs * ((float) diff / burnFeedLen); //reduce the time because not all fuel was added
   }
   Serial.print(F("Remaining time for reduction (ms):"));
   Serial.println(_reductionStateEndMs);
@@ -681,6 +698,7 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_P0, STATE_P1, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v2
   {STATE_P0, STATE_P2, cond_B_belowHysteresisAndNeedHeat, NULL}, //this fires only if heat needed bc cond_C is earlier
   {STATE_P0, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
+  {STATE_P0, STATE_P2, cond_willFallBelowHysteresisSoon, NULL}, //temp is dropping fast
   {STATE_P0, STATE_P1, cond_D_belowTargetTempAndNeedHeat, NULL},
   
   {STATE_P1, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction}, //E. P1 -> P0
@@ -697,6 +715,8 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
 
   
   {STATE_P2, STATE_REDUCE2, cond_targetTempReached, onSwitchToReduction}, //10 P2 -> P1
+  {STATE_P2, STATE_REDUCE2, cond_willReachTargetSoon, onSwitchToReduction}, //10 P2 -> P1
+  
   
   {STATE_REDUCE2, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
   {STATE_REDUCE2, STATE_P2, cond_B_belowHysteresisAndNeedHeat, NULL},

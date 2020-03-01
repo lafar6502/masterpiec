@@ -31,8 +31,10 @@ void scrDefault(uint8_t idx, char* lines[])
   dtostrf(g_TempCWU,3, 1, buf3);
   uint8_t nh = needHeatingNow(); 
   sprintf(lines[0], "T:%s/%s B:%s", buf2, buf1, buf3);
-  
-  sprintf(lines[1], "%c%c %2d%%         ", nh == NEED_HEAT_NONE ? '_' : nh == NEED_HEAT_CO ? '!' : '@', BURN_STATES[g_BurnState].Code, getCurrentBlowerPower()); 
+  dtostrf(g_dTl3, 3, 1, buf1);
+  buf2[0] = 0;
+  if (g_BurnState == STATE_STOP) sprintf(buf2, "STOP");
+  sprintf(lines[1], "%c%c %2d%% %s %s", nh == NEED_HEAT_NONE ? '_' : nh == NEED_HEAT_CO ? '!' : '@', BURN_STATES[g_BurnState].Code, getCurrentBlowerPower(), buf1, buf2); 
   
 }
 
@@ -58,6 +60,7 @@ void scrSensors2(uint8_t idx, char* lines[] ) {
   sprintf(lines[1], "TPodaj:%s", buf2);
 }
 
+extern unsigned long _reductionStateEndMs; //burn control
 
 void scrBurnInfo(uint8_t idx, char* lines[]) {
   unsigned long tnow = millis();
@@ -72,8 +75,8 @@ void scrBurnInfo(uint8_t idx, char* lines[]) {
   }
   else if (g_BurnState == STATE_REDUCE1 || g_BurnState == STATE_REDUCE2) 
   {
-    int tt = (tnow - g_CurStateStart) / 1000L;
-    sprintf(lines[0], "redukcja mocy");  
+    int tt = (_reductionStateEndMs - millis()) / 1000L;
+    sprintf(lines[0], "redukcja %c -%d", BURN_STATES[g_BurnState].Code, tt);  
   }
   else if (g_BurnState == STATE_STOP) {
     sprintf(lines[0], "STOP - tryb reczny");
@@ -752,10 +755,8 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Chlodz.przerwa m", VAR_ADVANCED, &g_CurrentConfig.CooloffPauseM10, 0, 1200, printUint16_10, adjustUint16, copyU16, commitConfig},
   {"Chlodz. tryb", VAR_ADVANCED, &g_CurrentConfig.CooloffMode, 0, 2, printUint8, adjustUint8, copyU8, commitConfig},
   {"Cykl cyrkul. min", VAR_ADVANCED, &g_CurrentConfig.CircCycleMin, 0, 120, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Cyrkulacja sek", VAR_ADVANCED, &g_CurrentConfig.CircWorkTimeS10, 0, 240, printUint8, adjustUint8, copyU8, commitConfig},
-  
-  
-  
+  {"Cyrkulacja sek*10", VAR_ADVANCED, &g_CurrentConfig.CircWorkTimeS10, 0, 240, printUint8, adjustUint8, copyU8, commitConfig},
+  {"Wydluz dopal.P2%", VAR_ADVANCED, &g_CurrentConfig.ReductionP2ExtraTime, 0, 250, printUint8, adjustUint8, copyU8, commitConfig},
   
   {"DeltaT", VAR_ADVANCED, &g_CurrentConfig.TDeltaCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
   {"DeltaCWU", VAR_ADVANCED, &g_CurrentConfig.TDeltaCWU, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},

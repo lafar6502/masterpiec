@@ -59,6 +59,7 @@ TControlConfiguration defaultConfig() {
     0, //FuelCorrection10; 
     0, //CircCycleMin; 
     0, //CircWorkTimeS10; 
+    20, //ReductionP2ExtraTime
   };
 }
 
