@@ -587,6 +587,12 @@ bool cond_willReachTargetSoon() {
   if (g_TempCO + 2.5 * g_dTl3 > g_TargetTemp) return true; //we will be there in max 2.5 minutes
   return false;
 }
+//we're above hysteresis but the need for heat has suddenly disappeared (thermostat?) - so reduce from P2
+bool cond_suddenHeatOffAndAboveHysteresis() {
+  if (g_TempCO < g_TargetTemp - g_CurrentConfig.THistCO) return false;
+  if (g_needHeat == NEED_HEAT_NONE && g_initialNeedHeat != NEED_HEAT_NONE) return true;
+  return false;
+}
 
 bool cond_willFallBelowHysteresisSoon() {
   if (g_needHeat == NEED_HEAT_NONE) return false;
@@ -716,6 +722,8 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   
   {STATE_P2, STATE_REDUCE2, cond_targetTempReached, onSwitchToReduction}, //10 P2 -> P1
   {STATE_P2, STATE_REDUCE2, cond_willReachTargetSoon, onSwitchToReduction}, //10 P2 -> P1
+  {STATE_P2, STATE_REDUCE2, cond_suddenHeatOffAndAboveHysteresis, onSwitchToReduction}, //10 P2 -> P1
+  
   
   
   {STATE_REDUCE2, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
