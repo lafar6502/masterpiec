@@ -98,22 +98,12 @@ void processSensorValues() {
     g_HomeThermostatOn = isThermostatOn();
   }
   unsigned long ms = millis();
-  if (g_lastCOReads.IsEmpty() || abs(g_lastCOReads.GetLast()->Val - g_TempCO) >= 0.5) {
+  if (g_lastCOReads.IsEmpty() || abs(g_lastCOReads.GetLast()->Val - g_TempCO) >= 0.5 || g_lastCOReads.GetLast()->Ms < (ms - 120000L)) 
+  {
     g_lastCOReads.Enqueue({ms, g_TempCO});
-    Serial.print(F("Added T:"));
-    Serial.print(g_TempCO);
-    Serial.print(F(" n="));
-    Serial.print(g_lastCOReads.GetCount());
-    Serial.print(F(", first"));
-    Serial.print(g_lastCOReads.GetFirst()->Val);
-    Serial.print(F(" sec="));
-    Serial.println((ms - g_lastCOReads.GetFirst()->Ms) / 1000);
   }
-  unsigned long m2 = ms - 60 *1000; //1 min back
   g_dT60 = calcDT60();
   g_dTl3 = g_lastCOReads.GetCount() >= 3 ? (g_TempCO - g_lastCOReads.GetAt(-3)->Val) * 60.0 * 1000.0 / (ms - g_lastCOReads.GetAt(-3)->Ms) : 0.0;
-  //calculate the temp diff
-  
 }
 
 void circulationControlTask() {
@@ -313,8 +303,6 @@ void workStateBurnLoop() {
   {
     g_CurBurnCycleStart = millis(); //
     setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
-    Serial.print("r1:");
-    Serial.println(g_CurBurnCycleStart);
   }
 }
 
@@ -366,8 +354,6 @@ void podtrzymanieStateInitialize(TSTATE prev) {
   g_initialNeedHeat = g_needHeat;
   setBlowerPower(0);
   setFeederOff();
-  //Serial.print("podtrz init. C:");
-  //Serial.println(g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec);
 }
 
 void podtrzymanieStateLoop() {
@@ -400,12 +386,6 @@ void podtrzymanieStateLoop() {
   {
     g_CurBurnCycleStart = tNow;
     cycleNum++;
-    /*Serial.print("rP:");
-    Serial.print(burnCycleLen);
-    Serial.print(", ");
-    Serial.print(g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec);
-    Serial.print(", s:");
-    Serial.println(g_CurBurnCycleStart);*/
   }
 }
 

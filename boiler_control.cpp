@@ -211,9 +211,8 @@ void initializeBlowerControl() {
 
 
 bool isThermostatOn() {
-  if (HW_THERMOSTAT_PIN == 0 && HW_THERMOSTAT_PIN_ALT == 0) return false;
-  if (digitalReadFast(HW_THERMOSTAT_PIN) == LOW) return true;
-  if (digitalReadFast(HW_THERMOSTAT_PIN_ALT) == HIGH) return true;
+  if (HW_THERMOSTAT_PIN != 0 && digitalReadFast(HW_THERMOSTAT_PIN) == LOW) return true;
+  if (HW_THERMOSTAT_PIN_ALT != 0 && digitalReadFast(HW_THERMOSTAT_PIN_ALT) == HIGH) return true;
   return false;
 }
 
