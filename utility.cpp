@@ -1,15 +1,21 @@
 #include <arduino.h>
 
-
+#define ENABLE_SD 1
 #include "global_variables.h"
 #include "masterpiec.h"
 #include "boiler_control.h"
 #include <EEPROM.h>
 #include <MD_DS1307.h>
 #include "ui_handler.h"
+#include <SPI.h>
+#ifdef ENABLE_SD
+#include <SD.h>
+#endif
 
 #define MAX_CFG_SLOTS 4
 #define AFTER_CONFIG_STORAGE (MAX_CFG_SLOTS * sizeof(TControlConfiguration)) + 8
+
+
 
 TControlConfiguration defaultConfig() {
   return {
@@ -117,6 +123,39 @@ void resetLogEntry(uint8_t d, bool writeEeprom) {
     EEPROM.put(DAILY_LOG_BASE + (d * sizeof(TDailyLogEntry)), g_DailyLogEntries[d]); 
   }
 }
+
+uint8_t g_SDEnabled = 0;
+
+void sdInit() {
+#ifdef ENABLE_SD
+  g_SDEnabled = 0;
+  //pinMode(10,OUTPUT);
+  //digitalWrite(10,HIGH);
+  Serial.print(F("Starting SD.."));
+  if(!SD.begin(4)) {
+    Serial.println(F(" - failed"));
+  }
+  else {
+    Serial.println(F("SD ok"));
+    g_SDEnabled = 1;
+    File ft = SD.open("testa.txt", FILE_WRITE);
+    if (!ft) {
+      Serial.println(F("test file fail"));
+    }
+    else {
+      ft.print("TEST ");
+      ft.println(RTC.dd);
+      ft.close();
+      if (!SD.exists("testa.txt")) {
+        Serial.println(F("Test file not exists!"));
+      }
+      else {
+        Serial.println(F("SD write ok"));
+      }
+    }
+  }
+#endif
+}
 //so what is the rule for 
 // updating daily logs? we're running modulo 7 so there will be need to overwrite previous week
 // how do we know if it's today or 7 days ago? by looking at mday
@@ -140,6 +179,9 @@ void loggingInit() {
   }
   Serial.print(F(". loaded mday "));
   Serial.println(g_DailyLogEntries[pdow].MDay);
+#ifdef ENABLE_SD
+  sdInit();
+#endif
 }
 
 
@@ -159,12 +201,70 @@ void clearDailyLogs() {
   }
   
 }
+void printFloat(float f, File t) {
+  char buf[10];
+  dtostrf(f, 3, 2, buf);
+  t.print(buf);
+}
+
+unsigned long _lastSDRun = 0;
+void sdLoggingTask() {
+  //if (g_SDEnabled == 0) return;
+  unsigned long t = millis();
+  
+  if ((t - _lastSDRun) < 60L * 1000L) return; 
+  _lastSDRun = t;
+  char buf[100];
+  sprintf(buf, "p%02d%02d.txt", RTC.mm, RTC.dd);
+  File df = SD.open(buf, FILE_WRITE);
+  if (!df) {
+    Serial.print(F("sd file error "));
+    Serial.println(buf);
+    return;
+  }
+  else Serial.println(buf);
+  df.print(RTC.h);
+  df.print(':');
+  df.print(RTC.m);
+  df.print('\t');
+  printFloat(g_TempCO, df);
+  df.print('\t');
+  printFloat(g_TempCWU, df);
+  df.print('\t');
+  printFloat(g_TempPowrot, df);
+  df.print('\t');
+  printFloat(g_TempSpaliny, df);
+  df.print('\t');
+  printFloat(g_TempFeeder, df);
+  df.print('\t');
+  printFloat(g_TempBurner, df);
+  df.print('\t');
+  printFloat(g_dTl3, df);
+  df.print('\t');
+  df.print(BURN_STATES[g_BurnState].Code);
+  df.print('\t');
+  df.print(g_needHeat);
+  df.print('\t');
+  df.print(getCurrentBlowerPower());
+  df.print('\t');
+  df.print(isPumpOn(PUMP_CO1));
+  df.print('\t');
+  df.print(isPumpOn(PUMP_CWU1));
+  df.print('\t');
+  df.print(isPumpOn(PUMP_CIRC));
+  df.print('\t');
+  printFloat(g_TempZewn, df);
+  df.println();
+  df.close();
+}
 
 void loggingTask() {
   static unsigned long lastRun = 0;
   uint8_t d = RTC.dow - 1;
   if (pdow > 7) pdow = d;
   unsigned long t = millis();
+
+  sdLoggingTask();
   
   if (pdow != d) {
       EEPROM.put(DAILY_LOG_BASE + (pdow * sizeof(TDailyLogEntry)), g_DailyLogEntries[pdow]); //prev day - save
@@ -207,6 +307,7 @@ void loggingTask() {
       Serial.println(F("! log entry check fail !"));
     }
   }
+
 }
 
 float calculateFuelWeightKg(unsigned long feederCycleSec) {

@@ -147,13 +147,13 @@ void processUIEvent(uint8_t event, int8_t arg)
   if (UI_STATES[g_CurrentUIState].HandleEvent != NULL) UI_STATES[g_CurrentUIState].HandleEvent(event, arg);
 
   if (cs != g_CurrentUIState || cv != g_CurrentUIView) {
-    Serial.print("ev:");
+    Serial.print(F("ev:"));
     Serial.print(event);
-    Serial.print(" St:");
+    Serial.print(F(" St:"));
     Serial.print(g_CurrentUIState);
-    Serial.print(" v:");
+    Serial.print(F(" v:"));
     Serial.print(g_CurrentUIView);
-    Serial.print(" enc:");
+    Serial.print(F(" enc:"));
     Serial.println(getEncoderPos());  
   }
   
@@ -191,9 +191,9 @@ void changeUIState(char code) {
       g_CurrentUIState = i;
       g_CurrentUIView = UI_STATES[i].DefaultView;
       if (UI_STATES[g_CurrentUIState].HandleEvent != NULL) UI_STATES[g_CurrentUIState].HandleEvent(UI_EV_INITSTATE, oldState);
-      Serial.print("ui state:");
+      Serial.print(F("ui state:"));
       Serial.print(g_CurrentUIState);
-      Serial.print(", v");
+      Serial.print(F(", v "));
       Serial.println(g_CurrentUIView);
       return;
     }

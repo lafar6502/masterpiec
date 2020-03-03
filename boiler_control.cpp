@@ -157,7 +157,7 @@ void zeroCrossHandler() {
 }
  void zeroCrossHandler2() {
   counter++;
-  uint8_t vals = PINK & POWER_PORT_MASK;
+  g_powerBits = PINK & POWER_PORT_MASK;
   uint8_t stp = breseControlStep();
   if (stp) {
     power_counter++;

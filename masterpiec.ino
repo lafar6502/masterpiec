@@ -52,11 +52,15 @@ void setup() {
 
 void loop() {
   uint64_t m = millis();
-  if (g_uiBottomHalf != NULL) 
+  void (*pf)(void*) = g_uiBottomHalf;
+  if (pf != NULL) 
   {
-    g_uiBottomHalf(g_uiBottomHalfCtx);
-    g_uiBottomHalf = NULL;
-    g_uiBottomHalfCtx = NULL;
+    pf(g_uiBottomHalfCtx);
+    if (pf == g_uiBottomHalf) 
+    {
+      g_uiBottomHalf = NULL;
+      g_uiBottomHalfCtx = NULL;  
+    }
   }
   RTC.readTime();
   refreshSensorReadings();
@@ -81,7 +85,7 @@ void loop() {
   }
   else 
   {
-    Serial.print("zabrakło mi ms ");
+    Serial.print(F("zabraklo mi ms "));
     Serial.println(-d);  
   }
 }
