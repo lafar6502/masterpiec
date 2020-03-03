@@ -493,6 +493,10 @@ bool isAlarm_Overheat() {
     g_Alarm = "ZA GORACO";
     return true;
   }
+  return false;
+}
+
+bool isAlarm_feederOnFire() {
   if (g_CurrentConfig.FeederTempLimit > 0 && g_TempFeeder > g_CurrentConfig.FeederTempLimit) {
     g_Alarm = "Temp. podajnika";
     return true;
@@ -514,13 +518,10 @@ bool isAlarm_NoHeating() {
 }
 
 bool isAlarm_Any() {
-  return isAlarm_HardwareProblem() || isAlarm_Overheat() || isAlarm_NoHeating();
+  return isAlarm_HardwareProblem() || isAlarm_Overheat() || isAlarm_NoHeating() || isAlarm_feederOnFire();
 }
 
-bool cond_feederOnFire() {
-  //is feeder on fire?
-  return false;
-}
+
 
 void alarmStateInitialize(TSTATE prev) {
   changeUIState('0');
@@ -637,7 +638,13 @@ bool cond_A_needSuddenHeatAndBelowTargetTemp() {
   return g_needHeat != NEED_HEAT_NONE && g_initialNeedHeat == NEED_HEAT_NONE;
 }
 
-
+void alertStateLoop() {
+  static unsigned long _feederStart = 0;
+  unsigned long t = millis();
+  if (isAlarm_feederOnFire()) {
+   
+  }
+}
 
 
 bool cond_targetTempReachedAndHeatingNotNeeded() {
@@ -730,7 +737,7 @@ const TBurnStateConfig BURN_STATES[]  = {
   {STATE_P1, '1', workStateInitialize, workStateBurnLoop},
   {STATE_P2, '2', workStateInitialize, workStateBurnLoop},
   {STATE_STOP, 'S', stopStateInitialize, manualStateLoop},
-  {STATE_ALARM, 'A', alarmStateInitialize, NULL},
+  {STATE_ALARM, 'A', alarmStateInitialize, alertStateLoop},
   {STATE_REDUCE1, 'R', reductionStateInit, reductionStateLoop},
   {STATE_REDUCE2, 'r', reductionStateInit, reductionStateLoop},
 };
