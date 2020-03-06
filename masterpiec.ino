@@ -66,6 +66,7 @@ void loop() {
   refreshSensorReadings();
   burnControlTask();     
   circulationControlTask();
+  gatherStatsTask();
   updateView();          
   periodicDumpControlState();
   

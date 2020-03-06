@@ -620,7 +620,7 @@ void adjustBlowerState(uint8_t varIdx, void* d, int8_t increment) {
   if (!getManualControlMode()) return;
   uint8_t v = getCurrentBlowerPower();
   v += increment;
-  if (v < 0) v = 0;
+  if (v > 200) v = 0;
   if (v > 100) v = 100;
   setBlowerPower(v);
 }

@@ -22,11 +22,16 @@ uint8_t getCurrentBlowerPower();
 uint8_t getCurrentBlowerCycle();
 
 void initializeBlowerControl();
+void gatherStatsTask();
 
 bool isThermostatOn();
 
 //accumulated feeder run time, in ms
 extern unsigned long g_FeederRunTime;
 
+extern unsigned long g_feederRunMs;
+extern unsigned long g_pumpCORunMs;
+extern unsigned long g_pumpCWURunMs;
+extern unsigned long g_pumpCircRunMs;
 
 #endif

@@ -106,10 +106,16 @@ void processSensorValues() {
   g_dTl3 = g_lastCOReads.GetCount() >= 3 ? (g_TempCO - g_lastCOReads.GetAt(-3)->Val) * 60.0 * 1000.0 / (ms - g_lastCOReads.GetAt(-3)->Ms) : 0.0;
 }
 
+
 void circulationControlTask() {
   if (!isPumpEnabled(PUMP_CIRC)) return;
+  
+  
   if (g_CurrentConfig.CircCycleMin == 0) return;
-  uint8_t cmin = RTC.m % g_CurrentConfig.CircCycleMin;
+  if (getManualControlMode()) return;
+  
+  uint16_t cmin = RTC.h * 60 + RTC.m;
+  cmin = cmin % g_CurrentConfig.CircCycleMin;
   uint16_t secs = cmin * 60 + RTC.s;
   bool pumpOn = secs < g_CurrentConfig.CircWorkTimeS10 * 10;
   bool zoneIn = true;

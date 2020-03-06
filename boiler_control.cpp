@@ -236,3 +236,22 @@ uint8_t getCurrentBlowerCycle() {
 uint8_t getCurrentBlowerPower() {
   return brese_increment * 100.0 / brese_cycle;
 }
+
+unsigned long g_feederRunMs = 0;
+unsigned long g_pumpCORunMs = 0;
+unsigned long g_pumpCWURunMs = 0;
+unsigned long g_pumpCircRunMs = 0;
+//we just assume the thing has been running or not running the whole time since last check.
+//so we should run this task quite frequently to avoid errors.
+void gatherStatsTask() {
+  static unsigned long _lastRun = 0;
+  unsigned long t = millis();
+  if (_lastRun != 0) {
+    unsigned long rt = t - _lastRun;
+    if (isFeederOn()) g_feederRunMs += rt;
+    if (isPumpOn(PUMP_CO1)) g_pumpCORunMs += rt;
+    if (isPumpOn(PUMP_CWU1)) g_pumpCWURunMs += rt;
+    if (isPumpOn(PUMP_CIRC)) g_pumpCircRunMs += rt;  
+  }
+  _lastRun = t;
+}
