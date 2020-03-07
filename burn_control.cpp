@@ -435,7 +435,7 @@ void handleHeatNeedStatus() {
   }
 }
 
-bool cond_needCooling(); //below
+uint8_t cond_needCooling(); //below
 bool cond_willFallBelowHysteresisSoon();
 //
 // which pumps and when
@@ -471,10 +471,16 @@ void updatePumpStatus() {
     setPumpOff(PUMP_CWU1); //just to be sure
     return;
   }
-  if (cond_needCooling()) {
+  static uint8_t _cwCnt = 0;
+  uint8_t cl = cond_needCooling();
+  if (cl != 0) {
     bool cw = false;
     if (g_CurrentConfig.SummerMode && isPumpEnabled(PUMP_CWU1) && isDallasEnabled(TSENS_CWU)) {
        cw = true;
+    }
+    if (!cw && cl == 2 && (_cwCnt % 2) == 0) {
+      cw = true;
+      _cwCnt++;
     }
     setPumpOn(cw ? PUMP_CWU1 : PUMP_CO1);
     setPumpOff(cw ? PUMP_CO1 : PUMP_CWU1);
@@ -598,42 +604,53 @@ bool cond_boilerOverheated() {
 uint8_t _coolState = 0; //1-cool, 2-pause
 unsigned long _coolTs = 0;
 
+bool cond_canCoolWithCWU() {
+  if (!isPumpEnabled(PUMP_CWU1)) return false;
+  if (g_TempCO <= g_TargetTemp + g_CurrentConfig.TDeltaCO) return false;
+  if (g_TempCWU  <= g_TempCWU + g_CurrentConfig.TDeltaCWU) return false;
+  if (g_TempCWU >= g_CurrentConfig.TCWU + 2 * g_CurrentConfig.THistCwu) return false; //cwu too hot
+  return true;
+}
 //temp too high, need cooling by running co or cwu pump
-bool cond_needCooling() {
+//0 = no need to cool, 1 - should cool, 2 - should cool, possibly with CWU
+uint8_t cond_needCooling() {
   if (g_TempCO >= MAX_TEMP) {_coolState = 0; return true;} //always
-  bool hot = g_CurrentConfig.CooloffMode == COOLOFF_NONE ? false : g_CurrentConfig.CooloffMode == COOLOFF_LOWER ? (g_TempCO > g_TargetTemp + (_coolState == 1 ? 0.0 : 0.3)) : (g_TempCO > g_TargetTemp + g_CurrentConfig.TDeltaCO);
+  bool hot = g_CurrentConfig.CooloffMode == COOLOFF_NONE ? false : g_CurrentConfig.CooloffMode == COOLOFF_LOWER ? (g_TempCO > g_TargetTemp + (_coolState == 1 ? 0.1 : 0.4)) : (g_TempCO > g_TargetTemp + g_CurrentConfig.TDeltaCO);
+  
   if (!getManualControlMode() && g_BurnState != STATE_ALARM && g_CurrentConfig.CooloffTimeM10 != 0 && hot) 
   {
     unsigned long t = millis();
+    bool cw = cond_canCoolWithCWU();
     switch(_coolState) {
       case 1:
         if ((t - _coolTs) > (unsigned long) g_CurrentConfig.CooloffTimeM10 * 6L * 1000) {//pause
           _coolState = 2;
           _coolTs = t;
+          
           Serial.println(F("Cool pause"));
-          return false;
+          return 0;
         }
-        return true;
+        return cw ? 2 : 1;
       case 2:
         if ((t - _coolTs) > (unsigned long) g_CurrentConfig.CooloffPauseM10 * 6L * 1000) {//pause
           _coolState = 1;
           _coolTs = t;
           Serial.println(F("Cool resume"));
-          return true;
+          return cw ? 2 : 1;
         }
-        return false;
+        return 0;
         break;
       default:
         _coolState = 1;
         _coolTs = t;
         Serial.println(F("Cool start"));
-        return true;
+        return cw ? 2 : 1;
     }
   }
   else 
   {
     _coolState = 0;
-    return false;  
+    return 0;  
   }
 }
 
