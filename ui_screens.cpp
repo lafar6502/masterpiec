@@ -755,7 +755,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Chlodz.przerwa m", VAR_ADVANCED, &g_CurrentConfig.CooloffPauseM10, 0, 1200, printUint16_10, adjustUint16, copyU16, commitConfig},
   {"Chlodz. tryb", VAR_ADVANCED, &g_CurrentConfig.CooloffMode, 0, 2, printUint8, adjustUint8, copyU8, commitConfig},
   {"Cykl cyrkul. min", VAR_ADVANCED, &g_CurrentConfig.CircCycleMin, 0, 120, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Cyrkulacja sek*10", VAR_ADVANCED, &g_CurrentConfig.CircWorkTimeS10, 0, 240, printUint8, adjustUint8, copyU8, commitConfig},
+  {"Cyrkulacja sek*10", VAR_ADVANCED, &g_CurrentConfig.CircWorkTimeS, 0, 250, printUint8, adjustUint8, copyU8, commitConfig},
   {"Wydluz dopal.P2%", VAR_ADVANCED, &g_CurrentConfig.ReductionP2ExtraTime, 0, 250, printUint8, adjustUint8, copyU8, commitConfig},
   
   {"DeltaT", VAR_ADVANCED, &g_CurrentConfig.TDeltaCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},

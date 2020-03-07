@@ -8,12 +8,14 @@
 #include <MD_DS1307.h>
 #include "ui_handler.h"
 #include <SPI.h>
+#include "RF24.h"
 #ifdef ENABLE_SD
 #include <SD.h>
 #endif
 
 #define MAX_CFG_SLOTS 4
 #define AFTER_CONFIG_STORAGE (MAX_CFG_SLOTS * sizeof(TControlConfiguration)) + 8
+
 
 
 
@@ -208,6 +210,12 @@ void printFloat(float f, File t) {
 }
 
 unsigned long _lastSDRun = 0;
+extern unsigned long g_feederRunMs;
+extern unsigned long g_pumpCORunMs;
+extern unsigned long g_pumpCWURunMs;
+extern unsigned long g_pumpCircRunMs;
+
+
 void sdLoggingTask() {
   //if (g_SDEnabled == 0) return;
   unsigned long t = millis();
@@ -254,6 +262,15 @@ void sdLoggingTask() {
   df.print(isPumpOn(PUMP_CIRC));
   df.print('\t');
   printFloat(g_TempZewn, df);
+  df.print('\t');
+  df.print(g_feederRunMs);
+  df.print('\t');
+  df.print(g_pumpCORunMs);
+  df.print('\t');
+  df.print(g_pumpCWURunMs);
+  df.print('\t');
+  df.print(g_pumpCircRunMs);
+  
   df.println();
   df.close();
 }
@@ -387,4 +404,15 @@ void dumpVariablesToSerial() {
     Serial.print('=');
     Serial.println(buf);
   }
+}
+
+
+/* Hardware configuration: Set up nRF24L01 radio on SPI bus plus pins 7 & 8 */
+RF24 _radio(HW_RADIO_PIN1,HW_RADIO_PIN2);
+
+void radioLoggingTask() {
+  static unsigned long _lastRun = 0;
+  unsigned long t = millis();
+  if (t - _lastRun < 60000L) return;
+  
 }

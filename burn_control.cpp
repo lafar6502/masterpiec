@@ -117,7 +117,7 @@ void circulationControlTask() {
   uint16_t cmin = RTC.h * 60 + RTC.m;
   cmin = cmin % g_CurrentConfig.CircCycleMin;
   uint16_t secs = cmin * 60 + RTC.s;
-  bool pumpOn = secs < g_CurrentConfig.CircWorkTimeS10 * 10;
+  bool pumpOn = secs < g_CurrentConfig.CircWorkTimeS;
   bool zoneIn = true;
   if ((RTC.h > 23 || RTC.h < 6))
         zoneIn = false;
@@ -434,6 +434,7 @@ void handleHeatNeedStatus() {
 }
 
 bool cond_needCooling(); //below
+bool cond_willFallBelowHysteresisSoon();
 //
 // which pumps and when
 // cwu heating needed -> turn on cwu pump if current temp is above min pump temp and above cwu temp + delta
@@ -463,7 +464,7 @@ void updatePumpStatus() {
     }
     return;
   }
-  if (g_needHeat == NEED_HEAT_CO) { //co pump on - thermostat on or thermostat disabled (co pump always on)
+  if (g_needHeat == NEED_HEAT_CO && !cond_willFallBelowHysteresisSoon()) { //co pump on - thermostat on or thermostat disabled (co pump always on)
     setPumpOn(PUMP_CO1);
     setPumpOff(PUMP_CWU1); //just to be sure
     return;

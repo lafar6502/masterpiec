@@ -69,7 +69,7 @@ typedef struct ControlConfiguration {
   uint8_t  CooloffMode; //0 - none
   int8_t  FuelCorrection10; //0 - none, fuel feed correction % x 20 (100 = + 20%, -100 = -20%)
   uint8_t CircCycleMin; //60, 30, 15, 10, 6
-  uint8_t CircWorkTimeS10; //circ pump working time per cycle, sec*10 (10 = 100 sec)
+  uint8_t CircWorkTimeS; //circ pump working time per cycle, sec*10 (10 = 100 sec)
   uint8_t ReductionP2ExtraTime; //in %, how much % of the P2 cycle time to add for reduction (0 = just the P2 cycle, 10 = P2 cycle + 10%)
   uint8_t _future[10];
 } TControlConfiguration;

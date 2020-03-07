@@ -127,7 +127,7 @@ float brese_increment = 0.0;
 float brese_error = 0.0;
 uint8_t brese_cycle = 1;
 uint8_t brese_curV = 0;
-
+uint8_t power_set = 0;
 //1 - triac on, 0 - triac off
 uint8_t breseControlStep() 
 {
@@ -172,7 +172,8 @@ void zeroCrossHandler() {
 
 //power in % 0..100, cycleLength 1..255
 void breseInit(uint8_t power, uint8_t cycleLength) {
-    brese_increment = ((float) power) * cycleLength / 100.0;
+    power_set = power;
+    brese_increment = ((float) power_set) * cycleLength / 100.0;
     brese_cycle = cycleLength;
     //brese_curV = 0;
     //brese_error = 0;
@@ -234,7 +235,7 @@ uint8_t getCurrentBlowerCycle() {
 }
 
 uint8_t getCurrentBlowerPower() {
-  return brese_increment * 100.0 / brese_cycle;
+  return power_set;
 }
 
 unsigned long g_feederRunMs = 0;

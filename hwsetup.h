@@ -24,6 +24,8 @@
 #define HW_DISPLAY_PIN 1
 #define HW_ZERO_DETECT_PIN 2
 
+#define HW_RADIO_PIN1 8
+#define HW_RADIO_PIN2 9
 
 #define PUMP_CO1 0
 #define PUMP_CWU1 1
