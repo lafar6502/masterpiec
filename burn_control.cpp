@@ -103,7 +103,9 @@ void processSensorValues() {
     g_lastCOReads.Enqueue({ms, g_TempCO});
   }
   g_dT60 = calcDT60();
-  g_dTl3 = g_lastCOReads.GetCount() >= 3 ? (g_TempCO - g_lastCOReads.GetAt(-3)->Val) * 60.0 * 1000.0 / (ms - g_lastCOReads.GetAt(-3)->Ms) : 0.0;
+  TReading* pr = g_lastCOReads.GetCount() >= 3 ? g_lastCOReads.GetAt(-3) : NULL;
+  if (g_lastCOReads.GetFirst()->Ms > (ms - 15000L)) pr = NULL;
+  g_dTl3 = pr != NULL ? (g_TempCO - pr->Val) * 60.0 * 1000.0 / (ms - pr->Ms) : 0.0;
 }
 
 
@@ -694,7 +696,6 @@ void onReductionCycleEnded(int trans) {
 const TBurnTransition  BURN_TRANSITIONS[]   = 
 {
 
-  //v1 {STATE_P0, STATE_P2, cond_B_belowHysteresis, NULL},
   {STATE_P0, STATE_P1, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v2
   {STATE_P0, STATE_P2, cond_B_belowHysteresisAndNeedHeat, NULL}, //this fires only if heat needed bc cond_C is earlier
   {STATE_P0, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},

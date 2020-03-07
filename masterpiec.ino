@@ -47,6 +47,7 @@ void setup() {
   setupSerialShell();
 #endif
   changeUIState('0');
+  delay(1000);
 }
 
 
