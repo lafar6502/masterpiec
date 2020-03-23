@@ -103,7 +103,7 @@ void processSensorValues() {
     g_lastCOReads.Enqueue({ms, g_TempCO});
   }
   g_dT60 = calcDT60();
-  TReading* pr = g_lastCOReads.GetCount() >= 3 ? g_lastCOReads.GetAt(-3) : NULL;
+  TReading* pr = g_lastCOReads.GetCount() >= 4 ? g_lastCOReads.GetAt(-3) : NULL; //discard the first read
   if (g_lastCOReads.GetFirst()->Ms > (ms - 15000L)) pr = NULL;
   g_dTl3 = pr != NULL ? (g_TempCO - pr->Val) * 60.0 * 1000.0 / (ms - pr->Ms) : 0.0;
 }
@@ -113,16 +113,22 @@ void circulationControlTask() {
   if (!isPumpEnabled(PUMP_CIRC)) return;
   
   
-  if (g_CurrentConfig.CircCycleMin == 0) return;
+  if (g_CurrentConfig.CircCycleMin == 0 || g_CurrentConfig.CircWorkTimeS == 0) return;
   if (getManualControlMode()) return;
   
   uint16_t cmin = RTC.h * 60 + RTC.m;
   cmin = cmin % g_CurrentConfig.CircCycleMin;
   uint16_t secs = cmin * 60 + RTC.s;
   bool pumpOn = secs < g_CurrentConfig.CircWorkTimeS;
-  bool zoneIn = true;
-  if ((RTC.h > 23 || RTC.h < 6))
-        zoneIn = false;
+  bool zoneIn = false;
+  
+  if ((RTC.h >= 17 && RTC.h <= 21))
+        zoneIn = true;
+  else if ((RTC.h >= 6 && RTC.h <= 7))
+        zoneIn = true;
+  else if ((RTC.h >= 11 && RTC.h <= 12))
+        zoneIn = true;
+  
   pumpOn = zoneIn && pumpOn;
         
   if (pumpOn) {
@@ -296,7 +302,7 @@ void workStateBurnLoop() {
   assert(g_BurnState == STATE_P1 || g_BurnState == STATE_P2);
   unsigned long tNow = millis();
   unsigned long burnCycleLen = (unsigned long) g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec * 1000L;
-  unsigned long burnFeedLen = (unsigned long) g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 * 100L + (g_CurrentConfig.FuelCorrection10 * g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10) / 10;
+  unsigned long burnFeedLen = (unsigned long) g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 * 100L + (g_CurrentConfig.FuelCorrection * g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10) / 100;
   
   if (tNow < g_CurBurnCycleStart + burnFeedLen) 
   {
@@ -369,7 +375,7 @@ void podtrzymanieStateLoop() {
   unsigned long tNow = millis();
   static uint8_t cycleNum = 0;
   unsigned long burnCycleLen = (unsigned long) g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec * 1000L;
-  unsigned long burnFeedLen = (unsigned long) g_CurrentConfig.BurnConfigs[STATE_P0].FuelSecT10 * 100L + (g_CurrentConfig.FuelCorrection10 * g_CurrentConfig.BurnConfigs[STATE_P0].FuelSecT10) / 10;
+  unsigned long burnFeedLen = (unsigned long) g_CurrentConfig.BurnConfigs[STATE_P0].FuelSecT10 * 100L + (g_CurrentConfig.FuelCorrection * g_CurrentConfig.BurnConfigs[STATE_P0].FuelSecT10) / 100;
   unsigned long blowerStart = burnCycleLen - (unsigned long) g_CurrentConfig.P0BlowerTime * 1000L;
   
   if (tNow >= g_CurBurnCycleStart + blowerStart) 
@@ -471,16 +477,15 @@ void updatePumpStatus() {
     setPumpOff(PUMP_CWU1); //just to be sure
     return;
   }
-  static uint8_t _cwCnt = 0;
+  
   uint8_t cl = cond_needCooling();
   if (cl != 0) {
     bool cw = false;
     if (g_CurrentConfig.SummerMode && isPumpEnabled(PUMP_CWU1) && isDallasEnabled(TSENS_CWU)) {
        cw = true;
     }
-    if (!cw && cl == 2 && (_cwCnt % 2) == 0) {
+    if (cl == 2) {
       cw = true;
-      _cwCnt++;
     }
     setPumpOn(cw ? PUMP_CWU1 : PUMP_CO1);
     setPumpOff(cw ? PUMP_CO1 : PUMP_CWU1);
@@ -614,19 +619,20 @@ bool cond_canCoolWithCWU() {
 //temp too high, need cooling by running co or cwu pump
 //0 = no need to cool, 1 - should cool, 2 - should cool, possibly with CWU
 uint8_t cond_needCooling() {
+  static uint8_t _cwCnt = 0;
   if (g_TempCO >= MAX_TEMP) {_coolState = 0; return true;} //always
   bool hot = g_CurrentConfig.CooloffMode == COOLOFF_NONE ? false : g_CurrentConfig.CooloffMode == COOLOFF_LOWER ? (g_TempCO > g_TargetTemp + (_coolState == 1 ? 0.1 : 0.4)) : (g_TempCO > g_TargetTemp + g_CurrentConfig.TDeltaCO);
   
   if (!getManualControlMode() && g_BurnState != STATE_ALARM && g_CurrentConfig.CooloffTimeM10 != 0 && hot) 
   {
     unsigned long t = millis();
-    bool cw = cond_canCoolWithCWU();
+    bool cw = (_cwCnt % 2) == 0 && cond_canCoolWithCWU();
     switch(_coolState) {
       case 1:
         if ((t - _coolTs) > (unsigned long) g_CurrentConfig.CooloffTimeM10 * 6L * 1000) {//pause
           _coolState = 2;
           _coolTs = t;
-          
+          _cwCnt++;
           Serial.println(F("Cool pause"));
           return 0;
         }
@@ -683,7 +689,7 @@ void onSwitchToReduction(int trans) {
   _reductionStateEndMs = 0;
   if (t < g_CurBurnCycleStart) return;
   unsigned long diff = t - g_CurBurnCycleStart;
-  unsigned long burnFeedLen = (unsigned long) g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 * 100L + (g_CurrentConfig.FuelCorrection10 * g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10) / 10;
+  unsigned long burnFeedLen = (unsigned long) g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 * 100L + (g_CurrentConfig.FuelCorrection * g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10) / 100;
   unsigned long cycleLen = g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec * 1000L;
   _reductionStateEndMs = cycleLen - diff;
   if (diff < burnFeedLen) //during feed

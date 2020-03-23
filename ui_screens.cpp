@@ -64,13 +64,17 @@ extern unsigned long _reductionStateEndMs; //burn control
 
 void scrBurnInfo(uint8_t idx, char* lines[]) {
   unsigned long tnow = millis();
-  
+  char zbuf[8];
   if (g_BurnState == STATE_P0 || g_BurnState == STATE_P1 || g_BurnState == STATE_P2)
   {
     uint8_t cycle = g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle;
     unsigned long tt = (tnow - g_CurStateStart) / 1000L;
     uint8_t nh = needHeatingNow();
-    sprintf(lines[0], "#%c T%d/%d", BURN_STATES[g_BurnState].Code, g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec - (tnow - g_CurBurnCycleStart) / 1000, tt); 
+    float f2 = calculateHeatPowerFor(g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 / 10.0, g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec);
+    zbuf[5]=0;
+    dtostrf(f2, 2, 2, zbuf);
+    
+    sprintf(lines[0], "#%c %skW T%d", BURN_STATES[g_BurnState].Code, zbuf, g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec - (tnow - g_CurBurnCycleStart) / 1000); 
     sprintf(lines[1], "%c%d%% %d %ld", nh == NEED_HEAT_NONE ? '_' : nh == NEED_HEAT_CO ? '!' : '@', getCurrentBlowerPower(), cycle, tt);
   }
   else if (g_BurnState == STATE_REDUCE1 || g_BurnState == STATE_REDUCE2) 
@@ -302,11 +306,24 @@ void scrEditVariable(uint8_t idx, char* lines[])
   sprintf(lines[0], "<-%s->", pv->Name);
   if (pv->PrintTo != NULL) pv->PrintTo(g_CurrentlyEditedVariable, g_editCopy, lines[1], false);
 }
+void printUint16_1000(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
+  uint16_t* pv = (uint16_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  if (parseString) {
+    if (pv == NULL) return;
+    *pv = (uint16_t) (atof(buf) * 1000);
+    return;
+  }
+  float f = *pv / 1000.0;
+  char buf1[10];
+  dtostrf(f,2, 2, buf1);
+  strcpy(buf, buf1);
+}
 
 
 void adjustUint8(uint8_t varIdx, void* data, int8_t increment) {
   const TUIVarEntry* pv = UI_VARIABLES + varIdx;
   uint8_t* pd = (uint8_t*) (data == NULL ? pv->DataPtr : data);
+  if (pv->PrintTo == printUint16_1000) increment *= 10;
   uint8_t v2 = *pd + increment;
   if (v2 < pv->Min) v2 = (uint8_t) pv->Max;
   if (v2 > pv->Max) v2 = (uint8_t) pv->Min;
@@ -353,6 +370,7 @@ void adjustBool(uint8_t varIdx, void* data, int8_t increment) {
 void adjustUint16(uint8_t varIdx, void* data, int8_t increment) {
   const TUIVarEntry* pv = UI_VARIABLES + varIdx;
   uint16_t* pd = (uint16_t*) (data == NULL ? pv->DataPtr : data);
+  if (pv->PrintTo == printUint16_1000) increment *= 10;
   uint16_t v2 = (*pd) + increment;
   if (v2 < (uint16_t) pv->Min) v2 = (uint16_t) pv->Max;
   if (v2 > (uint16_t) pv->Max) v2 = (uint16_t) pv->Min;
@@ -415,19 +433,6 @@ void printUint16_10(uint8_t varIdx, void* editCopy, char* buf, bool parseString)
   strcpy(buf, buf1);
 }
 
-void printUint16_1000(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
-  uint16_t* pv = (uint16_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
-  if (parseString) {
-    if (pv == NULL) return;
-    *pv = (uint16_t) (atof(buf) * 1000);
-    return;
-  }
-  float f = *pv / 1000.0;
-  char buf1[10];
-  dtostrf(f,2, 1, buf1);
-  strcpy(buf, buf1);
-}
-
 
 void printFeedRate_WithHeatPower(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   uint16_t *pv = (uint16_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
@@ -474,6 +479,16 @@ void printint8_10(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   char buf1[10];
   dtostrf(f,2, 1, buf1);
   strcpy(buf, buf1);
+}
+
+void printint8(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
+  int8_t* pv = (int8_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  if (parseString) {
+    if (pv == NULL) return;
+    *pv = (int8_t) atoi(buf);
+    return;
+  }
+  sprintf(buf, "%d", (int) *pv);
 }
 
 
@@ -746,11 +761,10 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Temp.CWU", 0, &g_CurrentConfig.TCWU, 20, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {"Temp.CWU2", 0, &g_CurrentConfig.TCWU2, 20, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {"Histereza CWU", 0, &g_CurrentConfig.THistCwu, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Korekta opalu%", 0, &g_CurrentConfig.FuelCorrection10, -125, 125, printint8_10, adjustint8, copyU8, commitConfig},
+  {"Korekta opalu%", 0, &g_CurrentConfig.FuelCorrection, -125, 125, printint8, adjustint8, copyU8, commitConfig},
   
   {"Temp.min.pomp", VAR_ADVANCED, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {"Zewn. termostat", VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 1, printUint8AsBool, adjustUint8, NULL, commitConfig},
-  {"Zewn. termos 2", VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 1, printBool, adjustBool, copyBool, commitConfig},
   {"Chlodz. praca m", VAR_ADVANCED, &g_CurrentConfig.CooloffTimeM10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig},
   {"Chlodz.przerwa m", VAR_ADVANCED, &g_CurrentConfig.CooloffPauseM10, 0, 1200, printUint16_10, adjustUint16, copyU16, commitConfig},
   {"Chlodz. tryb", VAR_ADVANCED, &g_CurrentConfig.CooloffMode, 0, 2, printUint8, adjustUint8, copyU8, commitConfig},
@@ -764,6 +778,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Max T podajnika", VAR_ADVANCED, &g_CurrentConfig.FeederTempLimit, 0, 200, printUint8, adjustUint8, copyU8, commitConfig}, 
   {"Wygasniecie po", VAR_ADVANCED, &g_CurrentConfig.NoHeatAlarmTimeM, 0, 30, printUint8, adjustUint8, copyU8, commitConfig}, 
   {"Dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.DefaultBlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {"Dmuchawa Max", VAR_ADVANCED, &g_CurrentConfig.BlowerMax, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   {"Kg/h podajnik", VAR_ADVANCED, &g_CurrentConfig.FuelGrH, 0, 60000, printUint16_1000, adjustUint16, copyU16, commitConfig},
   {"MJ/Kg opal", VAR_ADVANCED, &g_CurrentConfig.FuelHeatValueMJ10, 0, 500, printUint16_10, adjustUint16, copyU16, commitConfig},
   

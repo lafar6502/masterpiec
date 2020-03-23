@@ -68,6 +68,7 @@ TControlConfiguration defaultConfig() {
     0, //CircCycleMin; 
     0, //CircWorkTimeS10; 
     20, //ReductionP2ExtraTime
+    100, //BlowerMax
   };
 }
 
@@ -224,7 +225,7 @@ void sdLoggingTask() {
   _lastSDRun = t;
   char buf[100];
   sprintf(buf, "p%02d%02d.txt", RTC.mm, RTC.dd);
-  File df = SD.open(buf, FILE_WRITE);
+  File df = SD.open(buf, O_CREAT | O_APPEND | O_WRITE);
   if (!df) {
     Serial.print(F("sd file error "));
     Serial.println(buf);
@@ -277,6 +278,7 @@ void sdLoggingTask() {
 
 void loggingTask() {
   static unsigned long lastRun = 0;
+  static uint8_t g_PrevState = 0;
   uint8_t d = RTC.dow - 1;
   if (pdow > 7) pdow = d;
   unsigned long t = millis();
@@ -303,9 +305,10 @@ void loggingTask() {
   g_P0Time = 0;
   
   
-  if (t - lastRun > 15L * 60 * 1000) //save every 15 m
+  if (t - lastRun > 15L * 60 * 1000 || g_PrevState != g_BurnState) //save every 15 m
   {
     lastRun = t;
+    g_PrevState = g_BurnState;
     TDailyLogEntry de = g_DailyLogEntries[d];
     EEPROM.put(DAILY_LOG_BASE + (d * sizeof(TDailyLogEntry)), g_DailyLogEntries[d]);
     EEPROM.get(DAILY_LOG_BASE + (d * sizeof(TDailyLogEntry)), de);

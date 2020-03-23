@@ -5,6 +5,8 @@
 #include "global_variables.h"
 #include "digitalWriteFast.h"
 
+#define KICKSTART_MIN 15 //minimum pulses/sec - below that we run a kickstart
+
 struct tPowerControlPin {
   uint8_t Pin;
   uint8_t Mask;
@@ -120,14 +122,17 @@ void triacOff() {
   digitalWriteFast(HW_BLOWER_CTRL_PIN, LOW);
 }
 
-//pulse count
+//pulse count. We will reset it on every change of output power. It is used in kickstart mode.
 volatile uint32_t counter;
 volatile uint32_t power_counter; 
+
 float brese_increment = 0.0;
 float brese_error = 0.0;
 uint8_t brese_cycle = 1;
 uint8_t brese_curV = 0;
 uint8_t power_set = 0;
+uint8_t kickstartCount = 0;
+
 //1 - triac on, 0 - triac off
 uint8_t breseControlStep() 
 {
@@ -159,6 +164,10 @@ void zeroCrossHandler() {
   counter++;
   g_powerBits = PINK & POWER_PORT_MASK;
   uint8_t stp = breseControlStep();
+  if (kickstartCount > 0) {
+     stp = 1;
+     kickstartCount--;
+  }
   if (stp) {
     power_counter++;
     g_powerFlags |= MASK_BLOWER;
@@ -172,15 +181,15 @@ void zeroCrossHandler() {
 
 //power in % 0..100, cycleLength 1..255
 void breseInit(uint8_t power, uint8_t cycleLength) {
-    power_set = power;
-    brese_increment = ((float) power_set) * cycleLength / 100.0;
-    brese_cycle = cycleLength;
-    //brese_curV = 0;
-    //brese_error = 0;
-    //Serial.print("brese pow:");
-    //Serial.print(power);
-    //Serial.print(", c:");
-    //Serial.println(brese_cycle);
+  kickstartCount = 0;
+  float powerPerc = ((float) power) * (g_CurrentConfig.BlowerMax == 0 ? 1.0 : (float) g_CurrentConfig.BlowerMax / 100.0);
+  kickstartCount = power_set == 0 && powerPerc < KICKSTART_MIN ? KICKSTART_MIN : 0;
+  power_set = power;
+  brese_increment = powerPerc * cycleLength / 100.0;
+  brese_cycle = cycleLength;
+  counter = 0;
+  power_counter = 0;    
+
 }
 
 void initializeBlowerControl() {
