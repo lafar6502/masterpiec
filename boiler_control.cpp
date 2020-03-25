@@ -5,7 +5,7 @@
 #include "global_variables.h"
 #include "digitalWriteFast.h"
 
-#define KICKSTART_MIN 15 //minimum pulses/sec - below that we run a kickstart
+#define KICKSTART_MIN 10 //minimum pulses/sec - below that we run a kickstart
 
 struct tPowerControlPin {
   uint8_t Pin;
@@ -164,7 +164,7 @@ void zeroCrossHandler() {
   counter++;
   g_powerBits = PINK & POWER_PORT_MASK;
   uint8_t stp = breseControlStep();
-  if (kickstartCount > 0) {
+  if (kickstartCount > 0 && power_set > 0) {
      stp = 1;
      kickstartCount--;
   }
@@ -183,7 +183,7 @@ void zeroCrossHandler() {
 void breseInit(uint8_t power, uint8_t cycleLength) {
   kickstartCount = 0;
   float powerPerc = ((float) power) * (g_CurrentConfig.BlowerMax == 0 ? 1.0 : (float) g_CurrentConfig.BlowerMax / 100.0);
-  kickstartCount = power_set == 0 && powerPerc < KICKSTART_MIN ? KICKSTART_MIN : 0;
+  kickstartCount = power_set == 0 && power > 0 && powerPerc < KICKSTART_MIN ? KICKSTART_MIN : 0;
   power_set = power;
   brese_increment = powerPerc * cycleLength / 100.0;
   brese_cycle = cycleLength;
