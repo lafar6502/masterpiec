@@ -611,7 +611,6 @@ unsigned long _coolTs = 0;
 
 bool cond_canCoolWithCWU() {
   if (!isPumpEnabled(PUMP_CWU1)) return false;
-  if (g_TempCO <= g_TargetTemp + g_CurrentConfig.TDeltaCO) return false;
   if (g_TempCWU  <= g_TempCWU + g_CurrentConfig.TDeltaCWU) return false;
   if (g_TempCWU >= g_CurrentConfig.TCWU + 2 * g_CurrentConfig.THistCwu) return false; //cwu too hot
   return true;
@@ -622,41 +621,37 @@ uint8_t cond_needCooling() {
   static uint8_t _cwCnt = 0;
   if (g_TempCO >= MAX_TEMP) {_coolState = 0; return true;} //always
   bool hot = g_CurrentConfig.CooloffMode == COOLOFF_NONE ? false : g_CurrentConfig.CooloffMode == COOLOFF_LOWER ? (g_TempCO > g_TargetTemp + (_coolState == 1 ? 0.1 : 0.4)) : (g_TempCO > g_TargetTemp + g_CurrentConfig.TDeltaCO);
+  if (getManualControlMode() || !hot || g_BurnState == STATE_ALARM) {
+    _coolState = 0;
+    return 0;
+  }
   
-  if (!getManualControlMode() && g_BurnState != STATE_ALARM && g_CurrentConfig.CooloffTimeM10 != 0 && hot) 
-  {
-    unsigned long t = millis();
-    bool cw = (_cwCnt % 2) == 0 && cond_canCoolWithCWU();
-    switch(_coolState) {
-      case 1:
-        if ((t - _coolTs) > (unsigned long) g_CurrentConfig.CooloffTimeM10 * 6L * 1000) {//pause
-          _coolState = 2;
-          _coolTs = t;
-          _cwCnt++;
-          Serial.println(F("Cool pause"));
-          return 0;
-        }
-        return cw ? 2 : 1;
-      case 2:
-        if ((t - _coolTs) > (unsigned long) g_CurrentConfig.CooloffPauseM10 * 6L * 1000) {//pause
-          _coolState = 1;
-          _coolTs = t;
-          Serial.println(F("Cool resume"));
-          return cw ? 2 : 1;
-        }
+  unsigned long t = millis();
+  bool cw = (_cwCnt % 2) == 0 && cond_canCoolWithCWU();
+  switch(_coolState) {
+    case 1:
+      if ((t - _coolTs) > (unsigned long) g_CurrentConfig.CooloffTimeM10 * 6L * 1000) {//pause
+        _coolState = 2;
+        _coolTs = t;
+        _cwCnt++;
+        Serial.println(F("Cool pause"));
         return 0;
-        break;
-      default:
+      }
+      return cw ? 2 : 1;
+    case 2:
+      if ((t - _coolTs) > (unsigned long) g_CurrentConfig.CooloffPauseM10 * 6L * 1000) {//pause
         _coolState = 1;
         _coolTs = t;
-        Serial.println(F("Cool start"));
+        Serial.println(F("Cool resume"));
         return cw ? 2 : 1;
-    }
-  }
-  else 
-  {
-    _coolState = 0;
-    return 0;  
+      }
+      return 0;
+      break;
+    default:
+      _coolState = 1;
+      _coolTs = t;
+      Serial.println(F("Cool start"));
+      return cw ? 2 : 1;
   }
 }
 

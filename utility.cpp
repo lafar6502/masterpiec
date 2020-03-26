@@ -276,6 +276,27 @@ void sdLoggingTask() {
   df.close();
 }
 
+//d - day number 0..6
+void saveDailyLogEntry(uint8_t d) {
+    TDailyLogEntry de = g_DailyLogEntries[d];
+    EEPROM.put(DAILY_LOG_BASE + (d * sizeof(TDailyLogEntry)), g_DailyLogEntries[d]);
+    EEPROM.get(DAILY_LOG_BASE + (d * sizeof(TDailyLogEntry)), de);
+    Serial.print(F("log saved "));
+    Serial.print(d);
+    Serial.print(F(",feed="));
+    Serial.print(g_DailyLogEntries[d].FeederTotalSec);
+    Serial.print(F(",p1="));
+    Serial.print(g_DailyLogEntries[d].P1TotalSec2);
+    Serial.print(F(",p2="));
+    Serial.print(g_DailyLogEntries[d].P2TotalSec2);
+    Serial.print(F(",p0="));
+    Serial.println(g_DailyLogEntries[d].P0TotalSec2);
+    if (memcmp(&de, g_DailyLogEntries + d, sizeof(TDailyLogEntry)) != 0) {
+      Serial.print(d);
+      Serial.println(F("! log entry check fail !"));
+    }  
+}
+
 void loggingTask() {
   static unsigned long lastRun = 0;
   static uint8_t g_PrevState = 0;
@@ -309,23 +330,7 @@ void loggingTask() {
   {
     lastRun = t;
     g_PrevState = g_BurnState;
-    TDailyLogEntry de = g_DailyLogEntries[d];
-    EEPROM.put(DAILY_LOG_BASE + (d * sizeof(TDailyLogEntry)), g_DailyLogEntries[d]);
-    EEPROM.get(DAILY_LOG_BASE + (d * sizeof(TDailyLogEntry)), de);
-    Serial.print(F("log saved "));
-    Serial.print(d);
-    Serial.print(F(",feed="));
-    Serial.print(g_DailyLogEntries[d].FeederTotalSec);
-    Serial.print(F(",p1="));
-    Serial.print(g_DailyLogEntries[d].P1TotalSec2);
-    Serial.print(F(",p2="));
-    Serial.print(g_DailyLogEntries[d].P2TotalSec2);
-    Serial.print(F(",p0="));
-    Serial.println(g_DailyLogEntries[d].P0TotalSec2);
-    if (memcmp(&de, g_DailyLogEntries + d, sizeof(TDailyLogEntry)) != 0) {
-      Serial.print(d);
-      Serial.println(F("! log entry check fail !"));
-    }
+    saveDailyLogEntry(d);
   }
 
 }
