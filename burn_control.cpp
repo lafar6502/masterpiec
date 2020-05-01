@@ -42,6 +42,13 @@ TIntReading lastBurnStates[11];
 CircularBuffer<TReading> g_lastCOReads(lastCOTemperatures, sizeof(lastCOTemperatures)/sizeof(TReading));
 CircularBuffer<TIntReading> g_lastBurnStates(lastBurnStates, sizeof(lastBurnStates)/sizeof(TIntReading));
 
+//czas wejscia w bieżący stan, ms
+unsigned long g_CurStateStart = 0;
+//float  g_CurStateStartTempCO = 0; //temp pieca w momencie wejscia w bież. stan.
+uint8_t g_BurnCyclesBelowMinTemp = 0; //number of burn cycles with g_TempCO below minimum pump temperature (for detecting extinction of fire)
+unsigned long g_CurBurnCycleStart = 0; //timestamp, w ms, w ktorym rozpoczelismy akt. cykl palenia (ten podajnik+nadmuch)
+
+
 void setAlarm(const char* txt) {
   if (txt != NULL) g_Alarm = txt;
   forceState(STATE_ALARM);
@@ -187,7 +194,7 @@ void burningProc()
         g_CurStateStart = t;
         g_initialNeedHeat = g_needHeat;
         g_CurBurnCycleStart = g_CurStateStart;
-        g_CurStateStartTempCO = g_TempCO;
+        g_BurnCyclesBelowMinTemp = 0;
         if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize(BURN_TRANSITIONS[i].From);
         return;    
       }
@@ -221,10 +228,6 @@ bool getManualControlMode()
 
 
 
-//czas wejscia w bieżący stan, ms
-unsigned long g_CurStateStart = 0;
-float  g_CurStateStartTempCO = 0; //temp pieca w momencie wejscia w bież. stan.
-unsigned long g_CurBurnCycleStart = 0; //timestamp, w ms, w ktorym rozpoczelismy akt. cykl palenia (ten podajnik+nadmuch)
 float curStateMaxTempCO = 0;
 
 //api - switch to state
@@ -246,7 +249,7 @@ void forceState(TSTATE st) {
   g_CurStateStart = t;
   g_initialNeedHeat = g_needHeat;
   g_CurBurnCycleStart = g_CurStateStart;
-  g_CurStateStartTempCO = g_TempCO;
+  g_BurnCyclesBelowMinTemp = 0;
   if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize(old);
   Serial.print("BS->");
   Serial.print(BURN_STATES[g_BurnState].Code);
@@ -279,7 +282,7 @@ void workStateInitialize(TSTATE prev) {
   g_CurStateStart = millis();
   g_initialNeedHeat = g_needHeat;
   g_CurBurnCycleStart = g_CurStateStart;
-  g_CurStateStartTempCO = g_TempCO;
+  g_BurnCyclesBelowMinTemp = 0;
   curStateMaxTempCO = g_TempCO;
   setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
   Serial.print(F("Burn init, cycle: "));
@@ -315,8 +318,9 @@ void workStateBurnLoop() {
   if (g_TempCO > curStateMaxTempCO) curStateMaxTempCO = g_TempCO;
   if (tNow >= g_CurBurnCycleStart + burnCycleLen) 
   {
-    g_CurBurnCycleStart = millis(); //
+    g_CurBurnCycleStart = millis(); //next burn cycle
     setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
+    g_BurnCyclesBelowMinTemp = g_TempCO <= g_CurrentConfig.TMinPomp ? g_BurnCyclesBelowMinTemp + 1 : 0;
   }
 }
 
@@ -527,9 +531,9 @@ bool isAlarm_feederOnFire() {
 bool isAlarm_NoHeating() {
   //only for automatic heating cycles P1 P2
   if (g_BurnState != STATE_P1 && g_BurnState != STATE_P2) return false;
-  unsigned long m = millis();
-  m = m - g_CurStateStart;
-  if (g_CurrentConfig.NoHeatAlarmTimeM > 0 && m > 60 * 1000L * g_CurrentConfig.NoHeatAlarmTimeM && curStateMaxTempCO - g_CurStateStartTempCO < 2.0) 
+  if (g_CurrentConfig.NoHeatAlarmCycles == 0) return false; // no detection
+  if (g_TempCO > g_CurrentConfig.TMinPomp) return false; //if above the min temp we dont detect 'fire extinct'
+  if (g_BurnCyclesBelowMinTemp > g_CurrentConfig.NoHeatAlarmCycles)
   {
     g_Alarm = "Wygaslo";
     return true;

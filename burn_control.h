@@ -60,7 +60,7 @@ typedef struct ControlConfiguration {
   uint8_t DallasAddress[8][8]; //dallas sensor addresses. if zero - sensor not present
   uint8_t DefaultBlowerCycle;
   uint8_t FeederTempLimit;
-  uint8_t NoHeatAlarmTimeM; //time needed to deterimine if we have the fire
+  uint8_t NoHeatAlarmCycles; //time needed to deterimine if we have the fire
   uint8_t EnableThermostat; //0 or 1
   uint8_t CooloffTimeM10; //minutes * 10
   uint16_t CooloffPauseM10; //minutes * 10
