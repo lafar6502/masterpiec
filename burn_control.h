@@ -67,7 +67,7 @@ typedef struct ControlConfiguration {
   uint16_t FuelGrH; //fuel grams per hour of feeder work. 10 kg=10000. 
   uint16_t FuelHeatValueMJ10; //fuel heat in MJ, * 10 (100 = 10MJ)
   uint8_t  CooloffMode; //0 - none
-  int8_t  FuelCorrection; //0 - none, fuel feed correction % x 20 (100 = + 20%, -100 = -20%)
+  int8_t  FuelCorrection; //0 - none, fuel feed correction %. value=20 => make feed time longer by 20%, value = -20 - make it shorter by 20%
   uint8_t CircCycleMin; //60, 30, 15, 10, 6
   uint8_t CircWorkTimeS; //circ pump working time per cycle, sec*10 (10 = 100 sec)
   uint8_t ReductionP2ExtraTime; //in %, how much % of the P2 cycle time to add for reduction (0 = just the P2 cycle, 10 = P2 cycle + 10%)
