@@ -600,6 +600,13 @@ bool cond_suddenHeatOffAndAboveHysteresis() {
   return false;
 }
 
+//we dont need heating and temperature is above the hysteresis low limit
+bool cond_noNeedToHeatAndAboveHysteresis() {
+  if (g_TempCO < g_TargetTemp - g_CurrentConfig.THistCO) return false;
+  if (g_needHeat == NEED_HEAT_NONE) return true;
+  return false;
+}
+
 bool cond_willFallBelowHysteresisSoon() {
   if (g_needHeat == NEED_HEAT_NONE) return false;
   if (g_dTl3 > -0.5) return false;
@@ -719,10 +726,11 @@ void onReductionCycleEnded(int trans) {
 const TBurnTransition  BURN_TRANSITIONS[]   = 
 {
 
-  {STATE_P0, STATE_P1, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v2
+  //{STATE_P0, STATE_P1, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v2  
+  {STATE_P0, STATE_P2, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v3: switch to P2 to quickly start burning, then reduce to P1 if no heat needed and temp above hysteresis
   {STATE_P0, STATE_P2, cond_B_belowHysteresisAndNeedHeat, NULL}, //this fires only if heat needed bc cond_C is earlier
   {STATE_P0, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
-  {STATE_P0, STATE_P2, cond_willFallBelowHysteresisSoon, NULL}, //temp is dropping fast
+  {STATE_P0, STATE_P2, cond_willFallBelowHysteresisSoon, NULL}, //temp is dropping fast, we need heat -> P2
   {STATE_P0, STATE_P1, cond_D_belowTargetTempAndNeedHeat, NULL},
   
   {STATE_P1, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction}, //E. P1 -> P0
@@ -740,8 +748,9 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   
   {STATE_P2, STATE_REDUCE2, cond_targetTempReached, onSwitchToReduction}, //10 P2 -> P1
   {STATE_P2, STATE_REDUCE2, cond_willReachTargetSoon, onSwitchToReduction}, //10 P2 -> P1
-  {STATE_P2, STATE_REDUCE2, cond_suddenHeatOffAndAboveHysteresis, onSwitchToReduction}, //10 P2 -> P1
-  
+  //{STATE_P2, STATE_REDUCE2, cond_suddenHeatOffAndAboveHysteresis, onSwitchToReduction}, //v2 10 P2 -> P1
+  {STATE_P2, STATE_REDUCE2,   cond_noNeedToHeatAndAboveHysteresis, onSwitchToReduction}, //v3 10 P2 -> P1
+
   
   
   {STATE_REDUCE2, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
