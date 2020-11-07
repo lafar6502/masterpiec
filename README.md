@@ -23,4 +23,11 @@ Sterownik używa tylko dwóch mocy podczas pracy, nie próbuje uzyskać innych m
 
 * Arduino Mega
 * Shield SD card
+* 8-kanałowy moduł przekaźników SSR z detekcją zera
+* wyświetlacz i2c, enkoder
+* moduł RTC
 
+## Funkcje poprawiające jakość pracy kotła
+- funkcja dopalania - przy zmniejszaniu mocy lub przechodzeniu w postój piec przeprowadza dodatkowy cykl dopalania nadmiaru opału, dzięki czemu zmniejsza się ilość wytwarzanej sadzy
+- rozpalanie zawsze na wysokiej mocy przy wznawianiu pracy po postoju, dzięki czemu temperatura żaru rośnie szybko i zmniejsza się dymienie
+- dobra współpraca z termostatem pokojowym, algorytm jest dostosowany do zewnętrznego sterowania i nie destabilizuje się przy niespodziewanych zmianach zapotrzebowania na ciepło
