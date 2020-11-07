@@ -5,7 +5,6 @@
 #include "burn_control.h"
 #include "piec_sensors.h"
 #include "boiler_control.h"
-#include "script.h"
 
 void updateDallasSensorAssignmentFromConfig();
 /**
@@ -42,9 +41,6 @@ void setup() {
   initializeBurningLoop();
 #ifdef MPIEC_ENABLE_WEBSERVER
   setupWebServer();
-#endif
-#ifdef MPIEC_ENABLE_SCRIPT
-  setupSerialShell();
 #endif
   changeUIState('0');
   delay(1000);
