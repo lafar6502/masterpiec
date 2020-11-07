@@ -12,6 +12,7 @@ Sterownik używa tylko dwóch mocy podczas pracy, nie próbuje uzyskać innych m
 ## Po co powstał masterpiec
 Żeby czysto i oszczędnie prowadzić proces spalania przy prostym i zrozumiałym algorytmie sterującym. Współczesne sterowniki 'PID' mają mniej lub bardziej skomplikowane algorytmy regulacji mocy, ale ich logika jest mało przejrzysta dla użytkownika a możliwości konfiguracji często mocno ograniczone. Prowadzi to w wielu sytuacjach do 'zgłupienia' sterownika i jego nieoptymalnego działania, zwłaszcza w przypadku instalacji nietypowych względem tego co zakłada producent.
 Masterpiec działa w oparciu o prosty ale skuteczny algorytm którego parametry są konfigurowalne, dzięki czemu powinno być jasne dla użytkownika jak osiągnąć pożądane zachowanie kotła poprzez regulację parametrów sterowania.
+Powodem dodatkowym był 'fun factor' przedsięwzięcia, czyli budowa sterownika od podstaw z możliwością samodzielnego zaprogramowania logiki według widzimisię autora. Udostępniam kod źródłowy dla wszystkich którzy są zainteresowani poznaniem zasady działania sterownika oraz samodzielną modyfikacją i rozbudową sterownika.  
 
 ## Funkcje sterownika
 * pompa CO
