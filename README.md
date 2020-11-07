@@ -9,6 +9,10 @@ Ustawienia dla mocy wysokiej i niskiej są konfigurowalne i powinny być dobrane
 
 Sterownik używa tylko dwóch mocy podczas pracy, nie próbuje uzyskać innych mocy pośrednich. Dzięki temu można wyregulować ustawienia spalania tak żeby było ono poprawne w obu trybach.
 
+## Po co powstał masterpiec
+Żeby czysto i oszczędnie prowadzić proces spalania przy prostym i zrozumiałym algorytmie sterującym. Współczesne sterowniki 'PID' mają mniej lub bardziej skomplikowane algorytmy regulacji mocy, ale ich logika jest mało przejrzysta dla użytkownika a możliwości konfiguracji często mocno ograniczone. Prowadzi to w wielu sytuacjach do 'zgłupienia' sterownika i jego nieoptymalnego działania, zwłaszcza w przypadku instalacji nietypowych względem tego co zakłada producent.
+Masterpiec działa w oparciu o prosty ale skuteczny algorytm którego parametry są konfigurowalne, dzięki czemu powinno być jasne dla użytkownika jak osiągnąć pożądane zachowanie kotła poprzez regulację parametrów sterowania.
+
 ## Funkcje sterownika
 * pompa CO
 * pompa CWU
@@ -31,4 +35,5 @@ Sterownik używa tylko dwóch mocy podczas pracy, nie próbuje uzyskać innych m
 - funkcja dopalania - przy zmniejszaniu mocy lub przechodzeniu w postój piec przeprowadza dodatkowy cykl dopalania nadmiaru opału, dzięki czemu zmniejsza się ilość wytwarzanej sadzy
 - rozpalanie zawsze na wysokiej mocy przy wznawianiu pracy po postoju, dzięki czemu temperatura żaru rośnie szybko i zmniejsza się dymienie
 - dobra współpraca z termostatem pokojowym, algorytm jest dostosowany do zewnętrznego sterowania i nie destabilizuje się przy niespodziewanych zmianach zapotrzebowania na ciepło
-- zabezpieczenie przed przekraczaniem temp zadanej (poprzez odpowiednio wczesniejsze zmniejszenie mocy)
+- zabezpieczenie przed przekraczaniem temp zadanej (poprzez zmniejszenie mocy z wyprzedzeniem)
+- cyrkulacja w trybie ciągłym lub załączanie cykliczne w celu ograniczenia strat ciepła
