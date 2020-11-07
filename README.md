@@ -24,13 +24,16 @@ Powodem dodatkowym był 'fun factor' przedsięwzięcia, czyli budowa sterownika 
 * obsługa zewnętrznego termostatu
 * tryb letni (tylko CWU)
 
-## Hardware
+## Hardware - kocioł
+Masterpiec działa z kotłami z podajnikiem ślimakowym (testowany z palnikiem SV200). Dmuchawa - dowolny typ, 230V. Pompy - dowolne, 230V, z tym że nie należy używać pomp tzw 'elektronicznych', które są przeznaczone do pracy ciągłej i źle znoszą wyłączanie i załączanie (potrafią też uszkodzić przekaźnik SSR).
 
+## komponenty sterownika
 * Arduino Mega
 * Shield SD card
 * 8-kanałowy moduł przekaźników SSR z detekcją zera
 * wyświetlacz i2c, enkoder
 * moduł RTC
+* czujniki temperatury (3 szt DS18B20 oraz 1 lub 2szt MAX6675)
 
 ## Funkcje poprawiające jakość pracy kotła
 - funkcja dopalania - przy zmniejszaniu mocy lub przechodzeniu w postój piec przeprowadza dodatkowy cykl dopalania nadmiaru opału, dzięki czemu zmniejsza się ilość wytwarzanej sadzy
@@ -38,3 +41,5 @@ Powodem dodatkowym był 'fun factor' przedsięwzięcia, czyli budowa sterownika 
 - dobra współpraca z termostatem pokojowym, algorytm jest dostosowany do zewnętrznego sterowania i nie destabilizuje się przy niespodziewanych zmianach zapotrzebowania na ciepło
 - zabezpieczenie przed przekraczaniem temp zadanej (poprzez zmniejszenie mocy z wyprzedzeniem)
 - cyrkulacja w trybie ciągłym lub załączanie cykliczne w celu ograniczenia strat ciepła
+
+
