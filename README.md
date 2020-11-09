@@ -39,6 +39,8 @@ Masterpiec działa z kotłami z podajnikiem ślimakowym (testowany z palnikiem S
 * moduł RTC
 * czujniki temperatury (3 szt DS18B20 oraz 1 lub 2szt MAX6675)
 
+Sterownik jest zbudowany z gotowych modułów, nie wymaga robienia własnych płytek drukowanych ani wykonywania skomplikowanych układów elektronicznych. Potrzebna jest podstawowa umiejętność używania lutownicy i innych narzędzi oraz zrozumienie zasad łączenia urządzeń elektrycznych.
+
 ## Funkcje poprawiające jakość pracy kotła
 - funkcja dopalania - przy zmniejszaniu mocy lub przechodzeniu w postój piec przeprowadza dodatkowy cykl dopalania nadmiaru opału, dzięki czemu zmniejsza się ilość wytwarzanej sadzy
 - rozpalanie zawsze na wysokiej mocy przy wznawianiu pracy po postoju, dzięki czemu temperatura żaru rośnie szybko i zmniejsza się dymienie
@@ -49,6 +51,7 @@ Masterpiec działa z kotłami z podajnikiem ślimakowym (testowany z palnikiem S
 ## Podziękowania, inspiracje
 
 Główną inspiracją dla masterpieca był Lucjan - czyli sterownik kotła w wersji DIY udostępniony przez UZI18 
+
 https://github.com/uzi18/sterownik
 
 To dzięki ekipie Lucjana zobaczyłem że budowa sterownika nie jest aż tak trudnym przedsięwzięciem. 
@@ -57,7 +60,7 @@ Masterpiec opiera się na tych samych komponentach hardware-owych co Lucjan, czy
 
 Konsekwencją powyższego jest to że masterpiec jest w dużym stopniu zgodny hardware-owo z Lucjanem i posiadając Lucjana można go przekonwertować na masterpiec/i w drugą stronę - choćby w celu porównania funkcji i wybrania lepiej sprawdzającego się rozwiązania. Nie ma 100% zgodności, ale różnice są niewielkie i dotyczą innych numerów pinów GPIO - być może zostanie to poprawione w przyszłości. 
 
-Najważniejszą różnicą jest to że Masterpiec udostępnia kod źródłowy i umożliwia samodzielną modyfikację. Masterpiec jest też prostszy, realizuje mniej funkcji i nie oferuje wielu różnych wariantów hardware-u. 
+Najważniejszą różnicą jest to że Masterpiec udostępnia kod źródłowy i umożliwia samodzielną modyfikację. Masterpiec jest też prostszy, realizuje mniej funkcji i nie oferuje wielu różnych wariantów hardware-u. Zdecydowanie zachęcam tutaj do wypróbowania zarówno Masterpieca jak i Lucjana i dziękuję ekipie Lucjana za pracę włożoną w ten ciekawy projekt.
 
 
 
