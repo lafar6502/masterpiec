@@ -46,4 +46,21 @@ Masterpiec działa z kotłami z podajnikiem ślimakowym (testowany z palnikiem S
 - zabezpieczenie przed przekraczaniem temp zadanej (poprzez zmniejszenie mocy z wyprzedzeniem)
 - cyrkulacja w trybie ciągłym lub załączanie cykliczne w celu ograniczenia strat ciepła
 
+## Podziękowania, inspiracje
+
+Główną inspiracją dla masterpieca był Lucjan - czyli sterownik kotła w wersji DIY udostępniony przez UZI18 
+https://github.com/uzi18/sterownik
+
+To dzięki ekipie Lucjana zobaczyłem że budowa sterownika nie jest aż tak trudnym przedsięwzięciem. 
+Masterpiec zaczął się jako próba zbudowania Lucjana. Próba zakończona powodzeniem, jednak okazało się że Lucjan nie do końca realizuje zadania które chciałem żeby realizował. Z uwagi na to że Lucjan nie udostępnia kodu źródłowego i nie umożliwia samodzielnej modyfikacji logiki sterownika postanowiłem stworzyć alternatywne oprogramowanie od zera.
+Masterpiec opiera się na tych samych komponentach hardware-owych co Lucjan, czyli Arduino Mega, popularnych czujnikach temperatury oraz dostępnych na rynku modułach wykonawczych. Dzięki pracy ekipy Lucjana nie musiałem tych komponentów dobierać samodzielnie, co prawdopodobnie nie udało by się nigdy. 
+
+Konsekwencją powyższego jest to że masterpiec jest w dużym stopniu zgodny hardware-owo z Lucjanem i posiadając Lucjana można go przekonwertować na masterpiec/i w drugą stronę - choćby w celu porównania funkcji i wybrania lepiej sprawdzającego się rozwiązania. Nie ma 100% zgodności, ale różnice są niewielkie i dotyczą innych numerów pinów GPIO - być może zostanie to poprawione w przyszłości. 
+
+Najważniejszą różnicą jest to że Masterpiec udostępnia kod źródłowy i umożliwia samodzielną modyfikację. Masterpiec jest też prostszy, realizuje mniej funkcji i nie oferuje wielu różnych wariantów hardware-u. 
+
+
+
+
+
 
