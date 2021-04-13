@@ -33,17 +33,19 @@ Nie zaznaczam też VCC - wszystkie moduły zasilanie 5V wspólne
 
 Zestawienie Modułów
 
-
-1) Moduł Przekaźnika 8x SSR Triaki Detekcja 0 ARDUINO - z firmy Fast Electronic (dostępne z Allegro)
-wybrać z optotriakiem MOC3021 choć druga wersja MOC3041 też powinna działać
-2) 1x Moduł RTC
-3) 1x Wyświetlacz LCD 2x16
-4) 1x Enkoder
-5) 4x DALLAS DS1820B (temp CO, temp CWU, temp. powrotu, temp podajnika). Wybrać wersje z odpowiednią długością kabla, zwłaszcza do CWU
-6) 1x MAX 6675 z termoparą do 400 stopni
-7) zasilacz 9V dla Arduino 
-8) 5x Gniazdo AC komputerowe sieciowe 3pin do obudowy (3 pompy, podajnik, dmuchawa)
-9) Arduino 2560 mega
+| Moduł | Liczba szt | Informacje |
+| --- | --- | --- |
+| Arduino 2560 Mega | 1 | klon zupełnie wystarcza |
+| Ethernet shield W5100 | 1 | Aktualnie nie używamy ethernetu, wyłącznie karty SD. Ale warto mieć możliwość podłączenia sieci |
+| Moduł Przekaźnika 8x SSR Triaki Detekcja 0 ARDUINO | 1 | z firmy Fast Electronic (dostępne z Allegro) wybrać z optotriakiem MOC3021 choć druga wersja MOC3041 też powinna działać |
+| Zegar RTC DS1307 | 1 | |
+| Wyświetlacz LCD 2x16 | 1 | |
+| Enkoder | 1 | Dowolny z przyciskiem |
+| Czujnik temperatury DS18B20 | 4 | czujniki z kablem, wybrać kable odpowiedniej długości (temp CO, temp CWU, temp. powrotu, temp podajnika) |
+| MAX 6675 | 1 | moduł termopary z termoparą 400st |
+| Zasilacz 9V | 1 | zasilacz dla arduino (od 7.5 do 10V, 10-20W) |
+| Gniazdo AC komputerowe 3pin | 5 | zasilanie pomp, podajnika, dmuchawy |
+| Zabezpieczenie STB | 1 | Wyłącznik bimetaliczny NC 90 stopni C |
 
 
 
