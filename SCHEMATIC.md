@@ -65,9 +65,9 @@ Dodatkowo z wejścia 230V zasilany jest też zasilacz 9V dla Arduino. Tylko w w/
 Wygodnie jest użyć komputerowego wejścia zasilania z wyłącznikiem i bezpiecznikiem.
 
 
-#Uruchamianie sterownika
+## Uruchamianie sterownika
 
-Zalecam podejście krok po kroku
+Zalecam podejście krok po kroku:
 
 1. Zasilanie Arduino 9v oraz połączenie USB z laptopem. Kompilujemy i wgrywamy masterpiec do Arduino
 2. Podłączenie wyświetlacza, RTC oraz enkodera. Po uruchomieniu Masterpiec powinien wyświetlać cokolwiek na ekranie, enkoder powinien pozwalać poruszać się po menu.
