@@ -18,7 +18,7 @@ Pozostałe komponenty wymagające zasilania VCC +5V zasilamy z pinu +5V Arduino.
 | A13 | Dmuchawa |
 | A14 | POMPA CO 2 |
 | A15 | POMPA CWU | 
-|  |  |
+|  | *Termostat* |
 | 47 | Termostat we |
 | 26 | Termostat alternatywne wejscie (NC) |
 |  | *Termopara/czujnik spalin* |
