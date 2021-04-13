@@ -77,6 +77,6 @@ Zalecam podejście krok po kroku:
 5. Podłączenie modułu wykonawczego SSR. Detekcja zera jest istotna, bez niej nie będzie działać sterowanie urządzeniami - czyli moduł należy podłączyć do napięcia sieciowego 230V. Można testować bez zasilanych urządzeń, są diody wskazujące stan. 
 6. Podłączenie termopary, upewnienie się że mamy odczyt temp spalin.
 7. Po upewnieniu się że wszystkie komponenty działają możemy podłączyć sterownik do pieca.
-8. Zabezpieczenie STB - wyłącznik montujemy na wyjściu gorącej wody z kotła, połączone szeregowo z zasilaniem dmuchawy.
+8. Zabezpieczenie STB - wyłącznik montujemy na wyjściu gorącej wody z kotła, połączone szeregowo z zasilaniem dmuchawy (uwaga 230v)
 
 
