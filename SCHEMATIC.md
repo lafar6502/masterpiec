@@ -5,7 +5,7 @@
 
 2) VCC - zasilanie Arduino oraz komponentów +5V. 
 Arduino zasilamy poprzez wejście zasilania, albo podłączając zasilacz 9V do pinu VIN.
-Pozostałe komponenty wymagające zasilania VCC +5V zasilamy z pinu +5V Arduino.
+Pozostałe komponenty wymagające zasilania VCC +5V zasilamy z pinu +5V Arduino. Arduino odpowiada za dostarczenie napięcia +5V.
 
 
 | Pin Arduino | Drugi koniec |
@@ -32,8 +32,8 @@ Pozostałe komponenty wymagające zasilania VCC +5V zasilamy z pinu +5V Arduino.
 | 18 | PIN B |
 | 34 | Przycisk |
 |  | *Wyswietlacz I2C oraz moduł RTC*|
-| SDA | SDA |
-| SCL | SCL |
+| 20 SDA | SDA |
+| 21 SCL | SCL |
 
 ## Podłączenie czujników DS18B20
 Łączymy je równolegle. Złącze DATA - na pin 22 Arduino.
