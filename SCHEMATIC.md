@@ -10,7 +10,7 @@ Pozostałe komponenty wymagające zasilania VCC +5V zasilamy z pinu +5V Arduino.
 
 | Pin Arduino | Drugi koniec |
 | --- | --- |
-|  | Moduł wykonawczy SSR |
+|  | *Moduł wykonawczy SSR* |
 | 2 | DET - detekcja 0 |
 | A9 | Pompa CO |
 | A10 | Podajnik |
@@ -21,17 +21,17 @@ Pozostałe komponenty wymagające zasilania VCC +5V zasilamy z pinu +5V Arduino.
 |  |  |
 | 47 | Termostat we |
 | 26 | Termostat alternatywne wejscie (NC) |
-|  | Termopara/czujnik spalin |
+|  | *Termopara/czujnik spalin* |
 | 39 | MAX 6675 SCK |
 | 40 | MAX 6675 SO |
 | 41 | MAX 6675 CS |
-|  | czujniki DALLAS |
+|  | *czujniki DALLAS* |
 | 22 | DATA |
-|  | Enkoder |
+|  | *Enkoder* |
 | 15 | PIN A |
 | 18 | PIN B |
 | 34 | Przycisk |
-|  | Wyswietlacz I2C oraz moduł RTC|
+|  | *Wyswietlacz I2C oraz moduł RTC*|
 | SDA | SDA |
 | SCL | SCL |
 
