@@ -39,7 +39,7 @@ Zestawienie Modułów
 | Ethernet shield W5100 | 1 | Aktualnie nie używamy ethernetu, wyłącznie karty SD. Ale warto mieć możliwość podłączenia sieci |
 | Moduł Przekaźnika 8x SSR Triaki Detekcja 0 ARDUINO | 1 | z firmy Fast Electronic (dostępne z Allegro) wybrać z optotriakiem MOC3021 choć druga wersja MOC3041 też powinna działać |
 | Zegar RTC DS1307 | 1 | |
-| Wyświetlacz LCD 2x16 | 1 | |
+| Wyświetlacz LCD 2x16 I2C | 1 | |
 | Enkoder | 1 | Dowolny z przyciskiem |
 | Czujnik temperatury DS18B20 | 4 | czujniki z kablem, wybrać kable odpowiedniej długości (temp CO, temp CWU, temp. powrotu, temp podajnika) |
 | MAX 6675 | 1 | moduł termopary z termoparą 400st |
