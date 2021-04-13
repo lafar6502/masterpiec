@@ -36,7 +36,11 @@ Pozostałe komponenty wymagające zasilania VCC +5V zasilamy z pinu +5V Arduino.
 | SCL | SCL |
 
 ## Podłączenie czujników DS18B20
+Łączymy je równolegle. Złącze DATA - na pin 22 Arduino.
+Dodatkowo VCC i GND. Między VCC a Data należy dać rezystor 3.3K
 
+## Podłączenie termopary MAX 6675
+(uwaga na masę)
 
 ## Zestawienie Modułów
 
