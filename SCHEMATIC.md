@@ -64,13 +64,14 @@ Połączenia 230V obejmują sterowanie zasilaniem pomp, podajnika, dmuchawy popr
 Dodatkowo z wejścia 230V zasilany jest też zasilacz 9V dla Arduino. Tylko w w/w elementach występuje napięcie 230V, dobrze jest sekcję 230V oddzielić od pozostałej części sterownika która działa na niskim napięciu. Zapewnić odpowiednią izolację połąćzeń 230V, taśma PCV potrafi się odklejać przy pracy w wyższej temperaturze.
 Wygodnie jest użyć komputerowego wejścia zasilania z wyłącznikiem i bezpiecznikiem.
 
+Uwaga: nie precyzuję tu które kanały modułu wykonawczego mają być przypisane do poszczególnych urządzeń - pomp, podajnika, dmuchawy. Jest to dowolne, ale należy pamiętać o połączeniu wybranych kanałów z odpowienim pinem arduino wg rozpiski wyżej.
 
 ## Uruchamianie sterownika
 
 Zalecam podejście krok po kroku:
 
 1. Zasilanie Arduino 9v oraz połączenie USB z laptopem. Kompilujemy i wgrywamy masterpiec do Arduino
-2. Podłączenie wyświetlacza, RTC oraz enkodera. Po uruchomieniu Masterpiec powinien wyświetlać cokolwiek na ekranie, enkoder powinien pozwalać poruszać się po menu.
+2. Podłączenie wyświetlacza, RTC oraz enkodera. Po uruchomieniu Masterpiec powinien wyświetlać cokolwiek na ekranie, enkoder powinien pozwalać poruszać się po menu. Prawdopodobnie na początku będzie alarm o braku czujnika temperatury.
 3. Komunikaty diagnostyczne są wypisywane na port szeregowy
 4. Podłączenie czujników Dallas. Po podłączeniu konieczne jest wejście w menu zaawansowane i przypisanie ról poszczególnym czujnikom (identyfikacja który jest CO, CWU itd). Upewnić się że mamy odczyt temperatury.
 5. Podłączenie modułu wykonawczego SSR. Detekcja zera jest istotna, bez niej nie będzie działać sterowanie urządzeniami - czyli moduł należy podłączyć do napięcia sieciowego 230V. Można testować bez zasilanych urządzeń, są diody wskazujące stan. 
