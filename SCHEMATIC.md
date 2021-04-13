@@ -65,3 +65,17 @@ Dodatkowo z wejścia 230V zasilany jest też zasilacz 9V dla Arduino. Tylko w w/
 Wygodnie jest użyć komputerowego wejścia zasilania z wyłącznikiem i bezpiecznikiem.
 
 
+#Uruchamianie sterownika
+
+Zalecam podejście krok po kroku
+
+1. Zasilanie Arduino 9v oraz połączenie USB z laptopem. Kompilujemy i wgrywamy masterpiec do Arduino
+2. Podłączenie wyświetlacza, RTC oraz enkodera. Po uruchomieniu Masterpiec powinien wyświetlać cokolwiek na ekranie, enkoder powinien pozwalać poruszać się po menu.
+3. Komunikaty diagnostyczne są wypisywane na port szeregowy
+4. Podłączenie czujników Dallas. Po podłączeniu konieczne jest wejście w menu zaawansowane i przypisanie ról poszczególnym czujnikom (identyfikacja który jest CO, CWU itd). Upewnić się że mamy odczyt temperatury.
+5. Podłączenie modułu wykonawczego SSR. Detekcja zera jest istotna, bez niej nie będzie działać sterowanie urządzeniami - czyli moduł należy podłączyć do napięcia sieciowego 230V. Można testować bez zasilanych urządzeń, są diody wskazujące stan. 
+6. Podłączenie termopary, upewnienie się że mamy odczyt temp spalin.
+7. Po upewnieniu się że wszystkie komponenty działają możemy podłączyć sterownik do pieca.
+8. Zabezpieczenie STB - wyłącznik montujemy na wyjściu gorącej wody z kotła, połączone szeregowo z zasilaniem dmuchawy.
+
+
