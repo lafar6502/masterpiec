@@ -41,6 +41,9 @@ Masterpiec działa z kotłami z podajnikiem ślimakowym (testowany z palnikiem S
 
 Sterownik jest zbudowany z gotowych modułów, nie wymaga robienia własnych płytek drukowanych ani wykonywania skomplikowanych układów elektronicznych. Potrzebna jest podstawowa umiejętność używania lutownicy i innych narzędzi oraz zrozumienie zasad łączenia urządzeń elektrycznych.
 
+[Schemat połączeń komponentów](SCHEMATIC.md)
+
+
 ## Funkcje poprawiające jakość pracy kotła
 - funkcja dopalania - przy zmniejszaniu mocy lub przechodzeniu w postój piec przeprowadza dodatkowy cykl dopalania nadmiaru opału, dzięki czemu zmniejsza się ilość wytwarzanej sadzy
 - rozpalanie zawsze na wysokiej mocy przy wznawianiu pracy po postoju, dzięki czemu temperatura żaru rośnie szybko i zmniejsza się dymienie
