@@ -1,5 +1,5 @@
 
-## Zestawienie połąćzeń GPIO Arduino z pozostałymi modułami.
+## Zestawienie połączeń GPIO Arduino z pozostałymi modułami.
 
 1) Nie wymieniamy tu pinów GND - wszystkie elementy mają wspólne GND.
 
