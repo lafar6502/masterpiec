@@ -59,7 +59,7 @@ Czasami konieczne jest dodatkowe połączenie '-' termopary z gnd - gdy brak odc
 | Enkoder | 1 | Dowolny z przyciskiem |
 | Czujnik temperatury DS18B20 | 4 | czujniki z kablem, wybrać kable odpowiedniej długości (temp CO, temp CWU, temp. powrotu, temp podajnika) |
 | MAX 6675 | 1 | moduł termopary z termoparą 400st, ale może też być 600 lub 800 stopni |
-| Zasilacz 9V | 1 | zasilacz dla arduino (od 7.5 do 10V, 10-20W powinno wystarczyć) |
+| Zasilacz 9V | 1 | zasilacz dla arduino (od 7.5 do 10V, 10W powinno wystarczyć) |
 | Gniazdo AC komputerowe 3pin | 5 | zasilanie pomp, podajnika, dmuchawy |
 | Zabezpieczenie STB | 1 | Wyłącznik bimetaliczny NC 90 stopni C |
 
