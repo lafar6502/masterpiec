@@ -7,6 +7,7 @@
 Arduino zasilamy poprzez wejście zasilania, albo podłączając zasilacz 9V do pinu VIN.
 Pozostałe komponenty wymagające zasilania VCC +5V zasilamy z pinu +5V Arduino. Arduino odpowiada za dostarczenie napięcia +5V.
 
+3) Część sterującą można połączyć bez lutowania (kabelki połączeniowe i złącza pin), ale jeśli sterownik ma działać niezawodnie przez długi czas to połączenia lutowane są lepsze.
 
 | Pin Arduino | Drugi koniec |
 | --- | --- |
@@ -34,6 +35,10 @@ Pozostałe komponenty wymagające zasilania VCC +5V zasilamy z pinu +5V Arduino.
 |  | *Wyswietlacz I2C oraz moduł RTC*|
 | 20 SDA | SDA |
 | 21 SCL | SCL |
+
+## Podłączenie wyświetlacza i RTC
+Oba moduły komunikują się przez I2C i korzystają z tych samych pinów. Moduł RTC jest 'przelotowy' czyli można wyświetlacz podłączyć do niego.
+
 
 ## Podłączenie czujników DS18B20
 Łączymy je równolegle. Złącze DATA - na pin 22 Arduino.
