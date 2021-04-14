@@ -25,7 +25,7 @@ Pozostałe komponenty wymagające zasilania VCC +5V zasilamy z pinu +5V Arduino.
 | 39 | MAX 6675 SCK |
 | 40 | MAX 6675 SO |
 | 41 | MAX 6675 CS |
-|  | *czujniki DALLAS* |
+|  | *czujniki DALLAS DS18B20* |
 | 22 | DATA |
 |  | *Enkoder* |
 | 15 | PIN A |
