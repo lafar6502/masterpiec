@@ -66,7 +66,7 @@ Czasami konieczne jest dodatkowe połączenie '-' termopary z gnd - gdy brak odc
 ## Połączenia 230V oraz zasilanie
 
 Połączenia 230V obejmują sterowanie zasilaniem pomp, podajnika, dmuchawy poprzez wyjścia modułu wykonawczego SSR.
-Dodatkowo z wejścia 230V zasilany jest też zasilacz 9V dla Arduino. Tylko w w/w elementach występuje napięcie 230V, dobrze jest sekcję 230V oddzielić od pozostałej części sterownika która działa na niskim napięciu. Zapewnić odpowiednią izolację połąćzeń 230V, taśma PCV potrafi się odklejać przy pracy w wyższej temperaturze.
+Dodatkowo z wejścia 230V zasilany jest też zasilacz 9V dla Arduino. Tylko w w/w elementach występuje napięcie 230V, dobrze jest sekcję 230V oddzielić od pozostałej części sterownika która działa na niskim napięciu. Zapewnić odpowiednią izolację połąćzeń 230V, taśma PCV potrafi się odklejać przy pracy w wyższej temperaturze - nie polecam.
 Wygodnie jest użyć komputerowego wejścia zasilania z wyłącznikiem i bezpiecznikiem.
 
 Uwaga: nie precyzuję tu które kanały modułu wykonawczego mają być przypisane do poszczególnych urządzeń - pomp, podajnika, dmuchawy. Jest to dowolne, ale należy pamiętać o połączeniu wybranych kanałów z odpowienim pinem arduino wg rozpiski wyżej.
