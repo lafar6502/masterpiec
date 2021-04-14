@@ -40,7 +40,7 @@ Pozostałe komponenty wymagające zasilania VCC +5V zasilamy z pinu +5V Arduino.
 Dodatkowo VCC i GND. Między VCC a Data należy dać rezystor 3.3K
 
 ## Podłączenie termopary MAX 6675
-(uwaga na masę)
+Czasami konieczne jest dodatkowe połączenie '-' termopary z gnd - gdy brak odczytu lub dostajemy jakieś bezsensowne odczyty.
 
 ## Zestawienie Modułów
 
@@ -53,8 +53,8 @@ Dodatkowo VCC i GND. Między VCC a Data należy dać rezystor 3.3K
 | Wyświetlacz LCD 2x16 I2C | 1 | komplet z konwerterem i2c |
 | Enkoder | 1 | Dowolny z przyciskiem |
 | Czujnik temperatury DS18B20 | 4 | czujniki z kablem, wybrać kable odpowiedniej długości (temp CO, temp CWU, temp. powrotu, temp podajnika) |
-| MAX 6675 | 1 | moduł termopary z termoparą 400st |
-| Zasilacz 9V | 1 | zasilacz dla arduino (od 7.5 do 10V, 10-20W) |
+| MAX 6675 | 1 | moduł termopary z termoparą 400st, ale może też być 600 lub 800 stopni |
+| Zasilacz 9V | 1 | zasilacz dla arduino (od 7.5 do 10V, 10-20W powinno wystarczyć) |
 | Gniazdo AC komputerowe 3pin | 5 | zasilanie pomp, podajnika, dmuchawy |
 | Zabezpieczenie STB | 1 | Wyłącznik bimetaliczny NC 90 stopni C |
 
@@ -70,13 +70,13 @@ Uwaga: nie precyzuję tu które kanały modułu wykonawczego mają być przypisa
 
 Zalecam podejście krok po kroku:
 
-1. Zasilanie Arduino 9v oraz połączenie USB z laptopem. Kompilujemy i wgrywamy masterpiec do Arduino
+1. Zasilanie Arduino 9v oraz połączenie USB z laptopem. Kompilujemy i wgrywamy masterpiec do Arduino. Program powinien wystartować (na porcie szeregowym będą komunikaty)
 2. Podłączenie wyświetlacza, RTC oraz enkodera. Po uruchomieniu Masterpiec powinien wyświetlać cokolwiek na ekranie, enkoder powinien pozwalać poruszać się po menu. Prawdopodobnie na początku będzie alarm o braku czujnika temperatury.
 3. Komunikaty diagnostyczne są wypisywane na port szeregowy
 4. Podłączenie czujników Dallas. Po podłączeniu konieczne jest wejście w menu zaawansowane i przypisanie ról poszczególnym czujnikom (identyfikacja który jest CO, CWU itd). Upewnić się że mamy odczyt temperatury. Robimy to raz bo później ustawienia są pamiętane w EEPROM.
-5. Podłączenie modułu wykonawczego SSR. Detekcja zera jest istotna, bez niej nie będzie działać sterowanie urządzeniami - czyli moduł należy podłączyć do napięcia sieciowego 230V. Można testować bez zasilanych urządzeń, są diody wskazujące stan. 
+5. Podłączenie modułu wykonawczego SSR. Detekcja zera jest istotna, bez niej nie będzie działać sterowanie dmuchawą - czyli moduł należy podłączyć do napięcia sieciowego 230V. Można testować bez podłączania zasilanych urządzeń, są diody wskazujące stan poszczególnych wyjść.
 6. Podłączenie termopary, upewnienie się że mamy odczyt temp spalin.
 7. Po upewnieniu się że wszystkie komponenty działają możemy podłączyć sterownik do pieca.
-8. Zabezpieczenie STB - wyłącznik montujemy na wyjściu gorącej wody z kotła, połączone szeregowo z zasilaniem dmuchawy (uwaga 230v)
+8. Zabezpieczenie STB - wyłącznik montujemy na wyjściu gorącej wody z kotła, połączone w szereg w obwodzie zasilania dmuchawy (uwaga 230v)
 
 
