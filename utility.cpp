@@ -8,7 +8,6 @@
 #include <MD_DS1307.h>
 #include "ui_handler.h"
 #include <SPI.h>
-#include "RF24.h"
 #ifdef ENABLE_SD
 #include <SD.h>
 #endif
@@ -412,15 +411,4 @@ void dumpVariablesToSerial() {
     Serial.print('=');
     Serial.println(buf);
   }
-}
-
-
-/* Hardware configuration: Set up nRF24L01 radio on SPI bus plus pins 7 & 8 */
-RF24 _radio(HW_RADIO_PIN1,HW_RADIO_PIN2);
-
-void radioLoggingTask() {
-  static unsigned long _lastRun = 0;
-  unsigned long t = millis();
-  if (t - _lastRun < 60000L) return;
-  
 }

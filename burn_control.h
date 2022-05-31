@@ -10,9 +10,11 @@ typedef uint8_t TSTATE;
 #define STATE_ALARM 4 // alarm - cos się stało, piec zatrzymany albo włączone zabezpieczenie
 #define STATE_REDUCE1 5 //tryb przejścia na niższy stan P2 => P1 => P0. zadaniem tego trybu jest dopalenie pozostałego węgla. W tym celu musimy wiedzieć z jakiego stanu wyszlismy do reduce
 #define STATE_REDUCE2 6 //tryb przejścia na niższy stan P1 => P0 
+#define STATE_FIRESTART 7 //rozpalanie
 #define STATE_UNDEFINED 255
 
 #define MAX_POWER_STATES 3 //max liczba konfiguracji dla mocy. 1 - tylko podtrzymanie, 2 - podtrzymanie i praca, 3 - podtrzymanie i 2 moce pracy
+#define MAX_PROFILES 2
 
 typedef uint8_t CWSTATE;
 
@@ -39,6 +41,12 @@ typedef struct BurnParams {
     uint8_t BlowerCycle; //cykl dmuchawy dla zasilania grupowego. 0 gdy fazowe.
 } TBurnParams;
 
+typedef struct ControlConfigProfile {
+	uint8_t P0BlowerTime; //czas pracy dmuchawy w podtrzymaniu
+	uint8_t P0FuelFreq; //podawanie wegla co x cykli przedmuchu 
+	uint16_t FuelHeatValueMJ10; //fuel heat in MJ, * 10 (100 = 10MJ)
+	TBurnParams BurnConfigs[MAX_POWER_STATES];
+} TControlConfigProfile;
 
 //zestaw ustawień pieca (aktualna konfiguracja). Nie zawiera bieżących wartości.
 typedef struct ControlConfiguration {
@@ -72,6 +80,10 @@ typedef struct ControlConfiguration {
   uint8_t CircWorkTimeS; //circ pump working time per cycle, sec*10 (10 = 100 sec)
   uint8_t ReductionP2ExtraTime; //in %, how much % of the P2 cycle time to add for reduction (0 = just the P2 cycle, 10 = P2 cycle + 10%)
   uint8_t BlowerMax; //Blower max value that will be our 100
+  uint8_t SelectedProfile;
+
+  TControlConfigProfile BurnProfiles[MAX_PROFILES];
+
   uint8_t _future[9];
 } TControlConfiguration;
 

@@ -40,7 +40,7 @@ unsigned long g_P0Time = 0;
 TReading lastCOTemperatures[11];
 TIntReading lastBurnStates[11];
 CircularBuffer<TReading> g_lastCOReads(lastCOTemperatures, sizeof(lastCOTemperatures)/sizeof(TReading));
-CircularBuffer<TIntReading> g_lastBurnStates(lastBurnStates, sizeof(lastBurnStates)/sizeof(TIntReading));
+CircularBuffer<TIntReading> g_lastBurnTransitions(lastBurnStates, sizeof(lastBurnStates)/sizeof(TIntReading));
 
 //czas wejscia w bieżący stan, ms
 unsigned long g_CurStateStart = 0;
@@ -172,7 +172,7 @@ void burningProc()
         else if (g_BurnState == STATE_P0) 
           g_P0Time += (t - g_CurStateStart);
           
-        g_lastBurnStates.Enqueue({t - g_CurStateStart, g_BurnState});
+        g_lastBurnTransitions.Enqueue({t - g_CurStateStart, i});
         Serial.print(F("BS: trans "));
         Serial.print(i);
         if (g_BurnState == STATE_P1) {
@@ -243,7 +243,7 @@ void forceState(TSTATE st) {
   else if (g_BurnState == STATE_P0) 
     g_P0Time += (t - g_CurStateStart);
     
-  g_lastBurnStates.Enqueue({t - g_CurStateStart, g_BurnState});
+  g_lastBurnTransitions.Enqueue({t - g_CurStateStart, -g_BurnState});
   TSTATE old = g_BurnState;
   g_BurnState = st;
   g_CurStateStart = t;

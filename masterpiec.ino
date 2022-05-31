@@ -125,6 +125,29 @@ void periodicDumpControlState() {
     Serial.print(g_dTl3);
     Serial.print(F(", lastT:"));
     Serial.print(g_lastCOReads.IsEmpty() ? 0.0 : g_lastCOReads.GetLast()->Val);
+	Serial.println();
+	for (int i=0; i<g_lastBurnTransitions.GetCount(); i++) 
+	{
+		const TIntReading* v = g_lastBurnTransitions.GetAt(-i);
+		if (v == NULL) break;	
+		if (v->Val < 0) {
+			Serial.print(BURN_STATES[-v->Val].Code);
+			Serial.print(F("["));
+			Serial.print(v->Ms);
+			Serial.print(F("]"));
+		}
+		else 
+		{
+			
+			Serial.print(BURN_STATES[BURN_TRANSITIONS[v->Val].To].Code);
+			Serial.print(F("<=["));
+			Serial.print(v->Val);
+			Serial.print(F(","));
+			Serial.print(v->Ms);
+			Serial.print(F("]="));
+			if (i == g_lastBurnTransitions.GetCount() - 1) Serial.print(BURN_STATES[BURN_TRANSITIONS[v->Val].From].Code);
+		}
+	}
     Serial.println();
   }
 }

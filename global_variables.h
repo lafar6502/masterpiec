@@ -28,7 +28,7 @@ typedef struct {
 
 extern TDailyLogEntry g_DailyLogEntries[];
 extern CircularBuffer<TReading> g_lastCOReads;
-extern CircularBuffer<TIntReading> g_lastBurnStates;
+extern CircularBuffer<TIntReading> g_lastBurnTransitions;
 
 void loggingInit();
 void clearDailyLogs();
