@@ -327,6 +327,17 @@ void workStateBurnLoop() {
 
 unsigned long _reductionStateEndMs = 0; //inside reduction state - this is the calculated end time. Outside (before reduction) - we put remaining P1 or P2 time there before going to reduction.
 
+void firestartStateInit(TSTATE prev) {
+	assert(g_BurnState == STATE_FIRESTART);
+	g_CurStateStart = millis();
+	g_initialNeedHeat = g_needHeat;
+	g_CurBurnCycleStart = g_CurStateStart;  
+}
+
+void firestartStateLoop() {
+	
+}
+
 void reductionStateInit(TSTATE prev) {
   assert(g_BurnState == STATE_REDUCE1 || g_BurnState == STATE_REDUCE2);
   assert(prev == STATE_P1 || prev == STATE_P2);
@@ -766,7 +777,8 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_REDUCE1, STATE_ALARM, isAlarm_Any, NULL},
   {STATE_REDUCE2, STATE_ALARM, isAlarm_Any, NULL},
   {STATE_STOP, STATE_ALARM, NULL, NULL},
-  
+  {STATE_FIRESTART, STATE_ALARM, NULL, NULL},
+  {STATE_FIRESTART, STATE_P2, NULL, NULL}, 
   {STATE_UNDEFINED, STATE_UNDEFINED, NULL, NULL} //sentinel
 };
 
@@ -780,6 +792,7 @@ const TBurnStateConfig BURN_STATES[]  = {
   {STATE_ALARM, 'A', alarmStateInitialize, alertStateLoop},
   {STATE_REDUCE1, 'R', reductionStateInit, reductionStateLoop},
   {STATE_REDUCE2, 'r', reductionStateInit, reductionStateLoop},
+  {STATE_FIRESTART, 'B', firestartStateInit, firestartStateLoop},
 };
 
 const uint8_t N_BURN_TRANSITIONS = sizeof(BURN_TRANSITIONS) / sizeof(TBurnTransition);

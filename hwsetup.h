@@ -41,7 +41,7 @@
 #define HW_BLOWER_CTRL_PIN A13      //portk 5
 #define HW_PUMP_CO2_CTRL_PIN  A14   //portk 6
 #define HW_PUMP_CWU1_CTRL_PIN  A15  //portk 7
-
+#define HW_HEATER_CTRL_PIN  A12     //portk 4
 //#define MASK_PUMP_CIRC  0b00000001
 #define MASK_PUMP_CO1   0b00000010
 #define MASK_FEEDER     0b00000100

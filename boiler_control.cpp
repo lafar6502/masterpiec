@@ -113,6 +113,13 @@ bool isFeederOn() {
 }
 
 
+bool isHeaterOn() {
+  return digitalReadFast(HW_HEATER_CTRL_PIN) != LOW;
+}
+void setHeater(bool b) {
+  digitalWriteFast(HW_HEATER_CTRL_PIN, b ? HIGH : LOW);
+}
+
 
 void triacOn() {
   digitalWriteFast(HW_BLOWER_CTRL_PIN, HIGH);
@@ -204,12 +211,14 @@ void initializeBlowerControl() {
   pinModeFast(HW_PUMP_CO2_CTRL_PIN, OUTPUT);
   pinModeFast(HW_PUMP_CIRC_CTRL_PIN, OUTPUT);
   pinModeFast(HW_FEEDER_CTRL_PIN, OUTPUT);
+  pinModeFast(HW_HEATER_CTRL_PIN, OUTPUT);
   
   digitalWriteFast(HW_PUMP_CO1_CTRL_PIN, LOW);
   digitalWriteFast(HW_PUMP_CWU1_CTRL_PIN, LOW);
   digitalWriteFast(HW_PUMP_CO2_CTRL_PIN, LOW);
   digitalWriteFast(HW_PUMP_CIRC_CTRL_PIN, LOW);
   digitalWriteFast(HW_FEEDER_CTRL_PIN, LOW);
+  digitalWriteFast(HW_HEATER_CTRL_PIN, LOW);
   if (HW_THERMOSTAT_PIN != 0) 
   {
     pinModeFast(HW_THERMOSTAT_PIN, INPUT_PULLUP);  
