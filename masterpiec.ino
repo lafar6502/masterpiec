@@ -39,9 +39,7 @@ void setup() {
   Serial.println("inited the hardware");
   updateDallasSensorAssignmentFromConfig();
   initializeBurningLoop();
-#ifdef MPIEC_ENABLE_WEBSERVER
-  setupWebServer();
-#endif
+
   changeUIState('0');
   delay(1000);
 }
@@ -67,9 +65,7 @@ void loop() {
   updateView();          
   periodicDumpControlState();
   
-#ifdef MPIEC_ENABLE_WEBSERVER
-    webHandlingTask();
-#endif
+
 #ifdef MPIEC_ENABLE_SCRIPT
     handleSerialShellTask();
 #endif
@@ -87,6 +83,8 @@ void loop() {
     Serial.println(-d);  
   }
 }
+
+extern uint32_t counter;
 
 void periodicDumpControlState() {
   static unsigned long lastDump = 0;
@@ -125,6 +123,8 @@ void periodicDumpControlState() {
     Serial.print(g_dTl3);
     Serial.print(F(", lastT:"));
     Serial.print(g_lastCOReads.IsEmpty() ? 0.0 : g_lastCOReads.GetLast()->Val);
+	Serial.print(F(", CNT:"));
+    Serial.print(counter);
 	Serial.println();
 	for (int i=0; i<g_lastBurnTransitions.GetCount(); i++) 
 	{

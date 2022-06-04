@@ -26,6 +26,7 @@ float g_TempSpaliny = 0.0; //akt. temp. spalin
 float g_TempFeeder = 0.1;
 float g_TempBurner = 0;
 TSTATE g_BurnState = STATE_UNDEFINED;  //aktualny stan grzania
+TSTATE g_ManualState = STATE_UNDEFINED; //wymuszony ręcznie stan (STATE_UNDEFINED: brak wymuszenia)
 CWSTATE g_CWState = CWSTATE_OK; //current cw status
 HEATNEED g_needHeat = NEED_HEAT_NONE; //0, 1 or 2
 HEATNEED g_initialNeedHeat = NEED_HEAT_NONE; //heat needs at the beginning of current state
@@ -210,20 +211,22 @@ void burningProc()
 void setManualControlMode(bool b)
 {
   if (!b) {
+	g_ManualState = STATE_UNDEFINED;
     if (g_BurnState == STATE_STOP) {
       forceState(STATE_P0);
     }
   }
   else {
-    if (g_BurnState != STATE_STOP) {
-      forceState(STATE_STOP);
-    }
+	  g_ManualState = STATE_STOP;
+	if (g_BurnState != STATE_STOP) {
+	  forceState(STATE_STOP);
+	}
   }
 }
 
 bool getManualControlMode()
 {
-  return g_BurnState == STATE_STOP;
+	return g_ManualState != STATE_UNDEFINED;
 }
 
 
@@ -337,6 +340,18 @@ void firestartStateInit(TSTATE prev) {
 void firestartStateLoop() {
 	
 }
+
+void offStateInit(TSTATE prev) {
+  assert(g_BurnState == STATE_OFF);
+  g_CurStateStart = millis();
+  g_initialNeedHeat = g_needHeat;
+  g_CurBurnCycleStart = g_CurStateStart;  
+}
+
+void offStateLoop() {
+  
+}
+
 
 void reductionStateInit(TSTATE prev) {
   assert(g_BurnState == STATE_REDUCE1 || g_BurnState == STATE_REDUCE2);
@@ -779,6 +794,9 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_STOP, STATE_ALARM, NULL, NULL},
   {STATE_FIRESTART, STATE_ALARM, NULL, NULL},
   {STATE_FIRESTART, STATE_P2, NULL, NULL}, 
+  {STATE_FIRESTART, STATE_P1, NULL, NULL},
+  {STATE_FIRESTART, STATE_ALARM, NULL, NULL}, //failed to start fire
+  {STATE_OFF, STATE_ALARM, NULL, NULL},
   {STATE_UNDEFINED, STATE_UNDEFINED, NULL, NULL} //sentinel
 };
 
@@ -793,6 +811,7 @@ const TBurnStateConfig BURN_STATES[]  = {
   {STATE_REDUCE1, 'R', reductionStateInit, reductionStateLoop},
   {STATE_REDUCE2, 'r', reductionStateInit, reductionStateLoop},
   {STATE_FIRESTART, 'B', firestartStateInit, firestartStateLoop},
+  {STATE_OFF, '0', offStateInit, offStateLoop},
 };
 
 const uint8_t N_BURN_TRANSITIONS = sizeof(BURN_TRANSITIONS) / sizeof(TBurnTransition);

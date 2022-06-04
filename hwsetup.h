@@ -35,22 +35,23 @@
 #define BLOWER 5
 
 //#define HW_PUMP_CIRC_CTRL_PIN  A8   //portk 0
-#define HW_PUMP_CIRC_CTRL_PIN  A11  //portk 3
+#define HW_FLOW_SENSOR_INPUT_PIN A8  
 #define HW_PUMP_CO1_CTRL_PIN  A9    //portk 1
 #define HW_FEEDER_CTRL_PIN A10      //portk 2
-#define HW_BLOWER_CTRL_PIN A13      //portk 5
+#define HW_PUMP_CIRC_CTRL_PIN  A11  //portk 3
+#define HW_BLOWER_CTRL_PIN A12      //portk 5 remember mask
+#define HW_HEATER_CTRL_PIN  A13    //portk 4
 #define HW_PUMP_CO2_CTRL_PIN  A14   //portk 6
 #define HW_PUMP_CWU1_CTRL_PIN  A15  //portk 7
-#define HW_HEATER_CTRL_PIN  A12     //portk 4
+
 //#define MASK_PUMP_CIRC  0b00000001
 #define MASK_PUMP_CO1   0b00000010
 #define MASK_FEEDER     0b00000100
 #define MASK_PUMP_CIRC  0b00001000
-#define MASK_BLOWER     0b00100000
+#define MASK_BLOWER     0b00010000
+#define MASK_HEATER     0b00100000
 #define MASK_PUMP_CO2   0b01000000
 #define MASK_PUMP_CWU1  0b10000000
-
-
 
 
 #define HW_THERMOSTAT_PIN 47

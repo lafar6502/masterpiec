@@ -631,6 +631,12 @@ void adjustFeederState(uint8_t varIdx, void*d, int8_t increment) {
   setFeeder(!isFeederOn());
 }
 
+void adjustHeaterState(uint8_t varIdx, void*d, int8_t increment) {
+  if (!getManualControlMode()) return;
+  setHeater(!isHeaterOn());
+}
+
+
 void adjustBlowerState(uint8_t varIdx, void* d, int8_t increment) {
   if (!getManualControlMode()) return;
   uint8_t v = getCurrentBlowerPower();
@@ -743,6 +749,7 @@ const TUIScreenEntry UI_SCREENS[]  = {
 
 const uint8_t N_UI_SCREENS = sizeof(UI_SCREENS) / sizeof(TUIScreenEntry);
 
+
 const TUIVarEntry UI_VARIABLES[] = {
   {"Rok", VAR_ADVANCED, &RTC.yyyy, 2019, 3000, printUint16, adjustUint16, copyU16, queueCommitTime},
   {"Miesiac", VAR_ADVANCED, &RTC.mm, 1, 12, printUint8, adjustUint8, copyU8, queueCommitTime},
@@ -756,6 +763,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Pompa obieg", 0, PUMP_CIRC, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
   {"Dmuchawa", 0, getCurrentBlowerPower, 0, 100, printVU8, adjustBlowerState, NULL, NULL, NULL},
   {"Podajnik", 0, isFeederOn, 0, 1, printVBoolSwitch, adjustFeederState, NULL, NULL},
+  {"Zapalarka", 0, isHeaterOn, 0, 1, printVBoolSwitch, adjustHeaterState, NULL, NULL},
   {"Temp.CO", 0, &g_CurrentConfig.TCO, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {"Histereza CO", 0, &g_CurrentConfig.THistCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
   {"Temp.CWU", 0, &g_CurrentConfig.TCWU, 20, 80, printUint8, adjustUint8, copyU8, commitConfig},
