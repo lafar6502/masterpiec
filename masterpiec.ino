@@ -88,6 +88,8 @@ void loop() {
   }
 }
 
+extern uint32_t counter;
+
 void periodicDumpControlState() {
   static unsigned long lastDump = 0;
   static TSTATE pstate = STATE_UNDEFINED;
@@ -125,6 +127,8 @@ void periodicDumpControlState() {
     Serial.print(g_dTl3);
     Serial.print(F(", lastT:"));
     Serial.print(g_lastCOReads.IsEmpty() ? 0.0 : g_lastCOReads.GetLast()->Val);
+    Serial.print(F(", CNT:"));
+    Serial.print(counter);
     Serial.println();
   }
 }

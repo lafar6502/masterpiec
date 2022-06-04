@@ -741,7 +741,7 @@ const TUIScreenEntry UI_SCREENS[]  = {
     {'L', NULL, scrLog},
 };
 
-const uint8_t N_UI_SCREENS = sizeof(UI_SCREENS) / sizeof(TUIScreenEntry);
+
 
 const TUIVarEntry UI_VARIABLES[] = {
   {"Rok", VAR_ADVANCED, &RTC.yyyy, 2019, 3000, printUint16, adjustUint16, copyU16, queueCommitTime},
