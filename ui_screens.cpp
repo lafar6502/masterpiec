@@ -532,7 +532,8 @@ void printVBoolSwitch(uint8_t varIdx, void* editCopy, char* buf, bool parseStrin
 }
 
 void printState(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
-  uint8_t* pv = (uint8_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  uint8_t cst = getManualControlState();
+  uint8_t* pv = (uint8_t*) (editCopy == NULL ? &cst : editCopy);
   
   if (parseString) {
     if (pv == NULL) return;
@@ -554,15 +555,37 @@ void printState(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   
 }
 
-void adjustBlowerState(uint8_t varIdx, void* d, int8_t increment) {
+void adjustManualState(uint8_t varIdx, void* d, int8_t increment) {
+  TSTATE* p = (TSTATE*) d;
   if (!getManualControlMode()) return;
-  uint8_t v = getCurrentBlowerPower();
+  uint8_t v = *p;
   v += increment;
-  if (v > 200) v = 0;
-  if (v > 100) v = 100;
-  setBlowerPower(v);
+  if (v < 0) v = STATE_OFF;
+  if (v > STATE_OFF) v = STATE_P0;
+  *p = v;
+  Serial.print("adj state:");
+  Serial.print(v);
+  Serial.println();
 }
 
+
+void* copyManualState(uint8_t varIdx, void* pData, bool save) 
+{
+  static TSTATE _copy;
+  if (save) {
+    setManualControlState(_copy);
+    Serial.print("set st:");
+    Serial.print(_copy);
+    Serial.println();
+    return NULL;
+  } else {
+    _copy = getManualControlState();
+    Serial.print("get st:");
+    Serial.print(_copy);
+    Serial.println();
+    return &_copy;
+  }
+}
 
 void* copyVBoolSwitch(uint8_t varIdx, void* pData, bool save) {
   BoolFun f = (BoolFun) UI_VARIABLES[varIdx].DataPtr;
@@ -793,7 +816,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Minuta", VAR_ADVANCED, &RTC.m, 1, 59, printUint8, adjustUint8, copyU8, queueCommitTime},
   
   {"Tryb reczny", 0, getManualControlMode, 0, 1, printVBoolSwitch, adjustBool, copyVBoolSwitch, NULL, {.setBoolF = setManualControlMode}},
-  {"Stan", 0, getCurrentBlowerPower, STATE_P0, STATE_FIRESTART, printState, adjustBlowerState, NULL, NULL, NULL},
+  {"Stan", 0, NULL, STATE_P0, STATE_FIRESTART, printState, adjustManualState, copyManualState, NULL, NULL},
   {"Pompa CO", 0, PUMP_CO1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
   {"Pompa CWU", 0, PUMP_CWU1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
   {"Pompa obieg", 0, PUMP_CIRC, 0, 1, printPumpState, adjustPumpState, NULL, NULL},

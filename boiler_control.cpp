@@ -114,10 +114,16 @@ bool isFeederOn() {
 
 
 bool isHeaterOn() {
-  return digitalReadFast(HW_HEATER_CTRL_PIN) != LOW;
+  //return digitalReadFast(HW_HEATER_CTRL_PIN) != LOW;
+  return (PINK & MASK_HEATER) != 0;
 }
-void setHeater(bool b) {
-  digitalWriteFast(HW_HEATER_CTRL_PIN, b ? HIGH : LOW);
+void setHeater(bool on) {
+   //digitalWriteFast(HW_HEATER_CTRL_PIN, b ? HIGH : LOW);
+  if (on) 
+    g_powerFlags |= MASK_HEATER;
+  else
+    g_powerFlags &= ~MASK_HEATER;
+   
 }
 
 
