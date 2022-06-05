@@ -114,10 +114,15 @@ void burnControlTask();
 // f.ex. circulation pump
 void circulationControlTask();
 
-//wlacz/wylacz tryb automatyczny
-void setManualControlMode(bool b);
 //czy mamy tryb automatyczny
 bool getManualControlMode();
+//wlacz/wylacz tryb automatyczny
+void setManualControlMode(bool b);
+//wlacz/wylacz tryb reczny z ustawieniem stanu
+void setManualControlState(TSTATE t);
+//
+TSTATE getManualControlState();
+
 //check if heating is needed anywhere (for home or for cwu). 0 - no, 1 - co needed, 2 - cwu needed
 HEATNEED needHeatingNow();
 

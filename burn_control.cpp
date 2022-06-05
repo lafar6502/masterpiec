@@ -164,6 +164,9 @@ void burningProc()
   {
     if (BURN_TRANSITIONS[i].From == g_BurnState) 
     {
+      if (getManualControlMode() && BURN_TRANSITIONS[i].To != STATE_ALARM) {
+        continue;
+      }
       if (BURN_TRANSITIONS[i].fCondition != NULL && BURN_TRANSITIONS[i].fCondition()) 
       {
         if (g_BurnState == STATE_P1 || g_BurnState == STATE_REDUCE1)
@@ -218,9 +221,26 @@ void setManualControlMode(bool b)
   }
   else {
 	  g_ManualState = STATE_STOP;
-	if (g_BurnState != STATE_STOP) {
-	  forceState(STATE_STOP);
-	}
+  	if (g_BurnState != STATE_STOP) {
+  	  forceState(STATE_STOP);
+  	}
+  }
+}
+
+TSTATE getManualControlState()
+{
+  return g_ManualState;
+}
+
+void setManualControlState(TSTATE t) {
+  g_ManualState = t;
+  if (t == STATE_UNDEFINED) {
+    forceState(STATE_P0);
+  }
+  else {
+    if (g_BurnState != g_ManualState) {
+      forceState(g_ManualState);  
+    }
   }
 }
 

@@ -468,6 +468,8 @@ void printUint8_10(uint8_t varIdx, void* editCopy, char* buf, bool parseString) 
   strcpy(buf, buf1);
 }
 
+
+
 void printint8_10(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   int8_t* pv = (int8_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
   if (parseString) {
@@ -528,6 +530,39 @@ void printVBoolSwitch(uint8_t varIdx, void* editCopy, char* buf, bool parseStrin
   }
   strcpy(buf, v ? "ON" : "OFF");
 }
+
+void printState(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
+  uint8_t* pv = (uint8_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  
+  if (parseString) {
+    if (pv == NULL) return;
+    for(int i=0; i<N_BURN_STATES;i++) {
+      if (BURN_STATES[i].Code == buf[0]) {
+        *pv = i;
+        return;
+      }
+    }
+    *pv = STATE_UNDEFINED;
+    return;
+  }
+  if (*pv >= 0 && *pv < N_BURN_STATES) {
+    sprintf(buf, "%c", BURN_STATES[*pv].Code);
+  }
+  else {
+    sprintf(buf, "?");
+  }
+  
+}
+
+void adjustBlowerState(uint8_t varIdx, void* d, int8_t increment) {
+  if (!getManualControlMode()) return;
+  uint8_t v = getCurrentBlowerPower();
+  v += increment;
+  if (v > 200) v = 0;
+  if (v > 100) v = 100;
+  setBlowerPower(v);
+}
+
 
 void* copyVBoolSwitch(uint8_t varIdx, void* pData, bool save) {
   BoolFun f = (BoolFun) UI_VARIABLES[varIdx].DataPtr;
@@ -758,6 +793,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Minuta", VAR_ADVANCED, &RTC.m, 1, 59, printUint8, adjustUint8, copyU8, queueCommitTime},
   
   {"Tryb reczny", 0, getManualControlMode, 0, 1, printVBoolSwitch, adjustBool, copyVBoolSwitch, NULL, {.setBoolF = setManualControlMode}},
+  {"Stan", 0, getCurrentBlowerPower, STATE_P0, STATE_FIRESTART, printState, adjustBlowerState, NULL, NULL, NULL},
   {"Pompa CO", 0, PUMP_CO1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
   {"Pompa CWU", 0, PUMP_CWU1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
   {"Pompa obieg", 0, PUMP_CIRC, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
