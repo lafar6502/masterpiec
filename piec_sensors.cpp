@@ -94,7 +94,7 @@ void initializeDallasSensors() {
     Serial.print(i+1);
     Serial.print(". ");
     sensors.getAddress(tmp, i);
-    sensors.setResolution(tmp, 10);
+    sensors.setResolution(tmp, 11);
     float tempC = sensors.getTempC(tmp);
     Serial.print("T=");
     Serial.print(tempC);

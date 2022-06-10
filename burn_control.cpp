@@ -39,8 +39,10 @@ unsigned long g_P2Time = 0;
 unsigned long g_P0Time = 0;
 
 TReading lastCOTemperatures[11];
+TReading lastExhaustTemperatures[11]; //every 30 sec => 5 minutes
 TIntReading lastBurnStates[11];
 CircularBuffer<TReading> g_lastCOReads(lastCOTemperatures, sizeof(lastCOTemperatures)/sizeof(TReading));
+CircularBuffer<TReading> g_lastExhaustReads(lastExhaustTemperatures, sizeof(lastExhaustTemperatures)/sizeof(TReading));
 CircularBuffer<TIntReading> g_lastBurnTransitions(lastBurnStates, sizeof(lastBurnStates)/sizeof(TIntReading));
 
 //czas wejscia w bieżący stan, ms
@@ -58,6 +60,7 @@ void setAlarm(const char* txt) {
 
 float g_dT60; //1-minute temp delta
 float g_dTl3; //last 3 readings diff
+float g_dTExh; //1-min temp delta for exhaust
 
 float interpolate(const TReading& r1, const TReading& r2, unsigned long t0) {
   float tdT = r2.Val - r1.Val;
@@ -66,6 +69,21 @@ float interpolate(const TReading& r1, const TReading& r2, unsigned long t0) {
   if (tm0==0) tm0 = 1;
   float tx = r1.Val + tdT * (t0 - r1.Ms) / tm0; // (tdT / tm0) * ((t0 - r1.Ms) / tm0);
   return tx;
+}
+
+float calcDT(const CircularBuffer<TReading>* buf, int dTSec, float curVal) {
+  unsigned long m = millis();
+  int i;
+  for (i = buf->GetCount() - 1; i >= 0; i--) {
+      if (m - buf->GetAt(i)->Ms >= dTSec * 1000) break;
+  }
+  if (i >= 0) {
+    const TReading* p1 = buf->GetAt(i);
+    const TReading* p2 = buf->GetLast();
+    if (p1->Ms == p2->Ms) return 0;
+    return (p2->Val - p1->Val);
+  }
+  return 0;
 }
 
 float calcDT60() {
@@ -93,6 +111,19 @@ float calcDT60() {
     }
 }
 
+float calcDT2(const CircularBuffer<TReading>* buf, int stepsBack, float curVal) {
+  uint8_t bc = buf->GetCount();
+  if (bc <= stepsBack) stepsBack = bc - 1;
+  if (stepsBack < 0) return 0;
+  const TReading* pr = buf->GetAt(-stepsBack);
+  const TReading* p2 = buf->GetLast();
+  unsigned long m = millis();
+  unsigned long deltaT = m - pr->Ms;
+  float dv = curVal - pr->Val;
+  float dt = (float) deltaT / (60*1000.0);  
+  return dt == 0 ? 0 : dv / dt;
+}
+
 void processSensorValues() {
   g_TempCO = getLastDallasValue(TSENS_BOILER);
   g_TempCWU = getLastDallasValue(TSENS_CWU);
@@ -106,11 +137,21 @@ void processSensorValues() {
     g_HomeThermostatOn = isThermostatOn();
   }
   unsigned long ms = millis();
-  if (g_lastCOReads.IsEmpty() || abs(g_lastCOReads.GetLast()->Val - g_TempCO) >= 0.5 || g_lastCOReads.GetLast()->Ms < (ms - 120000L)) 
+  const TReading* lastExh = g_lastExhaustReads.GetLast();
+  if (lastExh == NULL || (ms - lastExh->Ms) >= 30000) 
+  {
+    g_lastExhaustReads.Enqueue({ms, g_TempSpaliny});
+  }
+  const TReading* lastCo = g_lastCOReads.GetLast();
+  if (lastCo == NULL || (ms - lastCo->Ms) >= 30000) 
   {
     g_lastCOReads.Enqueue({ms, g_TempCO});
   }
-  g_dT60 = calcDT60();
+  
+  //g_dT60 = calcDT60();
+  g_dTExh = calcDT2(&g_lastExhaustReads, 2, g_TempSpaliny);
+  g_dT60 = calcDT2(&g_lastCOReads, 2, g_TempCO);
+  
   TReading* pr = g_lastCOReads.GetCount() >= 4 ? g_lastCOReads.GetAt(-3) : NULL; //discard the first read
   if (g_lastCOReads.GetFirst()->Ms > (ms - 15000L)) pr = NULL;
   g_dTl3 = pr != NULL ? (g_TempCO - pr->Val) * 60.0 * 1000.0 / (ms - pr->Ms) : 0.0;
@@ -325,7 +366,7 @@ void stopStateInitialize(TSTATE prev) {
 ///pętla palenia dla stanu pracy
 //załączamy dmuchawę na ustaloną moc no i pilnujemy podajnika
 void workStateBurnLoop() {
-  assert(g_BurnState == STATE_P1 || g_BurnState == STATE_P2);
+  assert(g_BurnState == STATE_P1 || g_BurnState == STATE_P2 || g_BurnState == STATE_FIRESTART);
   unsigned long tNow = millis();
   unsigned long burnCycleLen = (unsigned long) g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec * 1000L;
   //feeder time length
@@ -355,10 +396,21 @@ void firestartStateInit(TSTATE prev) {
 	g_CurStateStart = millis();
 	g_initialNeedHeat = g_needHeat;
 	g_CurBurnCycleStart = g_CurStateStart;  
+  g_BurnCyclesBelowMinTemp = 0;
+  curStateMaxTempCO = g_TempCO;
+  uint8_t bp = g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower;
+  setBlowerPower(bp, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
+  if (bp > 0) {
+    setHeater(true);
+  }
+  Serial.print(F("Firestart init, cycle: "));
+  Serial.println(g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec);
 }
 
 void firestartStateLoop() {
-	
+	workStateBurnLoop();
+  uint8_t bp = getCurrentBlowerPower();
+  setHeater(bp > 0 ? true : false);
 }
 
 void offStateInit(TSTATE prev) {

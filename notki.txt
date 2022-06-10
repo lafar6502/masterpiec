@@ -1,0 +1,34 @@
+Różnice między pracą bez zapalarki a z zapalarką
+
+1. potrzebny przełącznik (tryb automatycznego wygaszania tak/nie) dostepny tylko gdy jest zapalarka
+2. kiedy sie ma wygasic? Wtedy gdy wejdziemy w tryb podtrzymania. Czy czekamy jakiś czas? Tylko na moment gdy nie będzie potrzebne grzanie ani co ani cwu. Zakładamy że postój będzie dłuższy.
+3. Jak ma działać automatyczne rozpalanie
+   dmuchawa i podawanie wg jakichś ustawien
+   ustalić czy na początek ma być jakaś większa dawka czy nie (do konfiguracji)
+   włączamy zapalarkę i dmuchawę
+   zapalarka nie powinna działać gdy dmuchawa nie działa
+   podczas rozpalania nie działają żadne pompy
+
+3a jak ustalić czy się rozpaliło czy nie
+   1. Algorytm w oparciu o temp co
+   zaczynamy rozpalanie
+   czekamy aż temperatura przestanie spadać (pochodna = 0) - to nasze minimum
+   jesli rosnie to ok, minimum mamy
+   na koncu cyklu rozpalania temperatura powinna być powyzej minimum i w trendzie rosnącym (o ile stopni, jak długo trwa to rozpalanie - do ustalenia)
+   jesli nie rośnie, albo rosnie za mało? - probowac dalej, ale w koncu timeout.
+
+   2. Algorytm w oparciu o temp spalin
+   powinien w ogóle zakładać ze temp spalin powyzej jakiejs wartości (moze zaleznie od temp cwu) przez dluzszy czas = pali się
+   musimy zaczac liczyc pochodną temp spalin bo ona duzo szybciej reaguje niz temp kotła
+   temp spalin > tCO + delta i d/dt spalin > 0 => mamy sukces
+
+
+4. Jak ustalic czy zgasło
+   wchodzimy w cykl palenia lub w nim jesteśmy
+   czasami zdarza się ze po zalaczeniu pomp temperatura leci w dół wiec trzeba by sobie dać jakiś czas na ustabilizowanie sytuacji
+   mielismy cykl grzania, temperatura w koncu spadła ponizej minimum dla pomp i tam została (ile czasu)
+   temperatura spalin nie rosnie (uwaga temp spalin moze spadac gdy temp na kotle spada)
+   zobaczyc jak wyglada wykres tSpalin - tCo 
+
+5. Poprawic liczenie tej pochodnej bo nie jest zbyt dokladne. powinnismy miec ustalony czas pomiaru, np 5 minut albo 1 minuta
+   

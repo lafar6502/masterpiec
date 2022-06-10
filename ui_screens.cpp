@@ -60,6 +60,15 @@ void scrSensors2(uint8_t idx, char* lines[] ) {
   sprintf(lines[1], "TPodaj:%s", buf2);
 }
 
+void scrSensors3(uint8_t idx, char* lines[] ) {
+  char buf1[10], buf2[10];
+  dtostrf(g_TempSpaliny - g_TempCO, 3, 1, buf1);
+  dtostrf(g_dTExh,3, 1, buf2);
+  sprintf(lines[0], "E:%s dS:%s", buf1, buf2);
+  dtostrf(g_dT60,3, 1, buf2);
+  sprintf(lines[1], "dT60:%s", buf2);
+}
+
 extern unsigned long _reductionStateEndMs; //burn control
 
 void scrBurnInfo(uint8_t idx, char* lines[]) {
@@ -802,6 +811,7 @@ const TUIScreenEntry UI_SCREENS[]  = {
     {'0', NULL, scrBurnInfo},
     {'0', NULL, scrSensors1},
     {'0', NULL, scrSensors2},
+    {'0', NULL, scrSensors3},
     {'L', NULL, scrLog},
 };
 

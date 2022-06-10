@@ -6,15 +6,15 @@ typedef uint8_t TSTATE;
 #define STATE_P0 0   //podtrzymanie
 #define STATE_P1 1   //grzanie z mocą minimalną
 #define STATE_P2 2   //grzanie z mocą nominalną
-#define STATE_STOP 3 //tryb ręczny - zatrzymany piec - sterowanie automatyczne powinno zaprzestać działalności 
+#define STATE_FIRESTART 3 //rozpalanie
 #define STATE_ALARM 4 // alarm - cos się stało, piec zatrzymany albo włączone zabezpieczenie
 #define STATE_REDUCE1 5 //tryb przejścia na niższy stan P2 => P1 => P0. zadaniem tego trybu jest dopalenie pozostałego węgla. W tym celu musimy wiedzieć z jakiego stanu wyszlismy do reduce
 #define STATE_REDUCE2 6 //tryb przejścia na niższy stan P1 => P0 
-#define STATE_FIRESTART 7 //rozpalanie
+#define STATE_STOP 7 //tryb ręczny - zatrzymany piec - sterowanie automatyczne powinno zaprzestać działalności 
 #define STATE_OFF 8 //wygaszony
 #define STATE_UNDEFINED 255
 
-#define MAX_POWER_STATES 3 //max liczba konfiguracji dla mocy. 1 - tylko podtrzymanie, 2 - podtrzymanie i praca, 3 - podtrzymanie i 2 moce pracy
+#define MAX_POWER_STATES 4 //max liczba konfiguracji dla mocy. 1 - tylko podtrzymanie, 2 - podtrzymanie i praca, 3 - podtrzymanie i 2 moce pracy, 4 - z rozpalaniem
 #define MAX_PROFILES 2
 
 typedef uint8_t CWSTATE;
@@ -157,6 +157,7 @@ extern float g_TempFeeder;
 extern float g_TempBurner; //temp palnika
 extern float g_dT60; //delta temp in 1 minute
 extern float g_dTl3; //delta temp in last 3 changes
+extern float g_dTExh; //delta exhaust temp
 extern uint8_t g_ReductionsToP0; //reductions P1 -> P0 or P2 -> P0 which we dont ave 
 extern uint8_t g_ReductionsToP1; //reductions P2 -> P1
 
