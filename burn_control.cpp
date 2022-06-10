@@ -876,12 +876,12 @@ const TBurnStateConfig BURN_STATES[]  = {
   {STATE_P0, 'P', podtrzymanieStateInitialize, podtrzymanieStateLoop},
   {STATE_P1, '1', workStateInitialize, workStateBurnLoop},
   {STATE_P2, '2', workStateInitialize, workStateBurnLoop},
-  {STATE_FIRESTART, 'B', firestartStateInit, firestartStateLoop},  
+  {STATE_FIRESTART, 'F', firestartStateInit, firestartStateLoop},  
   {STATE_ALARM, 'A', alarmStateInitialize, alertStateLoop},
   {STATE_REDUCE1, 'R', reductionStateInit, reductionStateLoop},
   {STATE_REDUCE2, 'r', reductionStateInit, reductionStateLoop},
   {STATE_STOP, 'S', stopStateInitialize, manualStateLoop},
-  {STATE_OFF, '0', offStateInit, offStateLoop},
+  {STATE_OFF, 'z', offStateInit, offStateLoop},
 };
 
 const uint8_t N_BURN_TRANSITIONS = sizeof(BURN_TRANSITIONS) / sizeof(TBurnTransition);

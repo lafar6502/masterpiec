@@ -574,9 +574,7 @@ void adjustManualState(uint8_t varIdx, void* d, int8_t increment) {
   if (!getManualControlMode()) return;
   
   uint8_t v = *p;
-  v += increment;
-  if (v < 0) v = STATE_OFF;
-  if (v > STATE_OFF) v = STATE_P0;
+  v = (v + increment) % (STATE_OFF+1); //+= increment;
   *p = v;
   Serial.print("adj state:");
   Serial.print(v);
