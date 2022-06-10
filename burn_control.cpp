@@ -808,6 +808,20 @@ bool cond_targetTempReachedAndHeatingNotNeeded() {
   return g_TempCO >= g_TargetTemp && g_needHeat == NEED_HEAT_NONE;
 }
 
+//detect if fire has started in automatic fire start mode
+bool cond_firestartIsBurning() {
+
+}
+
+bool cond_firestartTimeout() {
+  if (g_BurnState != STATE_FIRESTART) return false;
+  if (g_CurrentConfig.FirestartTimeoutMin10 == 0) return false;
+  unsigned long t = millis() - g_CurStateStart;
+  if (t <= g_CurrentConfig.FirestartTimeoutMin10 * 6 * 1000) return false;
+  g_Alarm = "Rozpal";
+  return true;
+}
+
 void onSwitchToReduction(int trans) {
   assert(g_BurnState == STATE_P1 || g_BurnState == STATE_P2);
   unsigned long t = millis();
@@ -887,7 +901,7 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_FIRESTART, STATE_ALARM, NULL, NULL},
   {STATE_FIRESTART, STATE_P2, NULL, NULL}, 
   {STATE_FIRESTART, STATE_P1, NULL, NULL},
-  {STATE_FIRESTART, STATE_ALARM, NULL, NULL}, //failed to start fire
+  {STATE_FIRESTART, STATE_ALARM, cond_firestartTimeout, NULL}, //failed to start fire
   {STATE_OFF, STATE_ALARM, NULL, NULL},
   {STATE_UNDEFINED, STATE_UNDEFINED, NULL, NULL} //sentinel
 };

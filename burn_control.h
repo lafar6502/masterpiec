@@ -3,6 +3,8 @@
 
 typedef uint8_t TSTATE;
 
+
+
 #define STATE_P0 0   //podtrzymanie
 #define STATE_P1 1   //grzanie z mocą minimalną
 #define STATE_P2 2   //grzanie z mocą nominalną
@@ -81,11 +83,12 @@ typedef struct ControlConfiguration {
   uint8_t CircWorkTimeS; //circ pump working time per cycle, sec*10 (10 = 100 sec)
   uint8_t ReductionP2ExtraTime; //in %, how much % of the P2 cycle time to add for reduction (0 = just the P2 cycle, 10 = P2 cycle + 10%)
   uint8_t BlowerMax; //Blower max value that will be our 100
-  uint8_t SelectedProfile;
 
-  TControlConfigProfile BurnProfiles[MAX_PROFILES];
+  uint8_t FireStartMode; //0 - none, 1-auto off, 2 - auto on and off
+  uint8_t FirestartTimeoutMin10; //automatic firestart timeout in minutes * 10 (250 = 25 minutes). After that time we conclude 'failed to start fire' if not detected earlier
+  uint8_t HeaterMaxRunTimeS; //maximum run time of the heater. If exceeded, heater will be turned off for the duration of one cycle (of STATE_FIRESTART)
 
-  uint8_t _future[9];
+  uint8_t _future[8];
 } TControlConfiguration;
 
 //bieżąca konfiguracja pieca
