@@ -112,6 +112,7 @@ bool isFeederOn() {
  //return digitalReadFast(HW_FEEDER_CTRL_PIN) != LOW;
 }
 
+unsigned long g_heaterStartTimeMs = 0;
 
 bool isHeaterOn() {
   //return digitalReadFast(HW_HEATER_CTRL_PIN) != LOW;
@@ -119,13 +120,23 @@ bool isHeaterOn() {
 }
 void setHeater(bool on) {
    //digitalWriteFast(HW_HEATER_CTRL_PIN, b ? HIGH : LOW);
+   bool b = isHeaterOn();
   if (on) 
+  {
+    if (!b) g_heaterStartTimeMs = millis();
     g_powerFlags |= MASK_HEATER;
+  }
   else
+  {
     g_powerFlags &= ~MASK_HEATER;
-   
+  }
 }
 
+unsigned long getHeaterRunningTimeMs() {
+  bool b = isHeaterOn();
+  if (!b) return 0;
+  return millis() - g_heaterStartTimeMs;
+}
 
 void triacOn() {
   digitalWriteFast(HW_BLOWER_CTRL_PIN, HIGH);

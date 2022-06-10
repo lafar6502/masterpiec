@@ -18,6 +18,7 @@ bool isFeederOn();
 
 bool isHeaterOn();
 void setHeater(bool b);
+unsigned long getHeaterRunningTimeMs();
 
 void setBlowerPower(uint8_t power);
 void setBlowerPower(uint8_t power, uint8_t powerCycle);
@@ -36,5 +37,5 @@ extern unsigned long g_feederRunMs;
 extern unsigned long g_pumpCORunMs;
 extern unsigned long g_pumpCWURunMs;
 extern unsigned long g_pumpCircRunMs;
-
+extern unsigned long g_heaterStartTimeMs;
 #endif

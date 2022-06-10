@@ -351,6 +351,7 @@ void workStateInitialize(TSTATE prev) {
   setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
   Serial.print(F("Burn init, cycle: "));
   Serial.println(g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec);
+  setHeater(false);
 }
 
 //przejscie do stanu recznego
@@ -358,6 +359,7 @@ void stopStateInitialize(TSTATE prev) {
   assert(g_BurnState == STATE_STOP);
   setBlowerPower(0);
   setFeederOff();
+  setHeater(false);
   g_CurStateStart = millis();
   g_initialNeedHeat = g_needHeat;
   g_CurBurnCycleStart = g_CurStateStart;
@@ -387,6 +389,7 @@ void workStateBurnLoop() {
     setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
     g_BurnCyclesBelowMinTemp = g_TempCO <= g_CurrentConfig.TMinPomp ? g_BurnCyclesBelowMinTemp + 1 : 0;
   }
+  setHeater(false);
 }
 
 unsigned long _reductionStateEndMs = 0; //inside reduction state - this is the calculated end time. Outside (before reduction) - we put remaining P1 or P2 time there before going to reduction.
@@ -417,11 +420,12 @@ void offStateInit(TSTATE prev) {
   assert(g_BurnState == STATE_OFF);
   g_CurStateStart = millis();
   g_initialNeedHeat = g_needHeat;
-  g_CurBurnCycleStart = g_CurStateStart;  
+  g_CurBurnCycleStart = g_CurStateStart;
+  setHeater(false);  
 }
 
 void offStateLoop() {
-  
+  setHeater(false);
 }
 
 
@@ -444,6 +448,7 @@ void reductionStateInit(TSTATE prev) {
   _reductionStateEndMs = g_CurStateStart + _reductionStateEndMs + adj; //
   setBlowerPower(g_CurrentConfig.BurnConfigs[prev].BlowerPower, g_CurrentConfig.BurnConfigs[prev].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[prev].BlowerCycle);
   setFeederOff();
+  setHeater(false);
   Serial.print(F("red: cycle should end in "));
   Serial.print((_reductionStateEndMs - g_CurStateStart) / 1000.0);
   Serial.print(F(", extra time s:"));
@@ -471,6 +476,7 @@ void podtrzymanieStateInitialize(TSTATE prev) {
   g_initialNeedHeat = g_needHeat;
   setBlowerPower(0);
   setFeederOff();
+  setHeater(false);
 }
 
 void podtrzymanieStateLoop() {
@@ -504,10 +510,16 @@ void podtrzymanieStateLoop() {
     g_CurBurnCycleStart = tNow;
     cycleNum++;
   }
+  setHeater(false);
 }
 
 void manualStateLoop() {
-  
+  if (isHeaterOn()) {
+    unsigned long t = getHeaterRunningTimeMs();
+    if (t > 3 * 60 * 1000) {
+      setHeater(false);
+    }
+  }
 }
 
 
@@ -557,6 +569,11 @@ void updatePumpStatus() {
     return;
   }
   if (getManualControlMode()) return; //all below only in automatic mode.
+  if (g_BurnState == STATE_FIRESTART) {
+    setPumpOff(PUMP_CO1);
+    setPumpOff(PUMP_CWU1);
+    return;
+  }
   if (g_TempCO < g_CurrentConfig.TMinPomp) {
     setPumpOff(PUMP_CO1);
     setPumpOff(PUMP_CWU1);
@@ -647,7 +664,9 @@ bool isAlarm_Any() {
 
 
 void alarmStateInitialize(TSTATE prev) {
+  setHeater(0);
   changeUIState('0');
+  
 }
 
 // kiedy przechodzimy z P0 do P2
@@ -778,6 +797,7 @@ bool cond_A_needSuddenHeatAndBelowTargetTemp() {
 void alertStateLoop() {
   static unsigned long _feederStart = 0;
   unsigned long t = millis();
+  setHeater(0);
   if (isAlarm_feederOnFire()) {
    
   }
