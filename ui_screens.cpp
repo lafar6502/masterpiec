@@ -231,13 +231,15 @@ void stEditVariableHandler(uint8_t ev, uint8_t arg)
     if (pv->Adjust != NULL) {
       Serial.print(F("adj var:"));
       Serial.println(g_CurrentlyEditedVariable);
+      delay(20);
       pv->Adjust(g_CurrentlyEditedVariable, g_editCopy, ev == UI_EV_UP ? 1 : -1);
     }
   }
   else if (ev == UI_EV_BTNPRESS) 
   {
-    Serial.print(F("xsave var:"));
-    Serial.println(g_CurrentlyEditedVariable);
+    Serial.print(F("x save var:"));
+	  Serial.println(g_CurrentlyEditedVariable);
+  
     if (pv->Store != NULL && g_editCopy != NULL)
     {
       Serial.print("cp2 ");
@@ -246,17 +248,20 @@ void stEditVariableHandler(uint8_t ev, uint8_t arg)
       Serial.print((unsigned long) g_editCopy);
       Serial.print(" ");
       Serial.println((unsigned long) pv->DataPtr);
-      
+      //delay(20);
       pv->Store(g_CurrentlyEditedVariable, g_editCopy, true);
     }
     g_editCopy = NULL;
     if (pv->Commit != NULL) 
     {
       Serial.println("commit");
+      //delay(20);
+      //return;
       pv->Commit(g_CurrentlyEditedVariable);  
     }
     
     Serial.println("saved!");
+    delay(20);
     changeUIState((pv->Flags & VAR_ADVANCED) != 0 ? 'W' : 'V');
   }
   else if (ev == UI_EV_IDLE) {
@@ -602,6 +607,15 @@ void* copyVBoolSwitch(uint8_t varIdx, void* pData, bool save) {
   
   if (save) {
     SetBoolFun sbf = UI_VARIABLES[varIdx].Data.setBoolF;
+	//unsigned long v0 = (unsigned long) setManualControlMode;
+	//Serial.print("copy vbool ");
+	//Serial.print(v0);
+	//Serial.print(" ");
+	//Serial.print((unsigned long) sbf);
+  //Serial.print(" v:");
+  //Serial.print(_copy);
+	//Serial.println();
+	//return;
     if (sbf != NULL) sbf(_copy);
   }
   else {
@@ -826,7 +840,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Minuta", VAR_ADVANCED, &RTC.m, 1, 59, printUint8, adjustUint8, copyU8, queueCommitTime},
   
   {"Tryb reczny", 0, getManualControlMode, 0, 1, printVBoolSwitch, adjustBool, copyVBoolSwitch, NULL, {.setBoolF = setManualControlMode}},
-  {"Stan", 0, NULL, STATE_P0, STATE_FIRESTART, printState, adjustManualState, copyManualState, NULL, NULL},
+  {"Stan", 0, NULL, STATE_P0, STATE_OFF, printState, adjustManualState, copyManualState, NULL, NULL},
   {"Pompa CO", 0, PUMP_CO1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
   {"Pompa CWU", 0, PUMP_CWU1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
   {"Pompa obieg", 0, PUMP_CIRC, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
@@ -879,6 +893,12 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"P2 dmuchawa %", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   {"P2 dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
 
+  {"RO cykl sek.", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
+  {"RO podawanie", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec}},
+  {"RO dmuchawa %", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {"RO dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+
+  
   {"Czuj. CO", VAR_ADVANCED, TSENS_BOILER, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
   {"Czuj. CWU", VAR_ADVANCED, TSENS_CWU, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
   {"Czuj. podajnika", VAR_ADVANCED, TSENS_FEEDER, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
