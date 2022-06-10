@@ -872,17 +872,15 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_UNDEFINED, STATE_UNDEFINED, NULL, NULL} //sentinel
 };
 
-
-
 const TBurnStateConfig BURN_STATES[]  = {
   {STATE_P0, 'P', podtrzymanieStateInitialize, podtrzymanieStateLoop},
   {STATE_P1, '1', workStateInitialize, workStateBurnLoop},
   {STATE_P2, '2', workStateInitialize, workStateBurnLoop},
-  {STATE_STOP, 'S', stopStateInitialize, manualStateLoop},
+  {STATE_FIRESTART, 'B', firestartStateInit, firestartStateLoop},  
   {STATE_ALARM, 'A', alarmStateInitialize, alertStateLoop},
   {STATE_REDUCE1, 'R', reductionStateInit, reductionStateLoop},
   {STATE_REDUCE2, 'r', reductionStateInit, reductionStateLoop},
-  {STATE_FIRESTART, 'B', firestartStateInit, firestartStateLoop},
+  {STATE_STOP, 'S', stopStateInitialize, manualStateLoop},
   {STATE_OFF, '0', offStateInit, offStateLoop},
 };
 

@@ -231,7 +231,7 @@ void stEditVariableHandler(uint8_t ev, uint8_t arg)
     if (pv->Adjust != NULL) {
       Serial.print(F("adj var:"));
       Serial.println(g_CurrentlyEditedVariable);
-      delay(20);
+      //delay(20);
       pv->Adjust(g_CurrentlyEditedVariable, g_editCopy, ev == UI_EV_UP ? 1 : -1);
     }
   }
@@ -572,6 +572,7 @@ void printState(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
 void adjustManualState(uint8_t varIdx, void* d, int8_t increment) {
   TSTATE* p = (TSTATE*) d;
   if (!getManualControlMode()) return;
+  
   uint8_t v = *p;
   v += increment;
   if (v < 0) v = STATE_OFF;
