@@ -85,7 +85,7 @@ typedef struct ControlConfiguration {
   uint8_t BlowerMax; //Blower max value that will be our 100
 
   uint8_t FireStartMode; //0 - none, 1-auto off, 2 - auto on and off
-  uint8_t FirestartTimeoutMin10; //automatic firestart timeout in minutes * 10 (250 = 25 minutes). After that time we conclude 'failed to start fire' if not detected earlier
+  uint8_t NumFireStartCycles; //automatic firestart timeout in minutes * 10 (250 = 25 minutes). After that time we conclude 'failed to start fire' if not detected earlier
   uint8_t HeaterMaxRunTimeS; //maximum run time of the heater. If exceeded, heater will be turned off for the duration of one cycle (of STATE_FIRESTART)
 
   uint8_t _future[8];

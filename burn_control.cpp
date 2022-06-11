@@ -30,7 +30,7 @@ TSTATE g_ManualState = STATE_UNDEFINED; //wymuszony ręcznie stan (STATE_UNDEFIN
 CWSTATE g_CWState = CWSTATE_OK; //current cw status
 HEATNEED g_needHeat = NEED_HEAT_NONE; //0, 1 or 2
 HEATNEED g_initialNeedHeat = NEED_HEAT_NONE; //heat needs at the beginning of current state
-
+uint16_t g_burnCycleNum = 0; //number of burning cycles in current state
 bool   g_HomeThermostatOn = true;  //true - termostat pokojowy kazał zaprzestać grzania
 float g_TempZewn = 0.0; //aktualna temp. zewn
 char* g_Alarm;
@@ -437,6 +437,7 @@ void workStateInitialize(TSTATE prev) {
   g_CurBurnCycleStart = g_CurStateStart;
   g_BurnCyclesBelowMinTemp = 0;
   curStateMaxTempCO = g_TempCO;
+  g_burnCycleNum = 0;
   setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
   Serial.print(F("Burn init, cycle: "));
   Serial.println(g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec);
@@ -477,8 +478,9 @@ void workStateBurnLoop() {
     g_CurBurnCycleStart = millis(); //next burn cycle
     setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
     g_BurnCyclesBelowMinTemp = g_TempCO <= g_CurrentConfig.TMinPomp ? g_BurnCyclesBelowMinTemp + 1 : 0;
+    g_burnCycleNum++;
   }
-  setHeater(false);
+  if (g_BurnState != STATE_FIRESTART) setHeater(false);
 }
 
 unsigned long _reductionStateEndMs = 0; //inside reduction state - this is the calculated end time. Outside (before reduction) - we put remaining P1 or P2 time there before going to reduction.
@@ -488,6 +490,7 @@ void firestartStateInit(TSTATE prev) {
 	g_CurStateStart = millis();
 	g_initialNeedHeat = g_needHeat;
 	g_CurBurnCycleStart = g_CurStateStart;  
+  g_burnCycleNum = 0;
   g_BurnCyclesBelowMinTemp = 0;
   curStateMaxTempCO = g_TempCO;
   uint8_t bp = g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower;
@@ -899,24 +902,32 @@ bool cond_targetTempReachedAndHeatingNotNeeded() {
 
 //detect if fire has started in automatic fire start mode
 bool cond_firestartIsBurning() {
+  if (g_lastExhaustReads.GetCount() < 4) return false;
+  float d = g_TempSpaliny - g_TempCO;
+  float d2 = g_dTExhLong;
+  if (d > 10.0 && d2 > 0.1) {
+    return true;
+  }
+  else if (d > 3.0 && d2 > 2.0) {
+    return true;
+  }
+  else if (d > 0 && d2 > 4.0) {
+    return true;
+  }
+  return false;
+}
 
+bool cond_fireBurningAndBelowTargetTemp() {
+  return cond_D_belowTargetTempAndNeedHeat() && cond_firestartIsBurning();
 }
 
 bool cond_firestartTimeout() {
   if (g_BurnState != STATE_FIRESTART) return false;
-  if (g_CurrentConfig.FirestartTimeoutMin10 == 0) return false;
-  unsigned long lim = g_CurrentConfig.FirestartTimeoutMin10 * 100L * 60;
-  unsigned long t = millis() - g_CurStateStart;
-  if (t <= lim) return false;
-  
-  g_Alarm = "Rozpal";
-  Serial.print("rozpal lim:");
-  Serial.print(lim);
-  Serial.print("/");
-  Serial.print(g_CurrentConfig.FirestartTimeoutMin10);
-  Serial.print(", t:");
-  Serial.println(t);
-  return true;
+  if (g_burnCycleNum > g_CurrentConfig.NumFireStartCycles) {
+    g_Alarm = "Rozpal";
+    return true;
+  }
+  return false;
 }
 
 void onSwitchToReduction(int trans) {
@@ -961,6 +972,7 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_P0, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
   {STATE_P0, STATE_P2, cond_willFallBelowHysteresisSoon, NULL}, //temp is dropping fast, we need heat -> P2
   {STATE_P0, STATE_P1, cond_D_belowTargetTempAndNeedHeat, NULL},
+  {STATE_P0, STATE_OFF, NULL, NULL}, //wygaszenie
   
   {STATE_P1, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction}, //E. P1 -> P0
   {STATE_P1, STATE_REDUCE1, cond_targetTempReachedAndHeatingNotNeeded, onSwitchToReduction}, //F. P1 -> P0
@@ -996,8 +1008,8 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_REDUCE2, STATE_ALARM, isAlarm_Any, NULL},
   {STATE_STOP, STATE_ALARM, NULL, NULL},
   {STATE_FIRESTART, STATE_ALARM, NULL, NULL},
-  {STATE_FIRESTART, STATE_P2, NULL, NULL}, 
-  {STATE_FIRESTART, STATE_P1, NULL, NULL},
+  {STATE_FIRESTART, STATE_P2, cond_fireBurningAndBelowTargetTemp, NULL}, 
+  {STATE_FIRESTART, STATE_P1, cond_firestartIsBurning, NULL},
   {STATE_FIRESTART, STATE_ALARM, cond_firestartTimeout, NULL}, //failed to start fire
   {STATE_OFF, STATE_ALARM, NULL, NULL},
   {STATE_UNDEFINED, STATE_UNDEFINED, NULL, NULL} //sentinel
