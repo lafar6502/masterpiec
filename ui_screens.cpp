@@ -84,7 +84,7 @@ void scrBurnInfo(uint8_t idx, char* lines[]) {
     dtostrf(f2, 2, 2, zbuf);
     
     sprintf(lines[0], "#%c %skW T%d", BURN_STATES[g_BurnState].Code, zbuf, g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec - (tnow - g_CurBurnCycleStart) / 1000); 
-    sprintf(lines[1], "%c%d%% %d %ld", nh == NEED_HEAT_NONE ? '_' : nh == NEED_HEAT_CO ? '!' : '@', getCurrentBlowerPower(), cycle, tt);
+    sprintf(lines[1], "%c%d%% %d %ld", nh == NEED_HEAT_NONE ? '_' : nh == NEED_HEAT_CO ? '!' : '@', getCurrentBlowerPower(), g_burnCycleNum, tt);
   }
   else if (g_BurnState == STATE_REDUCE1 || g_BurnState == STATE_REDUCE2) 
   {
@@ -98,10 +98,10 @@ void scrBurnInfo(uint8_t idx, char* lines[]) {
     sprintf(lines[0], "ALARM");
     if (g_Alarm != NULL) sprintf(lines[1], "%s", g_Alarm);
   }
-  else if (g_BurnState == "STATE_FIRESTART") {
+  else if (g_BurnState == STATE_FIRESTART) {
     sprintf(lines[0], "ROZPAL #%d", g_burnCycleNum);
   }
-  else if (g_BurnState == "STATE_OFF") {
+  else if (g_BurnState == STATE_OFF) {
     sprintf(lines[0], "STANDBY");
   }
 }
@@ -880,6 +880,8 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Automat rozpal", VAR_ADVANCED, &g_CurrentConfig.FireStartMode, 0, 2, printUint8, adjustUint8, copyU8, commitConfig},
   {"Cykle rozpalania", VAR_ADVANCED, &g_CurrentConfig.NumFireStartCycles, 0, 20, printUint8, adjustUint8, copyU8, commitConfig},
   {"Zapalarka S max", VAR_ADVANCED, &g_CurrentConfig.HeaterMaxRunTimeS, 0, 250, printUint8, adjustUint8, copyU8, commitConfig}, 
+  {"Rozp sp st/min", VAR_ADVANCED, &g_CurrentConfig.FireDetExhDt10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
+  {"Rozp sp>CO", VAR_ADVANCED, &g_CurrentConfig.FireDetTempD10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
   
   
   

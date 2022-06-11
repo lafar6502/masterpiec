@@ -14,8 +14,8 @@
 void initializeBurningLoop() {
   g_TargetTemp = g_CurrentConfig.TCO;
   g_HomeThermostatOn = true;
-  TSTATE startState = g_CurrentConfig.FireStartMode == 2 ? STATE_FIRESTART : STATE_P0;
-  forceState(STATE_P0);
+  TSTATE startState = g_CurrentConfig.FireStartMode == 2 ? STATE_FIRESTART : STATE_OFF;
+  forceState(startState);
 }
 
 
@@ -171,6 +171,7 @@ void simpleLinReg(float* x, float* y, float* lrCoef, int n)
 
 float CalcLinearRegression(CircularBuffer<TReading>* buf, int nPoints, const TReading* pLast) {
 
+  
     float sum_x=0;
     float sum_y=0;
     float sum_xy=0;
@@ -347,7 +348,8 @@ void setManualControlMode(bool b)
   if (!b) {
 	g_ManualState = STATE_UNDEFINED;
     if (g_BurnState == STATE_STOP) {
-      forceState(STATE_P0);
+      TSTATE startState = g_CurrentConfig.FireStartMode == 2 ? STATE_FIRESTART : STATE_OFF;
+      forceState(startState);
     }
   }
   else {
@@ -791,6 +793,12 @@ bool cond_D_belowTargetTempAndNeedHeat() {
   return false;
 }
 
+bool cond_D_belowTargetTempAndNeedHeatAndAutoAllowed() {
+  if (g_CurrentConfig.FireStartMode != 2) return false;
+  return cond_D_belowTargetTempAndNeedHeat();
+  
+}
+
 bool cond_cycleEnded() {
   return _reductionStateEndMs <= millis();
 }
@@ -905,18 +913,45 @@ bool cond_targetTempReachedAndHeatingNotNeeded() {
 
 //detect if fire has started in automatic fire start mode
 bool cond_firestartIsBurning() {
-  if (g_lastExhaustReads.GetCount() < 4) return false;
-  float d = g_TempSpaliny - g_TempCO;
+  if (g_lastExhaustReads.GetCount() <= 4) return false;
+
+  unsigned long tRun = millis() - g_CurStateStart;
+  int nSt = tRun / 30000;
+  
   float d2 = g_dTExhLong;
-  if (d > 10.0 && d2 > 0.1) {
-    return true;
+
+  float crate = g_CurrentConfig.FireDetExhDt10 / 10.0;
+  float ctd = g_CurrentConfig.FireDetTempD10 / 10.0;
+  float d = 0.0;
+  
+  nSt = nSt > g_lastExhaustReads.GetCount() ? g_lastExhaustReads.GetCount() : nSt;
+
+  if (nSt >= 4) {
+    TReading* pr = g_lastExhaustReads.GetAt(-nSt);
+    d = g_TempSpaliny - pr->Val;
   }
-  else if (d > 3.0 && d2 > 2.0) {
-    return true;
+  if (ctd > 0) {
+    if (d >= ctd) {
+      Serial.print("FIRE: d:");
+      Serial.println(d);
+      return true;
+    }
   }
-  else if (d > 0 && d2 > 4.0) {
-    return true;
+
+  if (crate > 0 && d2 >= crate && d > 0) {
+    Serial.print("FIRE: dt:");
+      Serial.println(d2);
+      return true;
   }
+  
+  return false;
+}
+
+//verify if fire is no longer burning
+//this can only be detected in work cycles
+bool cond_fireIsNotBurning() {
+  if (g_lastExhaustReads.GetCount() <= 5) return false;
+
   return false;
 }
 
@@ -1022,7 +1057,10 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_FIRESTART, STATE_P2, cond_fireBurningAndBelowTargetTemp, NULL}, 
   {STATE_FIRESTART, STATE_P1, cond_firestartIsBurning, NULL},
   {STATE_FIRESTART, STATE_ALARM, cond_firestartTimeout, NULL}, //failed to start fire
+  {STATE_OFF, STATE_FIRESTART, cond_D_belowTargetTempAndNeedHeatAndAutoAllowed, NULL},
+
   {STATE_OFF, STATE_ALARM, NULL, NULL},
+  
   {STATE_UNDEFINED, STATE_UNDEFINED, NULL, NULL} //sentinel
 };
 
