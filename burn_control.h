@@ -164,6 +164,7 @@ extern float g_dTExh; //delta exhaust temp
 extern float g_dTExhLong;
 extern uint8_t g_ReductionsToP0; //reductions P1 -> P0 or P2 -> P0 which we dont ave 
 extern uint8_t g_ReductionsToP1; //reductions P2 -> P1
+extern uint16_t g_burnCycleNum; //nr cyklu spalania w biez stanie
 
 extern TSTATE g_BurnState;  //aktualny stan grzania
 extern bool   g_HomeThermostatOn;  //true - termostat pokojowy kazał zaprzestać grzania

@@ -230,13 +230,13 @@ void processSensorValues() {
   //g_dTExh = CalcDtPerMinute(&g_lastExhaustReads, 2, &nw);
   //g_dTExhLong = CalcDtPerMinute(&g_lastExhaustReads, 6, NULL);
   g_dTExh = CalcLinearRegression(&g_lastExhaustReads, 3, &nw);
-  g_dTExhLong = CalcLinearRegression(&g_lastExhaustReads, 6, &nw);
+  g_dTExhLong = CalcLinearRegression(&g_lastExhaustReads, g_lastExhaustReads.GetCount() < 7 ? g_lastExhaustReads.GetCount() - 1 : 6, &nw);
   
   nw.Val = g_TempCO;
   //g_dTl3 = CalcDtPerMinute(&g_lastCOReads, 1, &nw);
   //g_dT60 =  CalcDtPerMinute(&g_lastCOReads, 3, &nw);
   g_dTl3 = CalcLinearRegression(&g_lastCOReads, 3, &nw);
-  g_dTExhLong = CalcLinearRegression(&g_lastCOReads, 6, &nw);
+  g_dTExhLong = CalcLinearRegression(&g_lastCOReads, g_lastCOReads.GetCount() < 7 ? g_lastCOReads.GetCount() - 1 : 6, &nw);
   
   //g_dT60 = calcDT60();
   //g_dTExh = calcDT2(&g_lastExhaustReads, 2, g_TempSpaliny);
@@ -933,6 +933,14 @@ bool cond_firestartTimeout() {
   return false;
 }
 
+//check: we are in P0 and we need to shut the burner down
+bool cond_shouldGoToStandby() {
+  if (g_CurrentConfig.FireStartMode != 1 && g_CurrentConfig.FireStartMode != 2) return false;
+  if (g_needHeat != NEED_HEAT_NONE) return false;
+  if (g_burnCycleNum < 5) return false;
+  return true;
+}
+
 void onSwitchToReduction(int trans) {
   assert(g_BurnState == STATE_P1 || g_BurnState == STATE_P2);
   unsigned long t = millis();
@@ -975,7 +983,7 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_P0, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
   {STATE_P0, STATE_P2, cond_willFallBelowHysteresisSoon, NULL}, //temp is dropping fast, we need heat -> P2
   {STATE_P0, STATE_P1, cond_D_belowTargetTempAndNeedHeat, NULL},
-  {STATE_P0, STATE_OFF, NULL, NULL}, //wygaszenie
+  {STATE_P0, STATE_OFF, cond_shouldGoToStandby, NULL}, //wygaszenie
   
   {STATE_P1, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction}, //E. P1 -> P0
   {STATE_P1, STATE_REDUCE1, cond_targetTempReachedAndHeatingNotNeeded, onSwitchToReduction}, //F. P1 -> P0

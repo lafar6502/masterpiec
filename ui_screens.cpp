@@ -98,6 +98,12 @@ void scrBurnInfo(uint8_t idx, char* lines[]) {
     sprintf(lines[0], "ALARM");
     if (g_Alarm != NULL) sprintf(lines[1], "%s", g_Alarm);
   }
+  else if (g_BurnState == "STATE_FIRESTART") {
+    sprintf(lines[0], "ROZPAL #%d", g_burnCycleNum);
+  }
+  else if (g_BurnState == "STATE_OFF") {
+    sprintf(lines[0], "STANDBY");
+  }
 }
 
 uint16_t findNextView(uint16_t currentView, bool increment, bool (*f)(uint16_t))
