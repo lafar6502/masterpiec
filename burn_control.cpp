@@ -145,6 +145,60 @@ float CalcDtPerMinute( CircularBuffer<TReading> *buf, int nSamplesBack, const TR
     return deriv2;
 }
 
+void simpleLinReg(float* x, float* y, float* lrCoef, int n)
+{
+    float sum_x=0;
+    float sum_y=0;
+    float sum_xy=0;
+    float sum_xx=0;
+// pass x and y arrays (pointers), lrCoef pointer, and n. The lrCoef array is comprised of the slope=lrCoef[0] and intercept=lrCoef[1]. n is length of the x and y arrays.
+// http://en.wikipedia.org/wiki/Simple_linear_regression
+    
+    // calculations required for linear regression
+    for (int i=0; i<n; i++)
+    {
+    sum_x = sum_x+x[i];
+    sum_y = sum_y+y[i];
+    sum_xy = sum_xy+x[i]*y[i];
+    sum_xx = sum_xx+x[i]*x[i];
+    }
+    
+    // simple linear regression algorithm
+    lrCoef[0]=(n*sum_xy-sum_x*sum_y)/(n*sum_xx-sum_x*sum_x);
+    lrCoef[1]=(sum_y/n)-((lrCoef[0]*sum_x)/n);
+}
+
+float CalcLinearRegression(CircularBuffer<TReading>* buf, int nPoints, const TReading* pLast) {
+
+    float sum_x=0;
+    float sum_y=0;
+    float sum_xy=0;
+    float sum_xx=0;
+
+    int nR = pLast == NULL ? nPoints : nPoints - 1;
+    if (nR > buf->GetCount()) nR = buf->GetCount();
+    unsigned long b0 = buf->GetAt(-nR)->Ms;
+    for (int i=-nR; i<0; i++) {
+      const TReading* p = buf->GetAt(i);
+      float x = (p->Ms - b0) / 60000.0;
+      sum_x += x;
+      sum_y += p->Val;
+      sum_xy += x * p->Val;
+      sum_xx += x*x;
+    }
+    if (pLast != NULL) {
+      float x = (pLast->Ms - b0) / 60000.0;
+      sum_x += x;
+      sum_y += pLast->Val;
+      sum_xy += x * pLast->Val;
+      sum_xx += x*x;
+      nR += 1;
+    }
+    float coef0=(nR*sum_xy-sum_x*sum_y)/(nR*sum_xx-sum_x*sum_x);
+    float coef1=(sum_y/nR)-((coef0*sum_x)/nR);
+    return coef0;
+}
+
 void processSensorValues() {
   g_TempCO = getLastDallasValue(TSENS_BOILER);
   g_TempCWU = getLastDallasValue(TSENS_CWU);
@@ -172,12 +226,17 @@ void processSensorValues() {
   TReading nw;
   nw.Ms = ms;
   nw.Val = g_TempSpaliny;
-  g_dTExh = CalcDtPerMinute(&g_lastExhaustReads, 2, &nw);
-  g_dTExhLong = CalcDtPerMinute(&g_lastExhaustReads, 6, NULL);
+  //g_dTExh = CalcDtPerMinute(&g_lastExhaustReads, 2, &nw);
+  //g_dTExhLong = CalcDtPerMinute(&g_lastExhaustReads, 6, NULL);
+  g_dTExh = CalcLinearRegression(&g_lastExhaustReads, 3, &nw);
+  g_dTExhLong = CalcLinearRegression(&g_lastExhaustReads, 6, &nw);
   
   nw.Val = g_TempCO;
-  g_dTl3 = CalcDtPerMinute(&g_lastCOReads, 1, &nw);
-  g_dT60 =  CalcDtPerMinute(&g_lastCOReads, 3, &nw);
+  //g_dTl3 = CalcDtPerMinute(&g_lastCOReads, 1, &nw);
+  //g_dT60 =  CalcDtPerMinute(&g_lastCOReads, 3, &nw);
+  g_dTl3 = CalcLinearRegression(&g_lastCOReads, 3, &nw);
+  g_dTExhLong = CalcLinearRegression(&g_lastCOReads, 6, &nw);
+  
   //g_dT60 = calcDT60();
   //g_dTExh = calcDT2(&g_lastExhaustReads, 2, g_TempSpaliny);
   //g_dT60 = calcDT2(&g_lastCOReads, 2, g_TempCO);
