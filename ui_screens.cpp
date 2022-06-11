@@ -100,6 +100,7 @@ void scrBurnInfo(uint8_t idx, char* lines[]) {
   }
   else if (g_BurnState == STATE_FIRESTART) {
     sprintf(lines[0], "ROZPAL #%d", g_burnCycleNum);
+    sprintf(lines[1], "dEx:%f dCO:%f", g_InitialTempExh - g_TempSpaliny, g_InitialTempCO - g_TempCO);
   }
   else if (g_BurnState == STATE_OFF) {
     sprintf(lines[0], "STANDBY");

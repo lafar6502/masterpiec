@@ -163,6 +163,9 @@ extern float g_dT60; //delta temp in 1 minute
 extern float g_dTl3; //delta temp in last 3 changes
 extern float g_dTExh; //delta exhaust temp
 extern float g_dTExhLong;
+extern float g_InitialTempCO;
+extern float g_InitialTempExh;
+
 extern uint8_t g_ReductionsToP0; //reductions P1 -> P0 or P2 -> P0 which we dont ave 
 extern uint8_t g_ReductionsToP1; //reductions P2 -> P1
 extern uint16_t g_burnCycleNum; //nr cyklu spalania w biez stanie

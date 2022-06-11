@@ -26,6 +26,8 @@ float g_TempPowrot = 0.0;  //akt. temp. powrotu
 float g_TempSpaliny = 0.0; //akt. temp. spalin
 float g_TempFeeder = 0.1;
 float g_TempBurner = 0;
+float g_InitialTempCO = 0;
+float g_InitialTempExh = 0;
 TSTATE g_BurnState = STATE_UNDEFINED;  //aktualny stan grzania
 TSTATE g_ManualState = STATE_UNDEFINED; //wymuszony ręcznie stan (STATE_UNDEFINED: brak wymuszenia)
 CWSTATE g_CWState = CWSTATE_OK; //current cw status
@@ -330,6 +332,8 @@ void burningProc()
         g_CurStateStart = t;
         g_initialNeedHeat = g_needHeat;
         g_CurBurnCycleStart = g_CurStateStart;
+        g_InitialTempCO = g_TempCO;
+        g_InitialTempExh = g_TempSpaliny;
         g_BurnCyclesBelowMinTemp = 0;
         if (BURN_STATES[g_BurnState].fInitialize != NULL) BURN_STATES[g_BurnState].fInitialize(BURN_TRANSITIONS[i].From);
         return;    
@@ -445,6 +449,8 @@ void workStateInitialize(TSTATE prev) {
   Serial.print(F("Burn init, cycle: "));
   Serial.println(g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec);
   setHeater(false);
+  g_InitialTempCO = g_TempCO;
+  g_InitialTempExh = g_TempSpaliny;
 }
 
 //przejscie do stanu recznego
@@ -456,6 +462,8 @@ void stopStateInitialize(TSTATE prev) {
   g_CurStateStart = millis();
   g_initialNeedHeat = g_needHeat;
   g_CurBurnCycleStart = g_CurStateStart;
+  g_InitialTempCO = g_TempCO;
+  g_InitialTempExh = g_TempSpaliny;
 }
 
 ///pętla palenia dla stanu pracy
@@ -496,6 +504,8 @@ void firestartStateInit(TSTATE prev) {
   g_burnCycleNum = 0;
   g_BurnCyclesBelowMinTemp = 0;
   curStateMaxTempCO = g_TempCO;
+  g_InitialTempCO = g_TempCO;
+  g_InitialTempExh = g_TempSpaliny;
   uint8_t bp = g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower;
   setBlowerPower(bp, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
   if (bp > 0) {
@@ -509,6 +519,8 @@ void firestartStateLoop() {
 	workStateBurnLoop();
   uint8_t bp = getCurrentBlowerPower();
   setHeater(bp > 0 ? true : false);
+  if (g_TempCO < g_InitialTempCO) g_InitialTempCO = g_TempCO;
+  if (g_TempSpaliny < g_InitialTempExh) g_InitialTempExh = g_TempSpaliny;
 }
 
 void offStateInit(TSTATE prev) {
@@ -516,6 +528,8 @@ void offStateInit(TSTATE prev) {
   g_CurStateStart = millis();
   g_initialNeedHeat = g_needHeat;
   g_CurBurnCycleStart = g_CurStateStart;
+  g_InitialTempCO = g_TempCO;
+  g_InitialTempExh = g_TempSpaliny;
   setHeater(false);  
 }
 
@@ -536,6 +550,8 @@ void reductionStateInit(TSTATE prev) {
   g_CurStateStart = millis();
   g_initialNeedHeat = g_needHeat;
   g_CurBurnCycleStart = g_CurStateStart;
+  g_InitialTempCO = g_TempCO;
+  g_InitialTempExh = g_TempSpaliny;
   unsigned long adj = _reductionStateEndMs; //remaining time from P2 or P1
   
   _reductionStateEndMs = (unsigned long) g_CurrentConfig.BurnConfigs[prev].CycleSec * 1000L;
@@ -570,6 +586,8 @@ void podtrzymanieStateInitialize(TSTATE prev) {
   g_CurBurnCycleStart = g_CurStateStart;
   g_initialNeedHeat = g_needHeat;
   g_burnCycleNum = 0;
+  g_InitialTempCO = g_TempCO;
+  g_InitialTempExh = g_TempSpaliny;
   setBlowerPower(0);
   setFeederOff();
   setHeater(false);
@@ -913,23 +931,14 @@ bool cond_targetTempReachedAndHeatingNotNeeded() {
 
 //detect if fire has started in automatic fire start mode
 bool cond_firestartIsBurning() {
-  if (g_lastExhaustReads.GetCount() <= 4) return false;
-
-  unsigned long tRun = millis() - g_CurStateStart;
-  int nSt = tRun / 30000;
   
-  float d2 = g_dTExhLong;
-
+  unsigned long tRun = millis() - g_CurStateStart;
+  if (tRun < 30000) return false;
+  
   float crate = g_CurrentConfig.FireDetExhDt10 / 10.0;
   float ctd = g_CurrentConfig.FireDetTempD10 / 10.0;
-  float d = 0.0;
+  float d = g_TempSpaliny  - g_InitialTempExh;
   
-  nSt = nSt > g_lastExhaustReads.GetCount() ? g_lastExhaustReads.GetCount() : nSt;
-
-  if (nSt >= 4) {
-    TReading* pr = g_lastExhaustReads.GetAt(-nSt);
-    d = g_TempSpaliny - pr->Val;
-  }
   if (ctd > 0) {
     if (d >= ctd) {
       Serial.print("FIRE: d:");
@@ -938,11 +947,7 @@ bool cond_firestartIsBurning() {
     }
   }
 
-  if (crate > 0 && d2 >= crate && d > 0) {
-    Serial.print("FIRE: dt:");
-      Serial.println(d2);
-      return true;
-  }
+
   
   return false;
 }
