@@ -37,21 +37,21 @@ template<class T> class CircularBuffer
       return _buf[t0];
     }
 
-    uint16_t GetCount() {
+    uint16_t GetCount() const {
       return _head >= _tail ? _head - _tail : _head - _tail + _bufLen;
     }
 
-    const T* GetFirst() {
+    const T* GetFirst() const {
       if (_head == _tail) return NULL;
       return _buf + _tail;
     }
     
-    const T* GetLast() {
+    const T* GetLast() const {
       if (_head == _tail) return NULL;
       return _buf + (_head > 0 ? _head - 1 : _head - 1 + _bufLen);
     }
 
-    const T* GetAt(int16_t idx) {
+    const T* GetAt(int16_t idx) const {
       if (_head == _tail) return NULL;
       if (idx >= 0) {
         uint16_t f = _tail + idx;

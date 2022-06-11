@@ -61,6 +61,7 @@ void setAlarm(const char* txt) {
 float g_dT60; //1-minute temp delta
 float g_dTl3; //last 3 readings diff
 float g_dTExh; //1-min temp delta for exhaust
+float g_dTExhLong; //3-5 min delta for exhaust
 
 float interpolate(const TReading& r1, const TReading& r2, unsigned long t0) {
   float tdT = r2.Val - r1.Val;
@@ -124,6 +125,26 @@ float calcDT2(const CircularBuffer<TReading>* buf, int stepsBack, float curVal) 
   return dt == 0 ? 0 : dv / dt;
 }
 
+///calculate delta per minute, for given number of samples to look back
+float CalcDtPerMinute( CircularBuffer<TReading> *buf, int nSamplesBack, const TReading* pLast) {
+    if (pLast == NULL) nSamplesBack += 1;
+    if (nSamplesBack > buf->GetCount()) nSamplesBack = buf->GetCount();
+    if (nSamplesBack <= 1) return 0;
+    if (pLast == NULL) pLast = buf->GetAt(-1);
+    nSamplesBack = -nSamplesBack;
+    const TReading* pv = buf->GetAt(nSamplesBack);
+    
+    float dv = pLast->Val - pv->Val;
+    unsigned int dt = pLast->Ms - pv->Ms;
+    //printf("  sample %d t:%d v:%f, dv: %f, dt:%d\n", nSamplesBack, pv->Ms, pv->Val, dv, dt);
+    if (dt == 0) {
+        return 0;
+    }    
+    float deriv = dv / (dt / 1000);
+    float deriv2 = deriv * 60;
+    return deriv2;
+}
+
 void processSensorValues() {
   g_TempCO = getLastDallasValue(TSENS_BOILER);
   g_TempCWU = getLastDallasValue(TSENS_CWU);
@@ -147,14 +168,23 @@ void processSensorValues() {
   {
     g_lastCOReads.Enqueue({ms, g_TempCO});
   }
+
+  TReading nw;
+  nw.Ms = ms;
+  nw.Val = g_TempSpaliny;
+  g_dTExh = CalcDtPerMinute(&g_lastExhaustReads, 2, &nw);
+  g_dTExhLong = CalcDtPerMinute(&g_lastExhaustReads, 6, NULL);
   
+  nw.Val = g_TempCO;
+  g_dTl3 = CalcDtPerMinute(&g_lastCOReads, 1, &nw);
+  g_dT60 =  CalcDtPerMinute(&g_lastCOReads, 3, &nw);
   //g_dT60 = calcDT60();
-  g_dTExh = calcDT2(&g_lastExhaustReads, 2, g_TempSpaliny);
-  g_dT60 = calcDT2(&g_lastCOReads, 2, g_TempCO);
+  //g_dTExh = calcDT2(&g_lastExhaustReads, 2, g_TempSpaliny);
+  //g_dT60 = calcDT2(&g_lastCOReads, 2, g_TempCO);
   
-  TReading* pr = g_lastCOReads.GetCount() >= 4 ? g_lastCOReads.GetAt(-3) : NULL; //discard the first read
-  if (g_lastCOReads.GetFirst()->Ms > (ms - 15000L)) pr = NULL;
-  g_dTl3 = pr != NULL ? (g_TempCO - pr->Val) * 60.0 * 1000.0 / (ms - pr->Ms) : 0.0;
+  //TReading* pr = g_lastCOReads.GetCount() >= 4 ? g_lastCOReads.GetAt(-3) : NULL; //discard the first read
+  //if (g_lastCOReads.GetFirst()->Ms > (ms - 15000L)) pr = NULL;
+  //g_dTl3 = pr != NULL ? (g_TempCO - pr->Val) * 60.0 * 1000.0 / (ms - pr->Ms) : 0.0;
 }
 
 
@@ -816,9 +846,17 @@ bool cond_firestartIsBurning() {
 bool cond_firestartTimeout() {
   if (g_BurnState != STATE_FIRESTART) return false;
   if (g_CurrentConfig.FirestartTimeoutMin10 == 0) return false;
+  unsigned long lim = g_CurrentConfig.FirestartTimeoutMin10 * 100L * 60;
   unsigned long t = millis() - g_CurStateStart;
-  if (t <= g_CurrentConfig.FirestartTimeoutMin10 * 6 * 1000) return false;
+  if (t <= lim) return false;
+  
   g_Alarm = "Rozpal";
+  Serial.print("rozpal lim:");
+  Serial.print(lim);
+  Serial.print("/");
+  Serial.print(g_CurrentConfig.FirestartTimeoutMin10);
+  Serial.print(", t:");
+  Serial.println(t);
   return true;
 }
 

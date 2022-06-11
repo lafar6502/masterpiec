@@ -65,8 +65,8 @@ void scrSensors3(uint8_t idx, char* lines[] ) {
   dtostrf(g_TempSpaliny - g_TempCO, 3, 1, buf1);
   dtostrf(g_dTExh,3, 1, buf2);
   sprintf(lines[0], "E:%s dS:%s", buf1, buf2);
-  dtostrf(g_dT60,3, 1, buf2);
-  sprintf(lines[1], "dT60:%s", buf2);
+  dtostrf(g_dTExhLong,3, 1, buf2);
+  sprintf(lines[1], "dSL:%s", buf2);
 }
 
 extern unsigned long _reductionStateEndMs; //burn control
@@ -871,7 +871,8 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Dmuchawa Max", VAR_ADVANCED, &g_CurrentConfig.BlowerMax, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   {"Kg/h podajnik", VAR_ADVANCED, &g_CurrentConfig.FuelGrH, 0, 60000, printUint16_1000, adjustUint16, copyU16, commitConfig},
   {"MJ/Kg opal", VAR_ADVANCED, &g_CurrentConfig.FuelHeatValueMJ10, 0, 500, printUint16_10, adjustUint16, copyU16, commitConfig},
-  
+  {"Czas rozpal m", VAR_ADVANCED, &g_CurrentConfig.FirestartTimeoutMin10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig},
+  {"Zapalarka S max", VAR_ADVANCED, &g_CurrentConfig.HeaterMaxRunTimeS, 0, 250, printUint8, adjustUint8, copyU8, commitConfig}, 
   
   
   
