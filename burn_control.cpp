@@ -14,6 +14,7 @@
 void initializeBurningLoop() {
   g_TargetTemp = g_CurrentConfig.TCO;
   g_HomeThermostatOn = true;
+  TSTATE startState = g_CurrentConfig.FireStartMode == 2 ? STATE_FIRESTART : STATE_P0;
   forceState(STATE_P0);
 }
 
@@ -566,6 +567,7 @@ void podtrzymanieStateInitialize(TSTATE prev) {
   g_CurStateStart = millis();
   g_CurBurnCycleStart = g_CurStateStart;
   g_initialNeedHeat = g_needHeat;
+  g_burnCycleNum = 0;
   setBlowerPower(0);
   setFeederOff();
   setHeater(false);
@@ -601,6 +603,7 @@ void podtrzymanieStateLoop() {
   {
     g_CurBurnCycleStart = tNow;
     cycleNum++;
+    g_burnCycleNum++;
   }
   setHeater(false);
 }
