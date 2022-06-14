@@ -62,11 +62,12 @@ void scrSensors2(uint8_t idx, char* lines[] ) {
 
 void scrSensors3(uint8_t idx, char* lines[] ) {
   char buf1[10], buf2[10];
+  dtostrf(g_TempSpaliny - g_InitialTempExh, 3, 1, buf1);
+  dtostrf(g_TempCO - g_InitialTempCO,3, 1, buf2);
+  sprintf(lines[0], "WSp:%s WCo:%s", buf1, buf2);
   dtostrf(g_TempSpaliny - g_TempCO, 3, 1, buf1);
   dtostrf(g_dTExh,3, 1, buf2);
-  sprintf(lines[0], "E:%s dS:%s", buf1, buf2);
-  dtostrf(g_dTExhLong,3, 1, buf2);
-  sprintf(lines[1], "dSL:%s", buf2);
+  sprintf(lines[1], "SPCo:%s dE:%s", buf1, buf2);
 }
 
 extern unsigned long _reductionStateEndMs; //burn control
@@ -100,7 +101,7 @@ void scrBurnInfo(uint8_t idx, char* lines[]) {
   }
   else if (g_BurnState == STATE_FIRESTART) {
     sprintf(lines[0], "ROZPAL #%d", g_burnCycleNum);
-    sprintf(lines[1], "dEx:%f dCO:%f", g_InitialTempExh - g_TempSpaliny, g_InitialTempCO - g_TempCO);
+    sprintf(lines[1], "dEx:%f dCO:%f", g_TempSpaliny - g_InitialTempExh, g_TempCO - g_InitialTempCO);
   }
   else if (g_BurnState == STATE_OFF) {
     sprintf(lines[0], "STANDBY");
@@ -873,7 +874,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"DeltaCWU", VAR_ADVANCED, &g_CurrentConfig.TDeltaCWU, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
   {"Tryb letni", VAR_ADVANCED, &g_CurrentConfig.SummerMode, 0, 1, printBool, adjustBool, copyBool, commitConfig},
   {"Max T podajnika", VAR_ADVANCED, &g_CurrentConfig.FeederTempLimit, 0, 200, printUint8, adjustUint8, copyU8, commitConfig}, 
-  {"Wygasniecie po", VAR_ADVANCED, &g_CurrentConfig.NoHeatAlarmCycles, 0, 30, printUint8, adjustUint8, copyU8, commitConfig}, 
+  {"Wygasniecie po", VAR_ADVANCED, &g_CurrentConfig.NoHeatAlarmCycles, 0, 60, printUint8, adjustUint8, copyU8, commitConfig}, 
   {"Dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.DefaultBlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   {"Dmuchawa Max", VAR_ADVANCED, &g_CurrentConfig.BlowerMax, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   {"Kg/h podajnik", VAR_ADVANCED, &g_CurrentConfig.FuelGrH, 0, 60000, printUint16_1000, adjustUint16, copyU16, commitConfig},
@@ -881,8 +882,9 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Automat rozpal", VAR_ADVANCED, &g_CurrentConfig.FireStartMode, 0, 2, printUint8, adjustUint8, copyU8, commitConfig},
   {"Cykle rozpalania", VAR_ADVANCED, &g_CurrentConfig.NumFireStartCycles, 0, 20, printUint8, adjustUint8, copyU8, commitConfig},
   {"Zapalarka S max", VAR_ADVANCED, &g_CurrentConfig.HeaterMaxRunTimeS, 0, 250, printUint8, adjustUint8, copyU8, commitConfig}, 
-  {"Rozp sp st/min", VAR_ADVANCED, &g_CurrentConfig.FireDetExhDt10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
-  {"Rozp sp>CO", VAR_ADVANCED, &g_CurrentConfig.FireDetTempD10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
+  {"Rozp st nad CO", VAR_ADVANCED, &g_CurrentConfig.FireDetExhDt10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
+  {"Rozp wzrost TSp", VAR_ADVANCED, &g_CurrentConfig.FireDetExhIncrD10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
+  {"Rozp wzrost TCo", VAR_ADVANCED, &g_CurrentConfig.FireDetCOIncr10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
   
   
   

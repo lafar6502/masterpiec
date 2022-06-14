@@ -36,7 +36,19 @@ void setup() {
   initializeMax6675Sensors();
   initializeBlowerControl();
   loggingInit();
-  Serial.println("inited the hardware");
+  Serial.print("Hw inited. Time:");
+  Serial.print(RTC.yyyy);
+  Serial.print('-');
+  Serial.print(RTC.mm);
+  Serial.print('-');
+  Serial.print(RTC.dd);
+  Serial.print('T');
+  Serial.print(RTC.h);
+  Serial.print(':');
+  Serial.println(RTC.m);
+  Serial.print("CFG size:");
+  Serial.println(sizeof(TControlConfiguration));  
+
   updateDallasSensorAssignmentFromConfig();
   initializeBurningLoop();
 

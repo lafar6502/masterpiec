@@ -64,7 +64,6 @@ void setAlarm(const char* txt) {
 float g_dT60; //1-minute temp delta
 float g_dTl3; //last 3 readings diff
 float g_dTExh; //1-min temp delta for exhaust
-float g_dTExhLong; //3-5 min delta for exhaust
 
 float interpolate(const TReading& r1, const TReading& r2, unsigned long t0) {
   float tdT = r2.Val - r1.Val;
@@ -128,25 +127,6 @@ float calcDT2(const CircularBuffer<TReading>* buf, int stepsBack, float curVal) 
   return dt == 0 ? 0 : dv / dt;
 }
 
-///calculate delta per minute, for given number of samples to look back
-float CalcDtPerMinute( CircularBuffer<TReading> *buf, int nSamplesBack, const TReading* pLast) {
-    if (pLast == NULL) nSamplesBack += 1;
-    if (nSamplesBack > buf->GetCount()) nSamplesBack = buf->GetCount();
-    if (nSamplesBack <= 1) return 0;
-    if (pLast == NULL) pLast = buf->GetAt(-1);
-    nSamplesBack = -nSamplesBack;
-    const TReading* pv = buf->GetAt(nSamplesBack);
-    
-    float dv = pLast->Val - pv->Val;
-    unsigned int dt = pLast->Ms - pv->Ms;
-    //printf("  sample %d t:%d v:%f, dv: %f, dt:%d\n", nSamplesBack, pv->Ms, pv->Val, dv, dt);
-    if (dt == 0) {
-        return 0;
-    }    
-    float deriv = dv / (dt / 1000);
-    float deriv2 = deriv * 60;
-    return deriv2;
-}
 
 void simpleLinReg(float* x, float* y, float* lrCoef, int n)
 {
@@ -233,21 +213,14 @@ void processSensorValues() {
   //g_dTExh = CalcDtPerMinute(&g_lastExhaustReads, 2, &nw);
   //g_dTExhLong = CalcDtPerMinute(&g_lastExhaustReads, 6, NULL);
   g_dTExh = CalcLinearRegression(&g_lastExhaustReads, 3, &nw);
-  g_dTExhLong = CalcLinearRegression(&g_lastExhaustReads, g_lastExhaustReads.GetCount() < 7 ? g_lastExhaustReads.GetCount() - 1 : 6, &nw);
-  
+
   nw.Val = g_TempCO;
   //g_dTl3 = CalcDtPerMinute(&g_lastCOReads, 1, &nw);
   //g_dT60 =  CalcDtPerMinute(&g_lastCOReads, 3, &nw);
   g_dTl3 = CalcLinearRegression(&g_lastCOReads, 3, &nw);
-  g_dTExhLong = CalcLinearRegression(&g_lastCOReads, g_lastCOReads.GetCount() < 7 ? g_lastCOReads.GetCount() - 1 : 6, &nw);
+  g_dT60 = CalcLinearRegression(&g_lastCOReads, g_lastCOReads.GetCount() < 7 ? g_lastCOReads.GetCount() - 1 : 6, &nw);
   
-  //g_dT60 = calcDT60();
-  //g_dTExh = calcDT2(&g_lastExhaustReads, 2, g_TempSpaliny);
-  //g_dT60 = calcDT2(&g_lastCOReads, 2, g_TempCO);
   
-  //TReading* pr = g_lastCOReads.GetCount() >= 4 ? g_lastCOReads.GetAt(-3) : NULL; //discard the first read
-  //if (g_lastCOReads.GetFirst()->Ms > (ms - 15000L)) pr = NULL;
-  //g_dTl3 = pr != NULL ? (g_TempCO - pr->Val) * 60.0 * 1000.0 / (ms - pr->Ms) : 0.0;
 }
 
 
@@ -758,7 +731,9 @@ bool isAlarm_feederOnFire() {
   }
   return false;
 }
-
+//no heating - fire went out, fuel run out, other
+//in P1 temp is supposed to drop and so exhaust temp will drop as well, even if the fire is burning all the time
+//so how we detect? 
 bool isAlarm_NoHeating() {
   //only for automatic heating cycles P1 P2
   if (g_BurnState != STATE_P1 && g_BurnState != STATE_P2) return false;
@@ -933,20 +908,37 @@ bool cond_targetTempReachedAndHeatingNotNeeded() {
 bool cond_firestartIsBurning() {
   
   unsigned long tRun = millis() - g_CurStateStart;
-  if (tRun < 30000) return false;
+  if (tRun < 40000) return false;
   
   float crate = g_CurrentConfig.FireDetExhDt10 / 10.0;
-  float ctd = g_CurrentConfig.FireDetTempD10 / 10.0;
+  float ctd = g_CurrentConfig.FireDetExhIncrD10 / 10.0;
+  float ctd2 = g_CurrentConfig.FireDetCOIncr10 / 10.0;
   float d = g_TempSpaliny  - g_InitialTempExh;
+  float e = g_TempCO - g_InitialTempCO;
+  float f = g_TempSpaliny - g_TempCO;
   
   if (ctd > 0) {
-    if (d >= ctd) {
+    if (d >= ctd || (g_dTExh > 0.5 && d + g_dTExh > ctd)) {
       Serial.print("FIRE: d:");
       Serial.println(d);
       return true;
     }
   }
 
+  if (ctd2 > 0 && e >= ctd2) {
+    Serial.print("FIRE2: e:");
+    Serial.println(e);
+    return true;
+  }
+  
+  
+  if (crate > 0 && g_TempCO > g_CurrentConfig.TMinPomp && tRun >= 180000) { //3 min
+      if (f >= crate) {
+        Serial.print("FIRE3: f:");
+        Serial.println(f);  
+        return true;
+      }
+  }
 
   
   return false;

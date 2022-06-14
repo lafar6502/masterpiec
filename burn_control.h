@@ -88,8 +88,9 @@ typedef struct ControlConfiguration {
   uint8_t NumFireStartCycles; //automatic firestart timeout in minutes * 10 (250 = 25 minutes). After that time we conclude 'failed to start fire' if not detected earlier
   uint8_t HeaterMaxRunTimeS; //maximum run time of the heater. If exceeded, heater will be turned off for the duration of one cycle (of STATE_FIRESTART)
   uint8_t FireDetExhDt10; //rate of exhaust temp increase to confirm ignition - divide this v by 10
-  uint8_t FireDetTempD10; //diff between co temp and exh temp - param 2. if zero - not used.
-  uint8_t _future[8];
+  uint8_t FireDetExhIncrD10; //how much has exh temp to increase
+  uint8_t FireDetCOIncr10; //how much has CO temp to increase
+  uint8_t _future[7];
 } TControlConfiguration;
 
 //bieżąca konfiguracja pieca

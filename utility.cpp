@@ -270,7 +270,14 @@ void sdLoggingTask() {
   df.print(g_pumpCWURunMs);
   df.print('\t');
   df.print(g_pumpCircRunMs);
-  
+  df.print('\t');
+  printFloat(g_TempSpaliny-g_InitialTempExh, df);
+  df.print('\t');
+  printFloat(g_dTExh, df);
+  df.print('\t');
+  printFloat(g_TempCO-g_InitialTempCO, df);
+  df.print('\t');
+  df.print(isHeaterOn());
   df.println();
   df.close();
 }
