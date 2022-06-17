@@ -14,7 +14,7 @@
 void initializeBurningLoop() {
   g_TargetTemp = g_CurrentConfig.TCO;
   g_HomeThermostatOn = true;
-  TSTATE startState = g_CurrentConfig.FireStartMode == 2 ? STATE_FIRESTART : STATE_OFF;
+  TSTATE startState = g_CurrentConfig.FireStartMode == 2 ? STATE_FIRESTART : STATE_P0;
   forceState(startState);
 }
 
@@ -35,6 +35,7 @@ HEATNEED g_needHeat = NEED_HEAT_NONE; //0, 1 or 2
 HEATNEED g_initialNeedHeat = NEED_HEAT_NONE; //heat needs at the beginning of current state
 uint16_t g_burnCycleNum = 0; //number of burning cycles in current state
 bool   g_HomeThermostatOn = true;  //true - termostat pokojowy kazał zaprzestać grzania
+bool g_overrideBurning = false; //set to true to have system think fire is started
 float g_TempZewn = 0.0; //aktualna temp. zewn
 char* g_Alarm;
 unsigned long g_P1Time = 0;
@@ -325,7 +326,7 @@ void setManualControlMode(bool b)
   if (!b) {
 	g_ManualState = STATE_UNDEFINED;
     if (g_BurnState == STATE_STOP) {
-      TSTATE startState = g_CurrentConfig.FireStartMode == 2 ? STATE_FIRESTART : STATE_OFF;
+      TSTATE startState = g_CurrentConfig.FireStartMode == 2 ? STATE_FIRESTART : STATE_P0;
       forceState(startState);
     }
   }
@@ -479,6 +480,7 @@ void firestartStateInit(TSTATE prev) {
   curStateMaxTempCO = g_TempCO;
   g_InitialTempCO = g_TempCO;
   g_InitialTempExh = g_TempSpaliny;
+  g_overrideBurning = false;
   uint8_t bp = g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower;
   setBlowerPower(bp, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
   if (bp > 0) {
@@ -561,6 +563,7 @@ void podtrzymanieStateInitialize(TSTATE prev) {
   g_burnCycleNum = 0;
   g_InitialTempCO = g_TempCO;
   g_InitialTempExh = g_TempSpaliny;
+  g_overrideBurning = false;
   setBlowerPower(0);
   setFeederOff();
   setHeater(false);
@@ -731,14 +734,73 @@ bool isAlarm_feederOnFire() {
   }
   return false;
 }
+
+
+//detect if fire has started in automatic fire start mode
+bool cond_firestartIsBurning() {
+  
+  unsigned long tRun = millis() - g_CurStateStart;
+  if (tRun < 40000) return false;
+  
+  float crate = g_CurrentConfig.FireDetExhDt10 / 10.0;
+  float ctd = g_CurrentConfig.FireDetExhIncrD10 / 10.0;
+  float ctd2 = g_CurrentConfig.FireDetCOIncr10 / 10.0;
+  float d = g_TempSpaliny  - g_InitialTempExh;
+  float e = g_TempCO - g_InitialTempCO;
+  float f = g_TempSpaliny - g_TempCO;
+  
+  if (ctd > 0) {
+    if (d >= ctd || (g_dTExh > 0.5 && d + g_dTExh > ctd)) {
+      Serial.print("FIRE: d:");
+      Serial.println(d);
+      return true;
+    }
+  }
+
+  if (ctd2 > 0 && e >= ctd2) {
+    Serial.print("FIRE2: e:");
+    Serial.println(e);
+    return true;
+  }
+  
+  
+  if (crate > 0 && g_TempCO > g_CurrentConfig.TMinPomp && tRun >= 180000) { //3 min
+      if (f >= crate) {
+        Serial.print("FIRE3: f:");
+        Serial.println(f);  
+        return true;
+      }
+  }
+
+  
+  return false;
+}
+
+bool cond_noHeating() {
+  if (g_BurnState != STATE_P1 && g_BurnState != STATE_P2 && g_BurnState != STATE_FIRESTART) return false;
+  if (cond_firestartIsBurning()) return false;
+  //in P1 temperature is expected to go down, both exhaust and boiler water, so we cant use temp growth
+  if (g_CurrentConfig.NoHeatAlarmCycles == 0) return false; // no detection
+  if (g_TempCO > g_CurrentConfig.TMinPomp) return false; //if above the min temp we dont detect 'fire extinct'
+  if (cond_firestartIsBurning()) return false;
+  if (g_BurnCyclesBelowMinTemp > g_CurrentConfig.NoHeatAlarmCycles)
+  {
+    //g_Alarm = "Wygaslo";
+    return true;
+  }
+  return false;
+}
+
 //no heating - fire went out, fuel run out, other
 //in P1 temp is supposed to drop and so exhaust temp will drop as well, even if the fire is burning all the time
 //so how we detect? 
 bool isAlarm_NoHeating() {
+  if (g_CurrentConfig.FireStartMode == 2) return false;
   //only for automatic heating cycles P1 P2
   if (g_BurnState != STATE_P1 && g_BurnState != STATE_P2) return false;
   if (g_CurrentConfig.NoHeatAlarmCycles == 0) return false; // no detection
   if (g_TempCO > g_CurrentConfig.TMinPomp) return false; //if above the min temp we dont detect 'fire extinct'
+  if (cond_firestartIsBurning()) return false;
   if (g_BurnCyclesBelowMinTemp > g_CurrentConfig.NoHeatAlarmCycles)
   {
     g_Alarm = "Wygaslo";
@@ -750,7 +812,6 @@ bool isAlarm_NoHeating() {
 bool isAlarm_Any() {
   return isAlarm_HardwareProblem() || isAlarm_Overheat() || isAlarm_NoHeating() || isAlarm_feederOnFire();
 }
-
 
 
 void alarmStateInitialize(TSTATE prev) {
@@ -904,45 +965,7 @@ bool cond_targetTempReachedAndHeatingNotNeeded() {
   return g_TempCO >= g_TargetTemp && g_needHeat == NEED_HEAT_NONE;
 }
 
-//detect if fire has started in automatic fire start mode
-bool cond_firestartIsBurning() {
-  
-  unsigned long tRun = millis() - g_CurStateStart;
-  if (tRun < 40000) return false;
-  
-  float crate = g_CurrentConfig.FireDetExhDt10 / 10.0;
-  float ctd = g_CurrentConfig.FireDetExhIncrD10 / 10.0;
-  float ctd2 = g_CurrentConfig.FireDetCOIncr10 / 10.0;
-  float d = g_TempSpaliny  - g_InitialTempExh;
-  float e = g_TempCO - g_InitialTempCO;
-  float f = g_TempSpaliny - g_TempCO;
-  
-  if (ctd > 0) {
-    if (d >= ctd || (g_dTExh > 0.5 && d + g_dTExh > ctd)) {
-      Serial.print("FIRE: d:");
-      Serial.println(d);
-      return true;
-    }
-  }
 
-  if (ctd2 > 0 && e >= ctd2) {
-    Serial.print("FIRE2: e:");
-    Serial.println(e);
-    return true;
-  }
-  
-  
-  if (crate > 0 && g_TempCO > g_CurrentConfig.TMinPomp && tRun >= 180000) { //3 min
-      if (f >= crate) {
-        Serial.print("FIRE3: f:");
-        Serial.println(f);  
-        return true;
-      }
-  }
-
-  
-  return false;
-}
 
 //verify if fire is no longer burning
 //this can only be detected in work cycles
@@ -963,6 +986,10 @@ bool cond_firestartTimeout() {
     return true;
   }
   return false;
+}
+
+bool cond_firestartOverride() {
+  return g_overrideBurning;
 }
 
 //check: we are in P0 and we need to shut the burner down
@@ -1053,6 +1080,7 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_FIRESTART, STATE_ALARM, NULL, NULL},
   {STATE_FIRESTART, STATE_P2, cond_fireBurningAndBelowTargetTemp, NULL}, 
   {STATE_FIRESTART, STATE_P1, cond_firestartIsBurning, NULL},
+  {STATE_FIRESTART, STATE_P0, cond_firestartOverride, NULL},
   {STATE_FIRESTART, STATE_ALARM, cond_firestartTimeout, NULL}, //failed to start fire
   {STATE_OFF, STATE_FIRESTART, cond_D_belowTargetTempAndNeedHeatAndAutoAllowed, NULL},
 

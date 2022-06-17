@@ -50,10 +50,17 @@ void setup() {
   Serial.println(sizeof(TControlConfiguration));  
 
   updateDallasSensorAssignmentFromConfig();
-  initializeBurningLoop();
+  
 
   changeUIState('0');
-  delay(1000);
+  updateView();
+  for(int i=0;i<3;i++) {
+    delay(500);
+    refreshSensorReadings();
+    delay(500);
+    processSensorValues();
+  }
+  initializeBurningLoop();
 }
 
 

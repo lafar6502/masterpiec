@@ -136,6 +136,9 @@ void setAlarm(const char* txt);
 
 void forceState(TSTATE st);
 
+void processSensorValues();
+
+
 extern const TBurnTransition  BURN_TRANSITIONS[];
 extern const TBurnStateConfig BURN_STATES[];
 extern const uint8_t N_BURN_TRANSITIONS;
