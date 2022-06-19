@@ -16,8 +16,15 @@
 #define CFG_SLOT_SIZE 200 //200 bytes
 #define AFTER_CONFIG_STORAGE (MAX_CFG_SLOTS * CFG_SLOT_SIZE) + 8
 
-uint8_t g_CurrentConfigSlot = 0;
 
+TDeviceConfiguration defaultDevConfig() {
+  return {
+    0x6502, //Magic
+    0, //settings bank
+    {}, //dallas
+    13 //default blower cycle
+  };
+}
 
 TControlConfiguration defaultConfig() {
   return {
@@ -73,6 +80,7 @@ TControlConfiguration defaultConfig() {
 }
 
 TControlConfiguration g_CurrentConfig = defaultConfig();
+TDeviceConfiguration g_DeviceConfig = defaultDevConfig();
 
 TDailyLogEntry g_DailyLogEntries[DAILY_LOG_ENTRIES];
 

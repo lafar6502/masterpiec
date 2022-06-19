@@ -156,7 +156,7 @@ void updateDallasSensorAssignmentFromConfig() {
   char buf[20];
   
   for(uint8_t i=0; i<8; i++) {
-    uint8_t*p = g_CurrentConfig.DallasAddress[i];
+    uint8_t*p = g_DeviceConfig.DallasAddress[i];
     if (memcmp(p, zbuf, 8) == 0) continue;
     
     if (!ensureDallasSensorAtIndex(i, p)) {

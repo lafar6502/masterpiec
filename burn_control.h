@@ -51,6 +51,13 @@ typedef struct ControlConfigProfile {
 	TBurnParams BurnConfigs[MAX_POWER_STATES];
 } TControlConfigProfile;
 
+typedef struct DeviceConfiguration {
+  uint16_t Magic; //should always be 0x6502
+  uint8_t  SettingsBank;
+  uint8_t DallasAddress[8][8]; //dallas sensor addresses. if zero - sensor not present
+  uint8_t DefaultBlowerCycle;  
+} TDeviceConfiguration;
+
 //zestaw ustawień pieca (aktualna konfiguracja). Nie zawiera bieżących wartości.
 typedef struct ControlConfiguration {
   uint16_t Magic; //should always be 0x6502
@@ -68,8 +75,6 @@ typedef struct ControlConfiguration {
   bool    SummerMode; //tryb letni
   
   TBurnParams BurnConfigs[MAX_POWER_STATES]; //first one [0] is the podtrzymanie
-  uint8_t DallasAddress[8][8]; //dallas sensor addresses. if zero - sensor not present
-  uint8_t DefaultBlowerCycle;
   uint8_t FeederTempLimit;
   uint8_t NoHeatAlarmCycles; //time needed to deterimine if we have the fire
   uint8_t EnableThermostat; //0 or 1
@@ -91,11 +96,11 @@ typedef struct ControlConfiguration {
   uint8_t FireDetExhIncrD10; //how much has exh temp to increase
   uint8_t FireDetCOIncr10; //how much has CO temp to increase
   uint8_t P0CyclesBeforeStandby;
-  uint8_t _future[6];
 } TControlConfiguration;
 
 //bieżąca konfiguracja pieca
 extern TControlConfiguration g_CurrentConfig;
+extern TDeviceConfiguration g_DeviceConfig;
 
 typedef struct BurnTransition {
   TSTATE From;

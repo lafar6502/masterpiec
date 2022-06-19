@@ -355,7 +355,7 @@ void workStateInitialize(TSTATE prev) {
   g_BurnCyclesBelowMinTemp = 0;
   curStateMaxTempCO = g_TempCO;
   g_burnCycleNum = 0;
-  setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
+  setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_DeviceConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
   Serial.print(F("Burn init, cycle: "));
   Serial.println(g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec);
   setHeater(false);
@@ -397,7 +397,7 @@ void workStateBurnLoop() {
   if (tNow >= g_CurBurnCycleStart + burnCycleLen) 
   {
     g_CurBurnCycleStart = millis(); //next burn cycle
-    setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
+    setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_DeviceConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
     g_BurnCyclesBelowMinTemp = g_TempCO <= g_CurrentConfig.TMinPomp ? g_BurnCyclesBelowMinTemp + 1 : 0;
     g_burnCycleNum++;
   }
@@ -418,7 +418,7 @@ void firestartStateInit(TSTATE prev) {
   g_InitialTempExh = g_TempSpaliny;
   g_overrideBurning = false;
   uint8_t bp = g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower;
-  setBlowerPower(bp, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
+  setBlowerPower(bp, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_DeviceConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
   if (bp > 0) {
     setHeater(true);
   }
@@ -468,7 +468,7 @@ void reductionStateInit(TSTATE prev) {
   _reductionStateEndMs = (unsigned long) g_CurrentConfig.BurnConfigs[prev].CycleSec * 1000L;
   if (prev == STATE_P2) adj += ((unsigned long) g_CurrentConfig.ReductionP2ExtraTime * (unsigned long) g_CurrentConfig.BurnConfigs[prev].CycleSec * 10L); // * 1000 / 100;
   _reductionStateEndMs = g_CurStateStart + _reductionStateEndMs + adj; //
-  setBlowerPower(g_CurrentConfig.BurnConfigs[prev].BlowerPower, g_CurrentConfig.BurnConfigs[prev].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[prev].BlowerCycle);
+  setBlowerPower(g_CurrentConfig.BurnConfigs[prev].BlowerPower, g_CurrentConfig.BurnConfigs[prev].BlowerCycle == 0 ? g_DeviceConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[prev].BlowerCycle);
   setFeederOff();
   setHeater(false);
   Serial.print(F("red: cycle should end in "));
@@ -515,7 +515,7 @@ void podtrzymanieStateLoop() {
   
   if (tNow >= g_CurBurnCycleStart + blowerStart) 
   {
-    setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
+    setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_DeviceConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
   } 
   else 
   {

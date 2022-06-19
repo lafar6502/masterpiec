@@ -77,7 +77,7 @@ void scrBurnInfo(uint8_t idx, char* lines[]) {
   char zbuf[8];
   if (g_BurnState == STATE_P0 || g_BurnState == STATE_P1 || g_BurnState == STATE_P2)
   {
-    uint8_t cycle = g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_CurrentConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle;
+    uint8_t cycle = g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_DeviceConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle;
     unsigned long tt = (tnow - g_CurStateStart) / 1000L;
     uint8_t nh = needHeatingNow();
     float f2 = calculateHeatPowerFor(g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 / 10.0, g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec);
@@ -676,7 +676,7 @@ void printDallasInfo(uint8_t varIdx, void* editCopy, char* buf, bool parseString
     return;
   }
   if (editCopy == NULL) {
-    int idx2 = findDallasIndex(g_CurrentConfig.DallasAddress[idx]);
+    int idx2 = findDallasIndex(g_DeviceConfig.DallasAddress[idx]);
     if (idx2 < 0) 
       sprintf(buf, "%s", "-brak-");
     else
@@ -696,7 +696,7 @@ void* copyDallasInfo(uint8_t vIdx, void* pData, bool save)
   int idx = (int) UI_VARIABLES[vIdx].DataPtr;
   static int cidx;
   if (!save) {
-    int i2 = findDallasIndex(g_CurrentConfig.DallasAddress[idx]);
+    int i2 = findDallasIndex(g_DeviceConfig.DallasAddress[idx]);
     cidx = i2 >= 0 ? i2 : -1;
     return &cidx;
   } 
@@ -704,11 +704,11 @@ void* copyDallasInfo(uint8_t vIdx, void* pData, bool save)
   {
     if (cidx < 0 || cidx >= 8)
     {
-      memset(g_CurrentConfig.DallasAddress[idx], 0, 8);
+      memset(g_DeviceConfig.DallasAddress[idx], 0, 8);
     }
     else 
     {
-      getDallasAddress(cidx, g_CurrentConfig.DallasAddress[idx]);//copy to config
+      getDallasAddress(cidx, g_DeviceConfig.DallasAddress[idx]);//copy to config
       if (cidx != idx) swapDallasAddress(idx, cidx); //move the sensor info
     }
   }
@@ -804,6 +804,9 @@ void commitConfig(uint8_t varIdx) {
   eepromSaveConfig(g_CurrentConfigSlot);
 }
 
+void commitDevConfig(uint8_t varIdx) {
+  
+}
 
 
 void s_clearLogs(uint8_t varIdx) {
@@ -877,7 +880,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Tryb letni", VAR_ADVANCED, &g_CurrentConfig.SummerMode, 0, 1, printBool, adjustBool, copyBool, commitConfig},
   {"Max T podajnika", VAR_ADVANCED, &g_CurrentConfig.FeederTempLimit, 0, 200, printUint8, adjustUint8, copyU8, commitConfig}, 
   {"Wygasniecie po", VAR_ADVANCED, &g_CurrentConfig.NoHeatAlarmCycles, 0, 60, printUint8, adjustUint8, copyU8, commitConfig}, 
-  {"Dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.DefaultBlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {"Dmuchawa CZ", VAR_ADVANCED, &g_DeviceConfig.DefaultBlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitDevConfig},
   {"Dmuchawa Max", VAR_ADVANCED, &g_CurrentConfig.BlowerMax, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   {"Kg/h podajnik", VAR_ADVANCED, &g_CurrentConfig.FuelGrH, 0, 60000, printUint16_1000, adjustUint16, copyU16, commitConfig},
   {"MJ/Kg opal", VAR_ADVANCED, &g_CurrentConfig.FuelHeatValueMJ10, 0, 500, printUint16_10, adjustUint16, copyU16, commitConfig},
@@ -913,16 +916,16 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"RO dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
 
   
-  {"Czuj. CO", VAR_ADVANCED, TSENS_BOILER, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
-  {"Czuj. CWU", VAR_ADVANCED, TSENS_CWU, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
-  {"Czuj. podajnika", VAR_ADVANCED, TSENS_FEEDER, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
-  {"Czuj. powrotu",VAR_ADVANCED, TSENS_RETURN, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
-  {"Czuj. T zewn", VAR_ADVANCED, TSENS_EXTERNAL, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
-  {"Czuj. CWU 2",  VAR_ADVANCED, TSENS_CWU2, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
-  {"Czuj. dod #1", VAR_ADVANCED, TSENS_USR1, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
-  {"Czuj. dod #2", VAR_ADVANCED, TSENS_USR2, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitConfig},
+  {"Czuj. CO", VAR_ADVANCED, TSENS_BOILER, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
+  {"Czuj. CWU", VAR_ADVANCED, TSENS_CWU, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
+  {"Czuj. podajnika", VAR_ADVANCED, TSENS_FEEDER, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
+  {"Czuj. powrotu",VAR_ADVANCED, TSENS_RETURN, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
+  {"Czuj. T zewn", VAR_ADVANCED, TSENS_EXTERNAL, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
+  {"Czuj. CWU 2",  VAR_ADVANCED, TSENS_CWU2, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
+  //{"Czuj. dod #1", VAR_ADVANCED, TSENS_USR1, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
+  //{"Czuj. dod #2", VAR_ADVANCED, TSENS_USR2, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
   {"Wyczysc log", VAR_ADVANCED, NULL, 0, 1, printVBoolSwitch, adjustBool, copyVBoolSwitch, s_clearLogs},
-  {"Zestaw ustawien", VAR_ADVANCED, &g_CurrentConfigSlot, 0, 2, printUint8, adjustUint8, copyU8, updateConfigSlotNr},
+  {"Zestaw ustawien", VAR_ADVANCED, &g_DeviceConfig.SettingsBank, 0, 2, printUint8, adjustUint8, copyU8, updateConfigSlotNr},
   {"Ust.zaawansowane", VAR_IMMEDIATE, 'W', 0, 1, NULL, adjustUIState, NULL, NULL},
   {"Logi", VAR_IMMEDIATE, 'L', 0, 1, NULL, adjustUIState, NULL, NULL},
   {"Wyjdz", VAR_IMMEDIATE, '0', 0, 1, NULL, adjustUIState, NULL, NULL},
