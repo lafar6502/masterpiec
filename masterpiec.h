@@ -20,8 +20,8 @@ void resetConfig();
 
 
 void readInitialConfig();
-void updateConfigSlotNr();
+///save g_DeviceConfig to eeprom
+void updateDeviceConfig();
 
-extern uint8_t g_CurrentConfigSlot;
 
 #endif

@@ -801,11 +801,11 @@ void commitTime(void* p) {
 };
 
 void commitConfig(uint8_t varIdx) {
-  eepromSaveConfig(g_CurrentConfigSlot);
+  eepromSaveConfig(g_DeviceConfig.SettingsBank);
 }
 
 void commitDevConfig(uint8_t varIdx) {
-  
+  updateDeviceConfig();
 }
 
 
@@ -925,7 +925,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   //{"Czuj. dod #1", VAR_ADVANCED, TSENS_USR1, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
   //{"Czuj. dod #2", VAR_ADVANCED, TSENS_USR2, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
   {"Wyczysc log", VAR_ADVANCED, NULL, 0, 1, printVBoolSwitch, adjustBool, copyVBoolSwitch, s_clearLogs},
-  {"Zestaw ustawien", VAR_ADVANCED, &g_DeviceConfig.SettingsBank, 0, 2, printUint8, adjustUint8, copyU8, updateConfigSlotNr},
+  {"Zestaw ustawien", VAR_ADVANCED, &g_DeviceConfig.SettingsBank, 0, 2, printUint8, adjustUint8, copyU8, commitDevConfig},
   {"Ust.zaawansowane", VAR_IMMEDIATE, 'W', 0, 1, NULL, adjustUIState, NULL, NULL},
   {"Logi", VAR_IMMEDIATE, 'L', 0, 1, NULL, adjustUIState, NULL, NULL},
   {"Wyjdz", VAR_IMMEDIATE, '0', 0, 1, NULL, adjustUIState, NULL, NULL},

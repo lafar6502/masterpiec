@@ -13,7 +13,6 @@
 #endif
 
 #define MAX_CFG_SLOTS 4
-#define CFG_SLOT_SIZE 200 //200 bytes
 #define AFTER_CONFIG_STORAGE (MAX_CFG_SLOTS * CFG_SLOT_SIZE) + 8
 
 
@@ -28,19 +27,19 @@ TDeviceConfiguration defaultDevConfig() {
 
 TControlConfiguration defaultConfig() {
   return {
-    0x6502,
-    50, //co
-    48, //cwu1
-    0,  //cwu2
-    35, //min pomp
-    3,  //cwu hist
-    3,  //co hist
-    5,  //co delta
-    3,  //cwu delta
-    30, //czas dmuchawy w P0
-    3,  //cykl podawania wegla w P0
-    false, //tryb letni
-    false, //termostat
+    0x6502, // Magic; //should always be 0x6502
+    50,     // TCO; //co temp 
+    50,    //TCWU;  //cwu temp
+    0, //uint8_t TCWU2; //cwu2 temp
+    44, //uint8_t TMinPomp; //minimum pump run temp.
+    6, //uint8_t THistCwu; //histereza cwu
+    6, //uint8_t THistCO;  //histereza co
+    5, //uint8_t TDeltaCO; //delta co - temp powyzej zadanej przy ktorej przejdzie w podtrzymanie
+    3, //uint8_t TDeltaCWU; //delta cwu - temp powyżej bojlera do ktorej rozgrzewamy piec
+    35, //uint8_t P0BlowerTime; //czas pracy dmuchawy w podtrzymaniu
+    2, // P0FuelFreq; //podawanie wegla co x cykli przedmuchu
+    false, // _HomeThermostat;
+    false, //SummerMode; //tryb letni
     {
       {
         5 * 60, //P0 - 5 min
@@ -50,32 +49,44 @@ TControlConfiguration defaultConfig() {
       },
       {
         60,  //P1 - 60 sec
+        4*10,
         20,
-        9,
-        7
+        0
       },
       {
-        42, //P2 - 42 sec
-        60,
+        60, //P2 - 42 sec
+        9 * 10,
         50,
-        7
+        0
+      },
+      {
+        150, //P2 - 42 sec
+        25 * 10,
+        50,
+        0
       }
-    },
-    {}, //dallas
-    5,   //DefaultBlowerCycle
-    100,  //feeder temp limit
-    8, //NoHeatAlarmTimeM
-    0,
-    20,
-    300, //cooloff pause m10
-    10000,
-    260,
-    COOLOFF_OVERHEAT, //cooloff mode
-    0, //FuelCorrection10; 
-    0, //CircCycleMin; 
-    0, //CircWorkTimeS10; 
-    20, //ReductionP2ExtraTime
-    100, //BlowerMax
+    }, //  TBurnParams BurnConfigs[MAX_POWER_STATES]; //first one [0] is the podtrzymanie
+    80, //uint8_t FeederTempLimit;
+    25, //uint8_t NoHeatAlarmCycles; //time needed to deterimine if we have the fire
+     0, //EnableThermostat; //0 or 1
+    2 * 10, //uint8_t CooloffTimeM10; //minutes * 10
+    3 * 10, // CooloffPauseM10; //minutes * 10
+    13100, // FuelGrH; //fuel grams per hour of feeder work. 10 kg=10000. 
+    200,  // FuelHeatValueMJ10; //fuel heat in MJ, * 10 (100 = 10MJ)
+      1, // CooloffMode; //0 - none
+      0, //  FuelCorrection; //0 - none, fuel feed correction %. value=20 => make feed time longer by 20%, value = -20 - make it shorter by 20%
+    60, //uint8_t CircCycleMin; //60, 30, 15, 10, 6
+    0, //CircWorkTimeS; //circ pump working time per cycle, sec*10 (10 = 100 sec)
+    30, //ReductionP2ExtraTime; //in %, how much % of the P2 cycle time to add for reduction (0 = just the P2 cycle, 10 = P2 cycle + 10%)
+    60, //BlowerMax; //Blower max value that will be our 100
+
+     0,  //FireStartMode; //0 - none, 1-auto off, 2 - auto on and off
+     3, // NumFireStartCycles; //automatic firestart timeout in minutes * 10 (250 = 25 minutes). After that time we conclude 'failed to start fire' if not detected earlier
+   120, // HeaterMaxRunTimeS; //maximum run time of the heater. If exceeded, heater will be turned off for the duration of one cycle (of STATE_FIRESTART)
+   5 * 10,  //FireDetExhDt10; //exhaust above co temp - times 10
+   5 * 10, //uint8_t FireDetExhIncrD10; //how much has exh temp to increase
+   5 * 10, //FireDetCOIncr10; //how much has CO temp to increase
+   3,      //P0CyclesBeforeStandby;
   };
 }
 
@@ -86,39 +97,47 @@ TDailyLogEntry g_DailyLogEntries[DAILY_LOG_ENTRIES];
 
 
 void readInitialConfig() {
-  EEPROM.get(0, g_CurrentConfigSlot);
-  eepromRestoreConfig(g_CurrentConfigSlot);
+  EEPROM.get(0, g_DeviceConfig);
+  if (g_DeviceConfig.Magic != 0x6502) {
+    Serial.print(F("Failed to restore device config - magic "));
+    Serial.println(g_DeviceConfig.Magic);
+    g_DeviceConfig = defaultDevConfig();
+  }
+  eepromRestoreConfig(g_DeviceConfig.SettingsBank);
+  memset(g_DailyLogEntries, 0, sizeof(g_DailyLogEntries)); 
 }
 
 
 ///save g_CurrentConfigSlot to eeprom so we read right config on next start
-void updateConfigSlotNr() {
-  EEPROM.put(0, g_CurrentConfigSlot);
+void updateDeviceConfig() {
+  g_DeviceConfig.Magic = 0x6502;
+  EEPROM.put(0, g_DeviceConfig);
 }
 
 //restore global configuration 
 //from a specified slot. 0 is the default slot
 bool eepromRestoreConfig(uint8_t configSlot) {
   uint16_t magic;
+  if (configSlot > MAX_CFG_SLOTS) return false;
   TControlConfiguration tmp;
-  EEPROM.get(configSlot * sizeof(TControlConfiguration), magic);
-  if (magic != 0x6502) {
-    Serial.print("Failed to read config - no magic in slot ");
+  EEPROM.get(DEV_CFG_SLOT_SIZE + configSlot * CFG_SLOT_SIZE, tmp);
+  if (tmp.Magic != 0x6502) {
+    Serial.print(F("Failed to read config - no magic in slot "));
     Serial.println(configSlot);
-    return false;
+    tmp = defaultConfig();
   }
-  EEPROM.get(configSlot * sizeof(TControlConfiguration), tmp);
   g_CurrentConfig = tmp;
-  Serial.print("Config restored from slot ");
+  Serial.print(F("Config restored from slot "));
   Serial.println(configSlot);
   return true;
 }
 
 //store current configuration in specified config slot
 void eepromSaveConfig(uint8_t configSlot) {
+  if (configSlot > MAX_CFG_SLOTS) return;
   g_CurrentConfig.Magic = 0x6502;
-  EEPROM.put(configSlot * sizeof(TControlConfiguration), g_CurrentConfig);
-  Serial.print("Config saved in slot ");
+  EEPROM.put(DEV_CFG_SLOT_SIZE + configSlot * CFG_SLOT_SIZE, g_CurrentConfig);
+  Serial.print(F("Config saved in slot "));
   Serial.println(configSlot);
 }
 
@@ -302,26 +321,6 @@ void sdLoggingTask() {
   df.close();
 }
 
-//d - day number 0..6
-void saveDailyLogEntry(uint8_t d) {
-    TDailyLogEntry de = g_DailyLogEntries[d];
-    EEPROM.put(DAILY_LOG_BASE + (d * sizeof(TDailyLogEntry)), g_DailyLogEntries[d]);
-    EEPROM.get(DAILY_LOG_BASE + (d * sizeof(TDailyLogEntry)), de);
-    Serial.print(F("log saved "));
-    Serial.print(d);
-    Serial.print(F(",feed="));
-    Serial.print(g_DailyLogEntries[d].FeederTotalSec);
-    Serial.print(F(",p1="));
-    Serial.print(g_DailyLogEntries[d].P1TotalSec2);
-    Serial.print(F(",p2="));
-    Serial.print(g_DailyLogEntries[d].P2TotalSec2);
-    Serial.print(F(",p0="));
-    Serial.println(g_DailyLogEntries[d].P0TotalSec2);
-    if (memcmp(&de, g_DailyLogEntries + d, sizeof(TDailyLogEntry)) != 0) {
-      Serial.print(d);
-      Serial.println(F("! log entry check fail !"));
-    }  
-}
 
 void loggingTask() {
   static unsigned long lastRun = 0;
@@ -332,16 +331,7 @@ void loggingTask() {
 
   sdLoggingTask();
   
-  if (pdow != d) {
-      EEPROM.put(DAILY_LOG_BASE + (pdow * sizeof(TDailyLogEntry)), g_DailyLogEntries[pdow]); //prev day - save
-      pdow = d;
-      resetLogEntry(d, true);
-  }
-  if (g_DailyLogEntries[d].MDay != RTC.mm) {
-    Serial.print(d);
-    Serial.print(F("! wrong mday:"));
-    Serial.println(g_DailyLogEntries[d].MDay);
-  }
+  
   g_DailyLogEntries[d].FeederTotalSec += g_FeederRunTime / 1000L;
   g_FeederRunTime = 0;
   g_DailyLogEntries[d].P1TotalSec2 += g_P1Time / 2000L; //2000 because number of secs is div by 2
@@ -351,14 +341,6 @@ void loggingTask() {
   g_DailyLogEntries[d].P0TotalSec2 += (g_P0Time / 2000L);
   g_P0Time = 0;
   
-  
-  if (t - lastRun > 15L * 60 * 1000 || g_PrevState != g_BurnState) //save every 15 m
-  {
-    lastRun = t;
-    g_PrevState = g_BurnState;
-    saveDailyLogEntry(d);
-  }
-
 }
 
 float calculateFuelWeightKg(unsigned long feederCycleSec) {

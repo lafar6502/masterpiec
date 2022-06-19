@@ -98,6 +98,8 @@ typedef struct ControlConfiguration {
   uint8_t P0CyclesBeforeStandby;
 } TControlConfiguration;
 
+#define CFG_SLOT_SIZE 140 //size of single config settings struct (with some extra space for future) - utility.cpp
+#define DEV_CFG_SLOT_SIZE 80// size of device config record in eeprom - utility.cpp
 //bieżąca konfiguracja pieca
 extern TControlConfiguration g_CurrentConfig;
 extern TDeviceConfiguration g_DeviceConfig;
