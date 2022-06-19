@@ -865,6 +865,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Temp.CWU2", 0, &g_CurrentConfig.TCWU2, 20, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {"Histereza CWU", 0, &g_CurrentConfig.THistCwu, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
   {"Korekta opalu%", 0, &g_CurrentConfig.FuelCorrection, -99, 99, printint8, adjustint8, copyU8, commitConfig},
+  {"Pomin rozpal", 0, &g_overrideBurning, 0, 1, printVBoolSwitch, adjustBool, NULL, NULL},
   
   {"Temp.min.pomp", VAR_ADVANCED, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {"Zewn. termostat", VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 1, printUint8AsBool, adjustUint8, NULL, commitConfig},

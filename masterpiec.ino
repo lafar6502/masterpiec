@@ -30,7 +30,7 @@ void setup() {
   RTC.readTime();
   // put your setup code here, to run once:
   readInitialConfig();
-  
+  g_CurrentUIView = 0;
   Serial.print("CFG size:");
   Serial.println(sizeof(TControlConfiguration));  
   if (sizeof(TControlConfiguration) > CFG_SLOT_SIZE) {
@@ -38,6 +38,7 @@ void setup() {
   }
   initializeEncoder();
   initializeDisplay();
+  updateView();
   initializeDallasSensors();
   initializeMax6675Sensors();
   initializeBlowerControl();
@@ -55,9 +56,6 @@ void setup() {
   
   updateDallasSensorAssignmentFromConfig();
   
-
-  changeUIState('0');
-  updateView();
   for(int i=0;i<3;i++) {
     delay(500);
     refreshSensorReadings();
@@ -65,6 +63,7 @@ void setup() {
     processSensorValues();
   }
   initializeBurningLoop();
+  changeUIState('0');
 }
 
 

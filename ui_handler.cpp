@@ -177,16 +177,25 @@ void updateView() {
       UI_SCREENS[g_CurrentUIView].UpdateView(g_CurrentUIView, g_DisplayBuf);
       eraseDisplayToEnd(g_DisplayBuf[0]);
       eraseDisplayToEnd(g_DisplayBuf[1]);
-      if (strncmp(g_DisplayBuf[0], g_DisplayBuf2[0], DISPLAY_TEXT_LEN) != 0 || strncmp(g_DisplayBuf[1], g_DisplayBuf2[1], DISPLAY_TEXT_LEN) != 0)
-      {
-        memcpy(g_DisplayBuf2[0], g_DisplayBuf[0], DISPLAY_TEXT_LEN+1);
-        memcpy(g_DisplayBuf2[1], g_DisplayBuf[1], DISPLAY_TEXT_LEN+1);
-        
-        lcd.setCursor(0,0);
-        lcd.print(g_DisplayBuf2[0]);
-        lcd.setCursor(0, 1);
-        lcd.print(g_DisplayBuf2[1]);
+      if (false) {
+        if (strncmp(g_DisplayBuf[0], g_DisplayBuf2[0], DISPLAY_TEXT_LEN) != 0 || strncmp(g_DisplayBuf[1], g_DisplayBuf2[1], DISPLAY_TEXT_LEN) != 0)
+        {
+          memcpy(g_DisplayBuf2[0], g_DisplayBuf[0], DISPLAY_TEXT_LEN+1);
+          memcpy(g_DisplayBuf2[1], g_DisplayBuf[1], DISPLAY_TEXT_LEN+1);
+          
+          lcd.setCursor(0,0);
+          lcd.print(g_DisplayBuf2[0]);
+          lcd.setCursor(0, 1);
+          lcd.print(g_DisplayBuf2[1]);
+        }  
       }
+      else {
+        lcd.setCursor(0,0);
+        lcd.print(g_DisplayBuf[0]);
+        lcd.setCursor(0, 1);
+        lcd.print(g_DisplayBuf[1]);
+      }
+      
       
     }
   }

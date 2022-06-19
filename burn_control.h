@@ -158,7 +158,7 @@ extern HEATNEED g_needHeat; //status variable: we need heating now (=cwu or co).
 extern unsigned long g_CurStateStart;
 extern float  g_CurStateStartTempCO; //temp pieca w momencie wejscia w bież. stan.
 extern unsigned long g_CurBurnCycleStart; //timestamp, w ms, w ktorym rozpoczelismy akt. cykl palenia
-
+extern bool g_overrideBurning;
 //
 // Globalne zmienne reprezentujące bieżący stan pieca, temperatury, dmuchawy itp
 // po to żeby np moduł UI mógł sobie je wyswietlać. 

@@ -385,7 +385,7 @@ void workStateBurnLoop() {
   //feeder time length
   unsigned long burnFeedLen = (unsigned long) g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 * (100L + g_CurrentConfig.FuelCorrection);
   
-  if (tNow < g_CurBurnCycleStart + burnFeedLen) 
+  if (tNow - g_CurBurnCycleStart < burnFeedLen) 
   {
     setFeederOn();
   }
@@ -394,9 +394,9 @@ void workStateBurnLoop() {
     setFeederOff();
   }
   if (g_TempCO > curStateMaxTempCO) curStateMaxTempCO = g_TempCO;
-  if (tNow >= g_CurBurnCycleStart + burnCycleLen) 
+  if (tNow - g_CurBurnCycleStart >= burnCycleLen) 
   {
-    g_CurBurnCycleStart = millis(); //next burn cycle
+    g_CurBurnCycleStart = tNow; //next burn cycle
     setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_DeviceConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
     g_BurnCyclesBelowMinTemp = g_TempCO <= g_CurrentConfig.TMinPomp ? g_BurnCyclesBelowMinTemp + 1 : 0;
     g_burnCycleNum++;
@@ -429,6 +429,9 @@ void firestartStateInit(TSTATE prev) {
 void firestartStateLoop() {
 	workStateBurnLoop();
   uint8_t bp = getCurrentBlowerPower();
+  unsigned long tRun = getHeaterRunningTimeMs();
+  
+  
   setHeater(bp > 0 ? true : false);
   if (g_TempCO < g_InitialTempCO) g_InitialTempCO = g_TempCO;
   if (g_TempSpaliny < g_InitialTempExh) g_InitialTempExh = g_TempSpaliny;
@@ -442,10 +445,14 @@ void offStateInit(TSTATE prev) {
   g_InitialTempCO = g_TempCO;
   g_InitialTempExh = g_TempSpaliny;
   setHeater(false);  
+  setBlowerPower(0);
+  setFeederOff();
 }
 
 void offStateLoop() {
   setHeater(false);
+  setBlowerPower(0);
+  setFeederOff();
 }
 
 
@@ -513,7 +520,7 @@ void podtrzymanieStateLoop() {
   unsigned long burnFeedLen = (unsigned long) g_CurrentConfig.BurnConfigs[STATE_P0].FuelSecT10 * (100L + g_CurrentConfig.FuelCorrection);
   unsigned long blowerStart = burnCycleLen - (unsigned long) g_CurrentConfig.P0BlowerTime * 1000L;
   
-  if (tNow >= g_CurBurnCycleStart + blowerStart) 
+  if (tNow - g_CurBurnCycleStart >= blowerStart) 
   {
     setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_DeviceConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
   } 
@@ -522,7 +529,7 @@ void podtrzymanieStateLoop() {
     setBlowerPower(0);
   }
 
-  if (tNow >= g_CurBurnCycleStart + blowerStart && tNow <= g_CurBurnCycleStart + blowerStart + burnFeedLen && (cycleNum % g_CurrentConfig.P0FuelFreq) == 0) 
+  if (tNow - g_CurBurnCycleStart >=  blowerStart && tNow - g_CurBurnCycleStart <= blowerStart + burnFeedLen && (cycleNum % g_CurrentConfig.P0FuelFreq) == 0) 
   {
     setFeederOn();
   } 
@@ -531,7 +538,7 @@ void podtrzymanieStateLoop() {
     setFeederOff();
   }
   
-  if (tNow >= g_CurBurnCycleStart + burnCycleLen) 
+  if (tNow - g_CurBurnCycleStart >= burnCycleLen) 
   {
     g_CurBurnCycleStart = tNow;
     cycleNum++;
@@ -543,7 +550,7 @@ void podtrzymanieStateLoop() {
 void manualStateLoop() {
   if (isHeaterOn()) {
     unsigned long t = getHeaterRunningTimeMs();
-    if (t > 3 * 60 * 1000) {
+    if (g_CurrentConfig.HeaterMaxRunTimeS != 0 && t > g_CurrentConfig.HeaterMaxRunTimeS * 1000) {
       setHeater(false);
     }
   }
@@ -718,7 +725,6 @@ bool cond_noHeating() {
   //in P1 temperature is expected to go down, both exhaust and boiler water, so we cant use temp growth
   if (g_CurrentConfig.NoHeatAlarmCycles == 0) return false; // no detection
   if (g_TempCO > g_CurrentConfig.TMinPomp) return false; //if above the min temp we dont detect 'fire extinct'
-  if (cond_firestartIsBurning()) return false;
   if (g_BurnCyclesBelowMinTemp > g_CurrentConfig.NoHeatAlarmCycles)
   {
     //g_Alarm = "Wygaslo";
@@ -732,17 +738,17 @@ bool cond_noHeating() {
 //so how we detect? 
 bool isAlarm_NoHeating() {
   if (g_CurrentConfig.FireStartMode == 2) return false;
-  //only for automatic heating cycles P1 P2
-  if (g_BurnState != STATE_P1 && g_BurnState != STATE_P2) return false;
-  if (g_CurrentConfig.NoHeatAlarmCycles == 0) return false; // no detection
-  if (g_TempCO > g_CurrentConfig.TMinPomp) return false; //if above the min temp we dont detect 'fire extinct'
-  if (cond_firestartIsBurning()) return false;
-  if (g_BurnCyclesBelowMinTemp > g_CurrentConfig.NoHeatAlarmCycles)
-  {
+  
+  if (cond_noHeating()) {
     g_Alarm = "Wygaslo";
     return true;
   }
   return false;
+}
+
+bool cond_noHeating_Firestart() {
+  if (g_CurrentConfig.FireStartMode != 2) return false;
+  return cond_noHeating();
 }
 
 bool isAlarm_Any() {
@@ -1004,6 +1010,8 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_REDUCE2, STATE_P2, cond_B_belowHysteresisAndNeedHeat, NULL},
   {STATE_REDUCE2, STATE_P1, cond_cycleEnded, onReductionCycleEnded},
   
+  {STATE_P2, STATE_FIRESTART, cond_noHeating_Firestart},
+  {STATE_P1, STATE_FIRESTART, cond_noHeating_Firestart},
   
   {STATE_P0, STATE_ALARM, isAlarm_Any, NULL},
   {STATE_P1, STATE_ALARM, isAlarm_Any, NULL},
@@ -1013,7 +1021,7 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_REDUCE1, STATE_ALARM, isAlarm_Any, NULL},
   {STATE_REDUCE2, STATE_ALARM, isAlarm_Any, NULL},
   {STATE_STOP, STATE_ALARM, NULL, NULL},
-  {STATE_FIRESTART, STATE_ALARM, NULL, NULL},
+  {STATE_FIRESTART, STATE_ALARM, isAlarm_Any, NULL},
   {STATE_FIRESTART, STATE_P2, cond_fireBurningAndBelowTargetTemp, NULL}, 
   {STATE_FIRESTART, STATE_P1, cond_firestartIsBurning, NULL},
   {STATE_FIRESTART, STATE_P0, cond_firestartOverride, NULL},
