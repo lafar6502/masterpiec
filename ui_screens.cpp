@@ -7,7 +7,7 @@
 #include "piec_sensors.h"
 
 uint16_t g_CurrentlyEditedVariable = 0;
-uint8_t g_CurrentUIState = 1;
+uint8_t g_CurrentUIState = 0;
 uint8_t g_CurrentUIView = 1;
 
 
@@ -824,7 +824,7 @@ const TUIStateEntry UI_STATES[] = {
     {'V', {.numV=0}, 3 ,stSelectVariableHandler, NULL},
     {'W', {.numV=1}, 3,stSelectVariableHandler, NULL},
     {'E', NULL, 4, stEditVariableHandler, NULL},
-    {'L', NULL, 8, stDailyLogsHandler, NULL}
+    {'L', NULL, 9, stDailyLogsHandler, NULL}
     
 };
 

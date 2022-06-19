@@ -54,7 +54,7 @@ typedef struct UIStateEntry {
   VarHolder Data;
   uint8_t DefaultView;
   void (*HandleEvent)(uint8_t event, uint8_t arg);
-  void (*UpdateView)();
+  void (*UpdateView_St)();
 } TUIStateEntry;
 
 typedef struct UIScreenEntry {

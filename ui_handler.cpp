@@ -164,10 +164,10 @@ void processUIEvent(uint8_t event, int8_t arg)
 void updateView() {
   
   //assert(g_CurrentUIState >= 0 && g_CurrentUIState < sizeof(UI_STATES) / sizeof(TUIStateEntry));
-  if (UI_STATES[g_CurrentUIState].UpdateView != NULL) 
+  if (UI_STATES[g_CurrentUIState].UpdateView_St != NULL) 
   {
     clearDipslayBuf();
-    UI_STATES[g_CurrentUIState].UpdateView();
+    UI_STATES[g_CurrentUIState].UpdateView_St();
   }
   else 
   {

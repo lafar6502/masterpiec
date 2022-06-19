@@ -30,7 +30,6 @@ void setup() {
   RTC.readTime();
   // put your setup code here, to run once:
   readInitialConfig();
-  g_CurrentUIView = 0;
   Serial.print("CFG size:");
   Serial.println(sizeof(TControlConfiguration));  
   if (sizeof(TControlConfiguration) > CFG_SLOT_SIZE) {
@@ -38,6 +37,7 @@ void setup() {
   }
   initializeEncoder();
   initializeDisplay();
+  g_CurrentUIView = 0;
   updateView();
   initializeDallasSensors();
   initializeMax6675Sensors();

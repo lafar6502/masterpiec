@@ -429,10 +429,12 @@ void firestartStateInit(TSTATE prev) {
 void firestartStateLoop() {
 	workStateBurnLoop();
   uint8_t bp = getCurrentBlowerPower();
-  unsigned long tRun = getHeaterRunningTimeMs();
   
-  
-  setHeater(bp > 0 ? true : false);
+  unsigned long t = millis() - g_CurStateStart;
+  int ht = g_CurrentConfig.HeaterMaxRunTimeS * 1000 + 30 * 1000;
+  int t2 = t % ht;
+  bool heater = bp > 0 && t2 <= g_CurrentConfig.HeaterMaxRunTimeS * 1000;
+  setHeater(heater);
   if (g_TempCO < g_InitialTempCO) g_InitialTempCO = g_TempCO;
   if (g_TempSpaliny < g_InitialTempExh) g_InitialTempExh = g_TempSpaliny;
 }
