@@ -18,7 +18,10 @@ void eepromResetConfig(uint8_t configSlot);
 //reset config to default, but dont save it in eeprom
 void resetConfig();
 
-void setupWebServer(); //external
-void webHandlingTask(); //external
+
+void readInitialConfig();
+void updateConfigSlotNr();
+
+extern uint8_t g_CurrentConfigSlot;
 
 #endif

@@ -13,9 +13,10 @@
 #endif
 
 #define MAX_CFG_SLOTS 4
-#define AFTER_CONFIG_STORAGE (MAX_CFG_SLOTS * sizeof(TControlConfiguration)) + 8
+#define CFG_SLOT_SIZE 200 //200 bytes
+#define AFTER_CONFIG_STORAGE (MAX_CFG_SLOTS * CFG_SLOT_SIZE) + 8
 
-
+uint8_t g_CurrentConfigSlot = 0;
 
 
 TControlConfiguration defaultConfig() {
@@ -75,6 +76,17 @@ TControlConfiguration g_CurrentConfig = defaultConfig();
 
 TDailyLogEntry g_DailyLogEntries[DAILY_LOG_ENTRIES];
 
+
+void readInitialConfig() {
+  EEPROM.get(0, g_CurrentConfigSlot);
+  eepromRestoreConfig(g_CurrentConfigSlot);
+}
+
+
+///save g_CurrentConfigSlot to eeprom so we read right config on next start
+void updateConfigSlotNr() {
+  EEPROM.put(0, g_CurrentConfigSlot);
+}
 
 //restore global configuration 
 //from a specified slot. 0 is the default slot

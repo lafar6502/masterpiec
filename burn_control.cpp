@@ -47,7 +47,6 @@ TReading lastExhaustTemperatures[11]; //every 30 sec => 5 minutes
 TIntReading lastBurnStates[11];
 CircularBuffer<TReading> g_lastCOReads(lastCOTemperatures, sizeof(lastCOTemperatures)/sizeof(TReading));
 CircularBuffer<TReading> g_lastExhaustReads(lastExhaustTemperatures, sizeof(lastExhaustTemperatures)/sizeof(TReading));
-CircularBuffer<TIntReading> g_lastBurnTransitions(lastBurnStates, sizeof(lastBurnStates)/sizeof(TIntReading));
 
 //czas wejscia w bieżący stan, ms
 unsigned long g_CurStateStart = 0;
@@ -66,67 +65,6 @@ float g_dT60; //1-minute temp delta
 float g_dTl3; //last 3 readings diff
 float g_dTExh; //1-min temp delta for exhaust
 
-float interpolate(const TReading& r1, const TReading& r2, unsigned long t0) {
-  float tdT = r2.Val - r1.Val;
-  unsigned long tm0 = r2.Ms - r1.Ms;
-  //printf("interpolate (%ld,%f), (%ld, %f) at %ld: dt is %ld\r\n", r1.Ms, r1.Val, r2.Ms, r2.Val, t0, tm0);
-  if (tm0==0) tm0 = 1;
-  float tx = r1.Val + tdT * (t0 - r1.Ms) / tm0; // (tdT / tm0) * ((t0 - r1.Ms) / tm0);
-  return tx;
-}
-
-float calcDT(const CircularBuffer<TReading>* buf, int dTSec, float curVal) {
-  unsigned long m = millis();
-  int i;
-  for (i = buf->GetCount() - 1; i >= 0; i--) {
-      if (m - buf->GetAt(i)->Ms >= dTSec * 1000) break;
-  }
-  if (i >= 0) {
-    const TReading* p1 = buf->GetAt(i);
-    const TReading* p2 = buf->GetLast();
-    if (p1->Ms == p2->Ms) return 0;
-    return (p2->Val - p1->Val);
-  }
-  return 0;
-}
-
-float calcDT60() {
-    unsigned long m  = millis();
-    unsigned long m2 = m - 60 * 1000;
-    TReading r2 {m, g_TempCO};
-    int i;
-    for (i = g_lastCOReads.GetCount() - 1; i >= 0; i--) {
-        if (g_lastCOReads.GetAt(i)->Ms < m2) break;
-    }
-    if (i >= 0) {
-        //printf("found reading at %d ms=%d, v=%f\r\n", i, g_reads.GetAt(i)->Ms, g_reads.GetAt(i)->Val);
-        const TReading& r1 = *g_lastCOReads.GetAt(i);
-        if (i < g_lastCOReads.GetCount() - 1) {
-          r2 = *g_lastCOReads.GetAt(i + 1); //next read
-        }
-        float newPoint = interpolate(r1, r2, m2);
-        float dx = (g_TempCO - newPoint);// * 1000 / (m - m2);
-        //now interpolate btw r and r2
-        return dx;
-    }
-    else {
-        //printf("did not find reading");
-        return 0;
-    }
-}
-
-float calcDT2(const CircularBuffer<TReading>* buf, int stepsBack, float curVal) {
-  uint8_t bc = buf->GetCount();
-  if (bc <= stepsBack) stepsBack = bc - 1;
-  if (stepsBack < 0) return 0;
-  const TReading* pr = buf->GetAt(-stepsBack);
-  const TReading* p2 = buf->GetLast();
-  unsigned long m = millis();
-  unsigned long deltaT = m - pr->Ms;
-  float dv = curVal - pr->Val;
-  float dt = (float) deltaT / (60*1000.0);  
-  return dt == 0 ? 0 : dv / dt;
-}
 
 
 void simpleLinReg(float* x, float* y, float* lrCoef, int n)
@@ -284,7 +222,6 @@ void burningProc()
         else if (g_BurnState == STATE_P0) 
           g_P0Time += (t - g_CurStateStart);
           
-        g_lastBurnTransitions.Enqueue({t - g_CurStateStart, i});
         Serial.print(F("BS: trans "));
         Serial.print(i);
         if (g_BurnState == STATE_P1) {
@@ -377,7 +314,6 @@ void forceState(TSTATE st) {
   else if (g_BurnState == STATE_P0) 
     g_P0Time += (t - g_CurStateStart);
     
-  g_lastBurnTransitions.Enqueue({t - g_CurStateStart, -g_BurnState});
   TSTATE old = g_BurnState;
   g_BurnState = st;
   g_CurStateStart = t;
@@ -996,7 +932,7 @@ bool cond_firestartOverride() {
 bool cond_shouldGoToStandby() {
   if (g_CurrentConfig.FireStartMode != 1 && g_CurrentConfig.FireStartMode != 2) return false;
   if (g_needHeat != NEED_HEAT_NONE) return false;
-  if (g_burnCycleNum < 5) return false;
+  if (g_burnCycleNum < g_CurrentConfig.P0CyclesBeforeStandby) return false;
   return true;
 }
 

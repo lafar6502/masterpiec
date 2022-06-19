@@ -90,7 +90,8 @@ typedef struct ControlConfiguration {
   uint8_t FireDetExhDt10; //rate of exhaust temp increase to confirm ignition - divide this v by 10
   uint8_t FireDetExhIncrD10; //how much has exh temp to increase
   uint8_t FireDetCOIncr10; //how much has CO temp to increase
-  uint8_t _future[7];
+  uint8_t P0CyclesBeforeStandby;
+  uint8_t _future[6];
 } TControlConfiguration;
 
 //bieżąca konfiguracja pieca
