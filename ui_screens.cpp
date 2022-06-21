@@ -1,4 +1,5 @@
 #include <arduino.h>
+#include <avr/pgmspace.h>
 #include "global_variables.h"
 #include "ui_handler.h"
 #include "boiler_control.h"
@@ -49,7 +50,7 @@ void scrSensors1(uint8_t idx, char* lines[] ) {
   dtostrf(g_TempSpaliny,3, 1, buf1);
   dtostrf(g_AirFlow, 3, 1, buf2);
   sprintf(lines[0], "TSpalin:%s", buf1);
-  sprintf(lines[1], "FloV:%s", buf2);
+  sprintf(lines[1], "Flow:%d", g_AirFlowNormal);
 }
 
 void scrSensors2(uint8_t idx, char* lines[] ) {
@@ -318,7 +319,8 @@ void scrSelectVariable(uint8_t idx, char* lines[])
 {
   const TUIStateEntry* ps = UI_STATES + g_CurrentUIState;
   const TUIVarEntry* pv = UI_VARIABLES + g_CurrentlyEditedVariable;
-  sprintf(lines[0], "%s", pv->Name);
+  strcpy_P(lines[0], pv->Name);
+  //sprintf(lines[0], "%s", pv->Name);
   sprintf(lines[1], "V:");
   if (pv->PrintTo != NULL) pv->PrintTo(g_CurrentlyEditedVariable, NULL, lines[1] + 2, false);
 }
@@ -327,7 +329,8 @@ void scrEditVariable(uint8_t idx, char* lines[])
 {
   const TUIStateEntry* ps = UI_STATES + g_CurrentUIState;
   const TUIVarEntry* pv = UI_VARIABLES + g_CurrentlyEditedVariable;
-  sprintf(lines[0], "<-%s->", pv->Name);
+  
+  sprintf_P(lines[0], "<-%S->", pv->Name);
   if (pv->PrintTo != NULL) pv->PrintTo(g_CurrentlyEditedVariable, g_editCopy, lines[1], false);
 }
 void printUint16_1000(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
@@ -341,6 +344,18 @@ void printUint16_1000(uint8_t varIdx, void* editCopy, char* buf, bool parseStrin
   char buf1[10];
   dtostrf(f,2, 2, buf1);
   strcpy(buf, buf1);
+}
+
+//print uint_8 value as percent (100% = 255)
+void printUint8_perc(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
+
+  uint8_t* pv = (uint8_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  if (parseString) {
+    if (pv == NULL) return;
+    *pv = (uint8_t) (atof(buf) * 2.55);
+    return;
+  }
+  sprintf(buf, "%f", (float) *pv / 2.55);
 }
 
 
@@ -812,7 +827,6 @@ void commitDevConfig(uint8_t varIdx) {
 
 
 void s_clearLogs(uint8_t varIdx) {
-  Serial.println(F("clr logs"));
   clearDailyLogs();
 }
 
@@ -847,96 +861,96 @@ const uint8_t N_UI_SCREENS = sizeof(UI_SCREENS) / sizeof(TUIScreenEntry);
 
 
 const TUIVarEntry UI_VARIABLES[] = {
-  {"Rok", VAR_ADVANCED, &RTC.yyyy, 2019, 3000, printUint16, adjustUint16, copyU16, queueCommitTime},
-  {"Miesiac", VAR_ADVANCED, &RTC.mm, 1, 12, printUint8, adjustUint8, copyU8, queueCommitTime},
-  {"Dzien", VAR_ADVANCED, &RTC.dd, 1, 31, printUint8, adjustUint8, copyU8, queueCommitTime},
-  {"Godzina", VAR_ADVANCED, &RTC.h, 1, 23, printUint8, adjustUint8, copyU8, queueCommitTime},
-  {"Minuta", VAR_ADVANCED, &RTC.m, 1, 59, printUint8, adjustUint8, copyU8, queueCommitTime},
+  {MPSTR("Rok"), VAR_ADVANCED, &RTC.yyyy, 2019, 3000, printUint16, adjustUint16, copyU16, queueCommitTime},
+  {MPSTR("Miesiac"), VAR_ADVANCED, &RTC.mm, 1, 12, printUint8, adjustUint8, copyU8, queueCommitTime},
+  {MPSTR("Dzien"), VAR_ADVANCED, &RTC.dd, 1, 31, printUint8, adjustUint8, copyU8, queueCommitTime},
+  {MPSTR("Godzina"), VAR_ADVANCED, &RTC.h, 1, 23, printUint8, adjustUint8, copyU8, queueCommitTime},
+  {MPSTR("Minuta"), VAR_ADVANCED, &RTC.m, 1, 59, printUint8, adjustUint8, copyU8, queueCommitTime},
   
-  {"Tryb reczny", 0, getManualControlMode, 0, 1, printVBoolSwitch, adjustBool, copyVBoolSwitch, NULL, {.setBoolF = setManualControlMode}},
-  {"Stan", 0, NULL, STATE_P0, STATE_OFF, printState, adjustManualState, copyManualState, NULL, NULL},
-  {"Pompa CO", 0, PUMP_CO1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
-  {"Pompa CWU", 0, PUMP_CWU1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
-  {"Pompa obieg", 0, PUMP_CIRC, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
-  {"Dmuchawa", 0, getCurrentBlowerPower, 0, 100, printVU8, adjustBlowerState, NULL, NULL, NULL},
-  {"Podajnik", 0, isFeederOn, 0, 1, printVBoolSwitch, adjustFeederState, NULL, NULL},
-  {"Zapalarka", 0, isHeaterOn, 0, 1, printVBoolSwitch, adjustHeaterState, NULL, NULL},
-  {"Temp.CO", 0, &g_CurrentConfig.TCO, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Histereza CO", 0, &g_CurrentConfig.THistCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Temp.CWU", 0, &g_CurrentConfig.TCWU, 20, 80, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Temp.CWU2", 0, &g_CurrentConfig.TCWU2, 20, 80, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Histereza CWU", 0, &g_CurrentConfig.THistCwu, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Korekta opalu%", 0, &g_CurrentConfig.FuelCorrection, -99, 99, printint8, adjustint8, copyU8, commitConfig},
-  {"Pomin rozpal", VAR_IMMEDIATE, &g_overrideBurning, 0, 1, printBool, adjustBool, NULL, NULL},
+  {MPSTR("Tryb reczny"), 0, getManualControlMode, 0, 1, printVBoolSwitch, adjustBool, copyVBoolSwitch, NULL, {.setBoolF = setManualControlMode}},
+  {MPSTR("Stan"), 0, NULL, STATE_P0, STATE_OFF, printState, adjustManualState, copyManualState, NULL, NULL},
+  {MPSTR("Pompa CO"),0, PUMP_CO1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
+  {MPSTR("Pompa CWU"),0, PUMP_CWU1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
+  {MPSTR("Pompa obieg"),0, PUMP_CIRC, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
+  {MPSTR("Dmuchawa"),0, getCurrentBlowerPower, 0, 100, printVU8, adjustBlowerState, NULL, NULL, NULL},
+  {MPSTR("Podajnik"),0, isFeederOn, 0, 1, printVBoolSwitch, adjustFeederState, NULL, NULL},
+  {MPSTR("Zapalarka"),0, isHeaterOn, 0, 1, printVBoolSwitch, adjustHeaterState, NULL, NULL},
+  {MPSTR("Temp.CO"),0, &g_CurrentConfig.TCO, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Histereza CO"),0, &g_CurrentConfig.THistCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Temp.CWU"),0, &g_CurrentConfig.TCWU, 20, 80, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Temp.CWU2"),0, &g_CurrentConfig.TCWU2, 20, 80, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Histereza CWU"),0, &g_CurrentConfig.THistCwu, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Korekta opalu%"),0, &g_CurrentConfig.FuelCorrection, -99, 99, printint8, adjustint8, copyU8, commitConfig},
+  {MPSTR("Pomin rozpal"),VAR_IMMEDIATE, &g_overrideBurning, 0, 1, printBool, adjustBool, NULL, NULL},
   
-  {"Temp.min.pomp", VAR_ADVANCED, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Zewn. termostat", VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 1, printUint8AsBool, adjustUint8, NULL, commitConfig},
-  {"Chlodz. praca m", VAR_ADVANCED, &g_CurrentConfig.CooloffTimeM10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig},
-  {"Chlodz.przerwa m", VAR_ADVANCED, &g_CurrentConfig.CooloffPauseM10, 0, 1200, printUint16_10, adjustUint16, copyU16, commitConfig},
-  {"Chlodz. tryb", VAR_ADVANCED, &g_CurrentConfig.CooloffMode, 0, 2, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Cykl cyrkul. min", VAR_ADVANCED, &g_CurrentConfig.CircCycleMin, 0, 250, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Cyrkulacja sek", VAR_ADVANCED, &g_CurrentConfig.CircWorkTimeS, 0, 250, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Wydluz dopal.P2%", VAR_ADVANCED, &g_CurrentConfig.ReductionP2ExtraTime, 0, 250, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Temp.min.pomp"), VAR_ADVANCED, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Zewn. termostat"), VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 1, printUint8AsBool, adjustUint8, NULL, commitConfig},
+  {MPSTR("Chlodz. praca m"), VAR_ADVANCED, &g_CurrentConfig.CooloffTimeM10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Chlodz.przerwa m"), VAR_ADVANCED, &g_CurrentConfig.CooloffPauseM10, 0, 1200, printUint16_10, adjustUint16, copyU16, commitConfig},
+  {MPSTR("Chlodz. tryb"), VAR_ADVANCED, &g_CurrentConfig.CooloffMode, 0, 2, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Cykl cyrkul. min"), VAR_ADVANCED, &g_CurrentConfig.CircCycleMin, 0, 250, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Cyrkulacja sek"), VAR_ADVANCED, &g_CurrentConfig.CircWorkTimeS, 0, 250, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Wydluz dopal.P2%"), VAR_ADVANCED, &g_CurrentConfig.ReductionP2ExtraTime, 0, 250, printUint8, adjustUint8, copyU8, commitConfig},
   
-  {"DeltaT", VAR_ADVANCED, &g_CurrentConfig.TDeltaCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
-  {"DeltaCWU", VAR_ADVANCED, &g_CurrentConfig.TDeltaCWU, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Tryb letni", VAR_ADVANCED, &g_CurrentConfig.SummerMode, 0, 1, printBool, adjustBool, copyBool, commitConfig},
-  {"Max T podajnika", VAR_ADVANCED, &g_CurrentConfig.FeederTempLimit, 0, 200, printUint8, adjustUint8, copyU8, commitConfig}, 
-  {"Wygasniecie po", VAR_ADVANCED, &g_CurrentConfig.NoHeatAlarmCycles, 0, 60, printUint8, adjustUint8, copyU8, commitConfig}, 
-  {"Dmuchawa CZ", VAR_ADVANCED, &g_DeviceConfig.DefaultBlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitDevConfig},
-  {"Dmuchawa Max", VAR_ADVANCED, &g_CurrentConfig.BlowerMax, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Kg/h podajnik", VAR_ADVANCED, &g_CurrentConfig.FuelGrH, 0, 60000, printUint16_1000, adjustUint16, copyU16, commitConfig},
-  {"MJ/Kg opal", VAR_ADVANCED, &g_CurrentConfig.FuelHeatValueMJ10, 0, 500, printUint16_10, adjustUint16, copyU16, commitConfig},
-  {"Automat rozpal", VAR_ADVANCED, &g_CurrentConfig.FireStartMode, 0, 2, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Cykle rozpalania", VAR_ADVANCED, &g_CurrentConfig.NumFireStartCycles, 0, 20, printUint8, adjustUint8, copyU8, commitConfig},
-  {"Zapalarka S max", VAR_ADVANCED, &g_CurrentConfig.HeaterMaxRunTimeS, 0, 250, printUint8, adjustUint8, copyU8, commitConfig}, 
+  {MPSTR("DeltaT"), VAR_ADVANCED, &g_CurrentConfig.TDeltaCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("DeltaCWU"), VAR_ADVANCED, &g_CurrentConfig.TDeltaCWU, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Tryb letni"), VAR_ADVANCED, &g_CurrentConfig.SummerMode, 0, 1, printBool, adjustBool, copyBool, commitConfig},
+  {MPSTR("Max T podajnika"), VAR_ADVANCED, &g_CurrentConfig.FeederTempLimit, 0, 200, printUint8, adjustUint8, copyU8, commitConfig}, 
+  {MPSTR("Wygasniecie po"), VAR_ADVANCED, &g_CurrentConfig.NoHeatAlarmCycles, 0, 60, printUint8, adjustUint8, copyU8, commitConfig}, 
+  {MPSTR("Dmuchawa CZ"), VAR_ADVANCED, &g_DeviceConfig.DefaultBlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitDevConfig},
+  {MPSTR("Dmuchawa Max"), VAR_ADVANCED, &g_CurrentConfig.BlowerMax, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Kg/h podajnik"), VAR_ADVANCED, &g_CurrentConfig.FuelGrH, 0, 60000, printUint16_1000, adjustUint16, copyU16, commitConfig},
+  {MPSTR("MJ/Kg opal"), VAR_ADVANCED, &g_CurrentConfig.FuelHeatValueMJ10, 0, 500, printUint16_10, adjustUint16, copyU16, commitConfig},
+  {MPSTR("Automat rozpal"), VAR_ADVANCED, &g_CurrentConfig.FireStartMode, 0, 2, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Cykle rozpalania"), VAR_ADVANCED, &g_CurrentConfig.NumFireStartCycles, 0, 20, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Zapalarka S max"), VAR_ADVANCED, &g_CurrentConfig.HeaterMaxRunTimeS, 0, 250, printUint8, adjustUint8, copyU8, commitConfig}, 
 
   
-  {"Rozp st nad CO", VAR_ADVANCED, &g_CurrentConfig.FireDetExhDt10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
-  {"Rozp wzrost TSp", VAR_ADVANCED, &g_CurrentConfig.FireDetExhIncrD10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
-  {"Rozp wzrost TCo", VAR_ADVANCED, &g_CurrentConfig.FireDetCOIncr10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
-  {"MAF skala", VAR_ADVANCED, &g_CurrentConfig.AirFlowCoeff, 0, 256, printUint8, adjustUint8, copyU8, commitConfig}, 
+  {MPSTR("Rozp st nad CO"), VAR_ADVANCED, &g_CurrentConfig.FireDetExhDt10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
+  {MPSTR("Rozp wzrost TSp"), VAR_ADVANCED, &g_CurrentConfig.FireDetExhIncrD10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
+  {MPSTR("Rozp wzrost TCo"), VAR_ADVANCED, &g_CurrentConfig.FireDetCOIncr10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
+  {MPSTR("MAF skala"), VAR_ADVANCED, &g_CurrentConfig.AirFlowCoeff, 0, 256, printUint8, adjustUint8, copyU8, commitConfig}, 
   
   
-  {"P0 cykl sek.", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec, 0, 3600, printUint16, adjustUint16, copyU16, commitConfig},
-  {"P0 podawanie", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec}},
-  {"P0 wegiel co", VAR_ADVANCED, &g_CurrentConfig.P0FuelFreq, 1, 5, printUint8, adjustUint8, copyU8, commitConfig},
-  {"P0 dmuchawa sek", VAR_ADVANCED, &g_CurrentConfig.P0BlowerTime, 1, 240, printUint8, adjustUint8, copyU8, commitConfig},
-  {"P0 dmuchawa %", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
-  {"P0 dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("P0 cykl sek."), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec, 0, 3600, printUint16, adjustUint16, copyU16, commitConfig},
+  {MPSTR("P0 podawanie"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec}},
+  {MPSTR("P0 wegiel co"), VAR_ADVANCED, &g_CurrentConfig.P0FuelFreq, 1, 5, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("P0 dmuchawa sek"), VAR_ADVANCED, &g_CurrentConfig.P0BlowerTime, 1, 240, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("P0 dmuchawa %"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("P0 dmuchawa CZ"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   
-  {"P1 cykl sek.", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
-  {"P1 podawanie", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P1].CycleSec}},
-  {"P1 dmuchawa %", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
-  {"P1 dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("P1 cykl sek."), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
+  {MPSTR("P1 podawanie"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P1].CycleSec}},
+  {MPSTR("P1 dmuchawa %"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("P1 dmuchawa CZ"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
 
-  {"P2 cykl sek.", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
-  {"P2 podawanie", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec}},
-  {"P2 dmuchawa %", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
-  {"P2 dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("P2 cykl sek."), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
+  {MPSTR("P2 podawanie"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec}},
+  {MPSTR("P2 dmuchawa %"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("P2 dmuchawa CZ"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
 
-  {"RO cykl sek.", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
-  {"RO podawanie", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec}},
-  {"RO dmuchawa %", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
-  {"RO dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("RO cykl sek."), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
+  {MPSTR("RO podawanie"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec}},
+  {MPSTR("RO dmuchawa %"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("RO dmuchawa CZ"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
 
-  {"Wygasz po cykl", VAR_ADVANCED, &g_CurrentConfig.P0CyclesBeforeStandby, 0, 50, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Wygasz po cykl"), VAR_ADVANCED, &g_CurrentConfig.P0CyclesBeforeStandby, 0, 50, printUint8, adjustUint8, copyU8, commitConfig},
 
   
-  {"Czuj. CO", VAR_ADVANCED, TSENS_BOILER, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
-  {"Czuj. CWU", VAR_ADVANCED, TSENS_CWU, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
-  {"Czuj. podajnika", VAR_ADVANCED, TSENS_FEEDER, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
-  {"Czuj. powrotu",VAR_ADVANCED, TSENS_RETURN, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
-  {"Czuj. T zewn", VAR_ADVANCED, TSENS_EXTERNAL, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
-  {"Czuj. CWU 2",  VAR_ADVANCED, TSENS_CWU2, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
-  //{"Czuj. dod #1", VAR_ADVANCED, TSENS_USR1, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
-  //{"Czuj. dod #2", VAR_ADVANCED, TSENS_USR2, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
-  {"Wyczysc log", VAR_ADVANCED, NULL, 0, 1, printVBoolSwitch, adjustBool, copyVBoolSwitch, s_clearLogs},
-  {"Zestaw ustawien", VAR_ADVANCED, &g_DeviceConfig.SettingsBank, 0, 2, printUint8, adjustUint8, copyU8, commitDevConfig},
-  {"Ust.zaawansowane", VAR_IMMEDIATE, 'W', 0, 1, NULL, adjustUIState, NULL, NULL},
-  {"Logi", VAR_IMMEDIATE, 'L', 0, 1, NULL, adjustUIState, NULL, NULL},
-  {"Wyjdz", VAR_IMMEDIATE, '0', 0, 1, NULL, adjustUIState, NULL, NULL},
-  {"Wyjdz", VAR_IMMEDIATE | VAR_ADVANCED, '0', 0, 1, NULL, adjustUIState, NULL, NULL},
+  {MPSTR("Czuj. CO"), VAR_ADVANCED, TSENS_BOILER, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
+  {MPSTR("Czuj. CWU"), VAR_ADVANCED, TSENS_CWU, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
+  {MPSTR("Czuj. podajnika"), VAR_ADVANCED, TSENS_FEEDER, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
+  {MPSTR("Czuj. powrotu"),VAR_ADVANCED, TSENS_RETURN, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
+  {MPSTR("Czuj. T zewn"), VAR_ADVANCED, TSENS_EXTERNAL, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
+  {MPSTR("Czuj. CWU 2"),  VAR_ADVANCED, TSENS_CWU2, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
+  //{MPSTR("Czuj. dod #1"), VAR_ADVANCED, TSENS_USR1, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
+  //{MPSTR("Czuj. dod #2"), VAR_ADVANCED, TSENS_USR2, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},
+  {MPSTR("Wyczysc log"), VAR_ADVANCED, NULL, 0, 1, printVBoolSwitch, adjustBool, copyVBoolSwitch, s_clearLogs},
+  {MPSTR("Zestaw ustawien"), VAR_ADVANCED, &g_DeviceConfig.SettingsBank, 0, 2, printUint8, adjustUint8, copyU8, commitDevConfig},
+  {MPSTR("Ust.zaawansowane"), VAR_IMMEDIATE, 'W', 0, 1, NULL, adjustUIState, NULL, NULL},
+  {MPSTR("Logi"), VAR_IMMEDIATE, 'L', 0, 1, NULL, adjustUIState, NULL, NULL},
+  {MPSTR("Wyjdz"), VAR_IMMEDIATE, '0', 0, 1, NULL, adjustUIState, NULL, NULL},
+  {MPSTR("Wyjdz"), VAR_IMMEDIATE | VAR_ADVANCED, '0', 0, 1, NULL, adjustUIState, NULL, NULL},
 };
 
 const uint8_t N_UI_VARIABLES = sizeof(UI_VARIABLES) / sizeof(TUIVarEntry);

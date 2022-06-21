@@ -396,7 +396,7 @@ void processCommand(char* cmd) {
     p++;
     bool found = false;
     for(int i=0; i<N_UI_VARIABLES; i++) {
-      if (strcmp(cmd, UI_VARIABLES[i].Name) == 0) {
+      if (strcmp_P(cmd, UI_VARIABLES[i].Name) == 0) {
         updateVariableFromString(i, p);
         found = true;
         break;

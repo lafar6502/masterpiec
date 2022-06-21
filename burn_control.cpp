@@ -170,7 +170,9 @@ void processSensorValues() {
     for (int i=0; i<n; i++) {
       f0 += g_lastFlows.GetAt(i)->Val;
     }
-    g_AirFlowNormal = (uint8_t) (f0 * 255.0/(g_CurrentConfig.AirFlowCoeff * 4.0 + 3.0));
+    float f1 = (float) g_CurrentConfig.AirFlowCoeff * 4.0 + 3.0;
+    f1 *= n;
+    g_AirFlowNormal = (uint8_t) ((f0 * 255.0) / f1);
   }
   TReading nw;
   nw.Ms = ms;
