@@ -1,5 +1,9 @@
 # masterpiec
 ## 
+## Aktualizacje
+
+[Lista ostatnich zmian](updates.md)
+
 ## Co to jest, zasada działania
 Masterpiec to kompletny sterownik pieca CO z podajnikiem działający w oparciu o algorytm 'trójstanowy'.
 Polega to na tym że spalanie odbywa się w trzech trybach: duża moc, niska moc oraz postój. Sterownik stara się nie wchodzić w tryb postoju w miarę możliwości, zamiast tego pracuje
