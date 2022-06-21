@@ -44,12 +44,6 @@ typedef struct BurnParams {
     uint8_t BlowerCycle; //cykl dmuchawy dla zasilania grupowego. 0 gdy fazowe.
 } TBurnParams;
 
-typedef struct ControlConfigProfile {
-	uint8_t P0BlowerTime; //czas pracy dmuchawy w podtrzymaniu
-	uint8_t P0FuelFreq; //podawanie wegla co x cykli przedmuchu 
-	uint16_t FuelHeatValueMJ10; //fuel heat in MJ, * 10 (100 = 10MJ)
-	TBurnParams BurnConfigs[MAX_POWER_STATES];
-} TControlConfigProfile;
 
 typedef struct DeviceConfiguration {
   uint16_t Magic; //should always be 0x6502
@@ -96,6 +90,7 @@ typedef struct ControlConfiguration {
   uint8_t FireDetExhIncrD10; //how much has exh temp to increase
   uint8_t FireDetCOIncr10; //how much has CO temp to increase
   uint8_t P0CyclesBeforeStandby;
+  uint8_t AirFlowCoeff;  //normalization coefficient for air flow voltage. 0 .. 255, where 255=1024 - maximum input value
 } TControlConfiguration;
 
 #define CFG_SLOT_SIZE 140 //size of single config settings struct (with some extra space for future) - utility.cpp
@@ -177,7 +172,8 @@ extern float g_dTExh; //delta exhaust temp
 extern float g_dTExhLong;
 extern float g_InitialTempCO;
 extern float g_InitialTempExh;
-
+extern float g_AirFlow;
+extern uint8_t g_AirFlowNormal;  //normalized airflow range 0..255 (or make it 0..100?)
 extern uint8_t g_ReductionsToP0; //reductions P1 -> P0 or P2 -> P0 which we dont ave 
 extern uint8_t g_ReductionsToP1; //reductions P2 -> P1
 extern uint16_t g_burnCycleNum; //nr cyklu spalania w biez stanie

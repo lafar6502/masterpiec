@@ -47,9 +47,9 @@ void scrTime(uint8_t idx, char* lines[]) {
 void scrSensors1(uint8_t idx, char* lines[] ) {
   char buf1[10], buf2[10];
   dtostrf(g_TempSpaliny,3, 1, buf1);
-  dtostrf(g_TempBurner, 3, 1, buf2);
+  dtostrf(g_AirFlow, 3, 1, buf2);
   sprintf(lines[0], "TSpalin:%s", buf1);
-  sprintf(lines[1], "TPalnik:%s", buf2);
+  sprintf(lines[1], "FloV:%s", buf2);
 }
 
 void scrSensors2(uint8_t idx, char* lines[] ) {
@@ -74,11 +74,12 @@ extern unsigned long _reductionStateEndMs; //burn control
 
 void scrBurnInfo(uint8_t idx, char* lines[]) {
   unsigned long tnow = millis();
+  unsigned long tt = (tnow - g_CurStateStart) / 1000L;
   char zbuf[8];
   if (g_BurnState == STATE_P0 || g_BurnState == STATE_P1 || g_BurnState == STATE_P2)
   {
     uint8_t cycle = g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_DeviceConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle;
-    unsigned long tt = (tnow - g_CurStateStart) / 1000L;
+    
     uint8_t nh = needHeatingNow();
     float f2 = calculateHeatPowerFor(g_CurrentConfig.BurnConfigs[g_BurnState].FuelSecT10 / 10.0, g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec);
     zbuf[5]=0;
@@ -105,6 +106,7 @@ void scrBurnInfo(uint8_t idx, char* lines[]) {
   }
   else if (g_BurnState == STATE_OFF) {
     sprintf(lines[0], "STANDBY");
+    sprintf(lines[1], "T:%ld", tt);
   }
 }
 
@@ -865,7 +867,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Temp.CWU2", 0, &g_CurrentConfig.TCWU2, 20, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {"Histereza CWU", 0, &g_CurrentConfig.THistCwu, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
   {"Korekta opalu%", 0, &g_CurrentConfig.FuelCorrection, -99, 99, printint8, adjustint8, copyU8, commitConfig},
-  {"Pomin rozpal", 0, &g_overrideBurning, 0, 1, printVBoolSwitch, adjustBool, NULL, NULL},
+  {"Pomin rozpal", VAR_IMMEDIATE, &g_overrideBurning, 0, 1, printBool, adjustBool, NULL, NULL},
   
   {"Temp.min.pomp", VAR_ADVANCED, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {"Zewn. termostat", VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 1, printUint8AsBool, adjustUint8, NULL, commitConfig},
@@ -888,10 +890,12 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"Automat rozpal", VAR_ADVANCED, &g_CurrentConfig.FireStartMode, 0, 2, printUint8, adjustUint8, copyU8, commitConfig},
   {"Cykle rozpalania", VAR_ADVANCED, &g_CurrentConfig.NumFireStartCycles, 0, 20, printUint8, adjustUint8, copyU8, commitConfig},
   {"Zapalarka S max", VAR_ADVANCED, &g_CurrentConfig.HeaterMaxRunTimeS, 0, 250, printUint8, adjustUint8, copyU8, commitConfig}, 
+
+  
   {"Rozp st nad CO", VAR_ADVANCED, &g_CurrentConfig.FireDetExhDt10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
   {"Rozp wzrost TSp", VAR_ADVANCED, &g_CurrentConfig.FireDetExhIncrD10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
   {"Rozp wzrost TCo", VAR_ADVANCED, &g_CurrentConfig.FireDetCOIncr10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
-  
+  {"MAF skala", VAR_ADVANCED, &g_CurrentConfig.AirFlowCoeff, 0, 256, printUint8, adjustUint8, copyU8, commitConfig}, 
   
   
   {"P0 cykl sek.", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec, 0, 3600, printUint16, adjustUint16, copyU16, commitConfig},
@@ -915,6 +919,8 @@ const TUIVarEntry UI_VARIABLES[] = {
   {"RO podawanie", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec}},
   {"RO dmuchawa %", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   {"RO dmuchawa CZ", VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+
+  {"Wygasz po cykl", VAR_ADVANCED, &g_CurrentConfig.P0CyclesBeforeStandby, 0, 50, printUint8, adjustUint8, copyU8, commitConfig},
 
   
   {"Czuj. CO", VAR_ADVANCED, TSENS_BOILER, -1, 7, printDallasInfo, adjustInt, copyDallasInfo, commitDevConfig},

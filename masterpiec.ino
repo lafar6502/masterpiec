@@ -42,6 +42,7 @@ void setup() {
   initializeDallasSensors();
   initializeMax6675Sensors();
   initializeBlowerControl();
+  initializeFlowMeter();
   loggingInit();
   Serial.print("Hw inited. Time:");
   Serial.print(RTC.yyyy);
@@ -143,6 +144,10 @@ void periodicDumpControlState() {
     Serial.print(g_dT60);
     Serial.print(F(", dTl3:"));
     Serial.print(g_dTl3);
+    Serial.print(F(", floV:"));
+    Serial.print(g_AirFlow);
+    Serial.print(F(":"));
+    Serial.print(g_AirFlowNormal);
     Serial.print(F(", lastT:"));
     Serial.print(g_lastCOReads.IsEmpty() ? 0.0 : g_lastCOReads.GetLast()->Val);
 	Serial.print(F(", CNT:"));

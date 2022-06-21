@@ -11,12 +11,6 @@
 #define MAX_TEMP 90
 
 
-void initializeBurningLoop() {
-  g_TargetTemp = g_CurrentConfig.TCO;
-  g_HomeThermostatOn = true;
-  TSTATE startState = g_CurrentConfig.FireStartMode == 2 ? STATE_FIRESTART : STATE_P0;
-  forceState(startState);
-}
 
 
 float g_TargetTemp = 0.1; //aktualnie zadana temperatura pieca (która może być wyższa od temp. zadanej w konfiguracji bo np grzejemy CWU)
@@ -28,6 +22,8 @@ float g_TempFeeder = 0.1;
 float g_TempBurner = 0;
 float g_InitialTempCO = 0;
 float g_InitialTempExh = 0;
+float g_AirFlow = 0; //air flow measurement
+uint8_t g_AirFlowNormal = 0;
 TSTATE g_BurnState = STATE_UNDEFINED;  //aktualny stan grzania
 TSTATE g_ManualState = STATE_UNDEFINED; //wymuszony ręcznie stan (STATE_UNDEFINED: brak wymuszenia)
 CWSTATE g_CWState = CWSTATE_OK; //current cw status
@@ -44,15 +40,34 @@ unsigned long g_P0Time = 0;
 
 TReading lastCOTemperatures[11];
 TReading lastExhaustTemperatures[11]; //every 30 sec => 5 minutes
-TIntReading lastBurnStates[11];
+TReading lastFlows[4];
+
 CircularBuffer<TReading> g_lastCOReads(lastCOTemperatures, sizeof(lastCOTemperatures)/sizeof(TReading));
 CircularBuffer<TReading> g_lastExhaustReads(lastExhaustTemperatures, sizeof(lastExhaustTemperatures)/sizeof(TReading));
-
+CircularBuffer<TReading> g_lastFlows(lastFlows, sizeof(lastFlows)/sizeof(TReading));
 //czas wejscia w bieżący stan, ms
 unsigned long g_CurStateStart = 0;
 //float  g_CurStateStartTempCO = 0; //temp pieca w momencie wejscia w bież. stan.
 uint8_t g_BurnCyclesBelowMinTemp = 0; //number of burn cycles with g_TempCO below minimum pump temperature (for detecting extinction of fire)
 unsigned long g_CurBurnCycleStart = 0; //timestamp, w ms, w ktorym rozpoczelismy akt. cykl palenia (ten podajnik+nadmuch)
+
+
+TSTATE getInitialState() {
+  if (g_CurrentConfig.FireStartMode == 0) return STATE_P0;
+  if (g_CurrentConfig.FireStartMode == 1) return STATE_FIRESTART;
+  if (g_CurrentConfig.FireStartMode == 2) {
+    if (g_needHeat != NEED_HEAT_NONE) return STATE_FIRESTART;
+    return STATE_OFF;
+  }
+  return STATE_FIRESTART;
+}
+
+void initializeBurningLoop() {
+  g_TargetTemp = g_CurrentConfig.TCO;
+  g_HomeThermostatOn = true;
+  TSTATE startState = getInitialState();
+  forceState(startState);
+}
 
 
 void setAlarm(const char* txt) {
@@ -130,6 +145,7 @@ void processSensorValues() {
   g_TempZewn = getLastDallasValue(TSENS_EXTERNAL);
   g_TempSpaliny = getLastThermocoupleValue(T2SENS_EXHAUST);
   g_TempBurner = getLastThermocoupleValue(T2SENS_BURNER);
+  g_AirFlow = getCurrentFlowRate();
   if (g_CurrentConfig.EnableThermostat) 
   {
     g_HomeThermostatOn = isThermostatOn();
@@ -145,7 +161,17 @@ void processSensorValues() {
   {
     g_lastCOReads.Enqueue({ms, g_TempCO});
   }
+  const TReading* lastFlow = g_lastFlows.GetLast();
+  if (lastFlow == NULL || ms - lastFlow->Ms > 1000) {
+    g_lastFlows.Enqueue({ms, g_AirFlow});
 
+    int n = g_lastFlows.GetCount();
+    float f0 = 0.0;
+    for (int i=0; i<n; i++) {
+      f0 += g_lastFlows.GetAt(i)->Val;
+    }
+    g_AirFlowNormal = (uint8_t) (f0 * 255.0/(g_CurrentConfig.AirFlowCoeff * 4.0 + 3.0));
+  }
   TReading nw;
   nw.Ms = ms;
   nw.Val = g_TempSpaliny;
@@ -158,6 +184,7 @@ void processSensorValues() {
   //g_dT60 =  CalcDtPerMinute(&g_lastCOReads, 3, &nw);
   g_dTl3 = CalcLinearRegression(&g_lastCOReads, 3, &nw);
   g_dT60 = CalcLinearRegression(&g_lastCOReads, g_lastCOReads.GetCount() < 7 ? g_lastCOReads.GetCount() - 1 : 6, &nw);
+
   
   
 }
@@ -258,12 +285,13 @@ void burningProc()
 }
 
 
+
 void setManualControlMode(bool b)
 {
   if (!b) {
-	g_ManualState = STATE_UNDEFINED;
+	  g_ManualState = STATE_UNDEFINED;
     if (g_BurnState == STATE_STOP) {
-      TSTATE startState = g_CurrentConfig.FireStartMode == 2 ? STATE_FIRESTART : STATE_P0;
+      TSTATE startState = getInitialState();
       forceState(startState);
     }
   }
@@ -283,7 +311,8 @@ TSTATE getManualControlState()
 void setManualControlState(TSTATE t) {
   g_ManualState = t;
   if (t == STATE_UNDEFINED) {
-    forceState(STATE_P0);
+    //forceState(STATE_P0);
+    setManualControlMode(false);
   }
   else {
     if (g_BurnState != g_ManualState) {
@@ -429,12 +458,20 @@ void firestartStateInit(TSTATE prev) {
 void firestartStateLoop() {
 	workStateBurnLoop();
   uint8_t bp = getCurrentBlowerPower();
-  
-  unsigned long t = millis() - g_CurStateStart;
-  int ht = g_CurrentConfig.HeaterMaxRunTimeS * 1000 + 30 * 1000;
-  int t2 = t % ht;
-  bool heater = bp > 0 && t2 <= g_CurrentConfig.HeaterMaxRunTimeS * 1000;
+  bool heater = bp > 0;
+  if (heater && g_CurrentConfig.HeaterMaxRunTimeS != 0) {
+    const unsigned int tCool = 30 * 1000;
+    unsigned long t = millis() - g_CurStateStart;
+    unsigned long ht = g_CurrentConfig.HeaterMaxRunTimeS * 1000L + tCool;
+    unsigned long t2 = t % ht;
+    heater = t2 <= ht - tCool;
+    if (!heater) {
+
+    }
+  }
+
   setHeater(heater);
+  
   if (g_TempCO < g_InitialTempCO) g_InitialTempCO = g_TempCO;
   if (g_TempSpaliny < g_InitialTempExh) g_InitialTempExh = g_TempSpaliny;
 }

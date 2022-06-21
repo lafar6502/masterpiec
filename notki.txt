@@ -1,9 +1,13 @@
-PROBLEMY
+Uwaga: wykrywanie że się pali/nie pali
+
+załóżmy że się pali i jesteśmy w cyklu grzania
+temperatura co i spalin wzrosła odpowiednio od początku wejscia w grzanie (P2 lub P1)
+ale mineło np 20 minut palenia i skonczył sie opał
+mamy cał czas wzrost temperatury, przestala rosnąć ale mimo wszystko juz jest urosnieta i szybko nie spadnie
+wlasciwie to powinien nas interesowac przypadek P2
+
+jak jest P2 to znaczy ze pompa bedzie jakas wlaczona gdy jestesmy powyzej tmin
+wiec temperatura nam w koncu zacznie spadać
 
 
-
-1. Widok 'logi' - nie pokazuje prawidlowego ekranu
-2. Startowy ekran - nie pokazuje napisu 'masterpiec'
-3. nie dokonczona funkcja 'powiedz temu piecu że jest rozpalone' nawet jak myśli że nadal musi rozpalac
-4. Brak limitu czasu pracy ropalarki gdy trwa rozpalanie
-5. BRAK wykrywania że wygasło w trybie P2 i powrotu do trybu rozpalania
+powinnismy ograniczyc czas wstecz na jaki patrzymy, np skupic sie tylko na ost 10 minutach. jesli wiecej od startu to beirzemy wartosc 10 minut wstecz

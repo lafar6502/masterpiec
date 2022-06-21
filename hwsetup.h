@@ -24,9 +24,8 @@
 #define HW_DISPLAY_PIN 1
 #define HW_ZERO_DETECT_PIN 2
 
-#define HW_RADIO_PIN1 8
-#define HW_RADIO_PIN2 9
 
+//#define HW_FLOW_SENSOR_PULSE_PIN 3  //pulse width detection pin for pulse-driven flow meter
 #define PUMP_CO1 0
 #define PUMP_CWU1 1
 #define PUMP_CO2 2
@@ -35,7 +34,7 @@
 #define BLOWER 5
 
 //#define HW_PUMP_CIRC_CTRL_PIN  A8   //portk 0
-#define HW_FLOW_SENSOR_INPUT_PIN A8  
+#define HW_FLOW_SENSOR_INPUT_PIN A0  //flow sensor input voltage (for voltage-out flow meter)
 #define HW_PUMP_CO1_CTRL_PIN  A9    //portk 1
 #define HW_FEEDER_CTRL_PIN A10      //portk 2
 #define HW_PUMP_CIRC_CTRL_PIN  A11  //portk 3

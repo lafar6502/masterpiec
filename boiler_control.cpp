@@ -5,6 +5,7 @@
 #include "global_variables.h"
 #include "digitalWriteFast.h"
 
+
 #define KICKSTART_MIN 10 //minimum pulses/sec - below that we run a kickstart
 
 struct tPowerControlPin {
@@ -291,4 +292,69 @@ void gatherStatsTask() {
     if (isPumpOn(PUMP_CIRC)) g_pumpCircRunMs += rt;  
   }
   _lastRun = t;
+}
+
+/*
+volatile unsigned PulseTime = 0;
+ISR(TIMER1_CAPT_vect)
+{
+  static unsigned RisingEdgeTime = 0;
+  static unsigned FallingEdgeTime = 0;
+  
+  // Which edge is armed?
+  if (TCCR1B & (1 << ICES1))
+  {
+    // Rising Edge
+    RisingEdgeTime = ICR1;
+    TCCR1B &= ~(1 << ICES1); // Switch to Falling Edge
+  }
+  else
+  {
+    // Falling Edge
+    FallingEdgeTime = ICR1;
+    TCCR1B |= (1 << ICES1); // Switch to Rising Edge
+    PulseTime = FallingEdgeTime - RisingEdgeTime;
+  }
+}
+
+
+void loop() {
+  unsigned pulseTime = 0;
+  noInterrupts();
+  pulseTime = PulseTime;
+  PulseTime = 0;
+  interrupts();
+
+
+  if (pulseTime)
+  {
+    Serial.println(pulseTime);
+  }
+}
+*/
+
+void initializeFlowMeter() {
+#ifdef HW_FLOW_SENSOR_INPUT_PIN
+  pinMode(HW_FLOW_SENSOR_INPUT_PIN, INPUT);
+  Serial.print("Flow sensor in V:");
+  Serial.println(HW_FLOW_SENSOR_INPUT_PIN);
+#endif
+
+#ifdef HW_FLOW_SENSOR_PULSE_PIN
+  
+
+#endif
+  
+}
+
+
+float getCurrentFlowRate() {
+#ifdef HW_FLOW_SENSOR_INPUT_PIN
+  int x = analogRead(HW_FLOW_SENSOR_INPUT_PIN);
+  return (float) x;
+#endif
+#ifdef HW_FLOW_SENSOR_PULSE_PIN
+
+#endif
+  return 0;
 }
