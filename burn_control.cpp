@@ -24,6 +24,7 @@ float g_InitialTempCO = 0;
 float g_InitialTempExh = 0;
 float g_AirFlow = 0; //air flow measurement
 uint8_t g_AirFlowNormal = 0;
+int8_t g_BlowerPowerCorrection = 0;
 TSTATE g_BurnState = STATE_UNDEFINED;  //aktualny stan grzania
 TSTATE g_ManualState = STATE_UNDEFINED; //wymuszony ręcznie stan (STATE_UNDEFINED: brak wymuszenia)
 CWSTATE g_CWState = CWSTATE_OK; //current cw status
@@ -173,6 +174,8 @@ void processSensorValues() {
     float f1 = (float) g_CurrentConfig.AirFlowCoeff * 4.0 + 3.0;
     f1 *= n;
     g_AirFlowNormal = (uint8_t) ((f0 * 255.0) / f1);
+
+    
   }
   TReading nw;
   nw.Ms = ms;
@@ -191,6 +194,24 @@ void processSensorValues() {
   
 }
 
+
+///calculate delta (reduction or increase) to blower power 
+///we run this adjustment in cycles (measure, adjust, measure, adjust) of xxx seconds
+int8_t calculateBlowerPowerAdjustment(uint8_t desiredFlow, uint8_t currentFlow, uint8_t currentBlowerPower) {
+  //if less than 1% difference of flow -dont do anything
+  if (desiredFlow == 0) return -currentBlowerPower;
+  float diff = (float) (desiredFlow - currentFlow) / (float) desiredFlow;
+  
+  if (abs(diff) <= 0.01) return 0;
+  int8_t adj = desiredFlow - currentFlow / 2;
+  if (adj > 0) {
+    if (currentBlowerPower + adj < currentBlowerPower) adj = 255 - currentBlowerPower;
+  }
+  else {
+    if (currentBlowerPower + adj > currentBlowerPower) adj = -currentBlowerPower;
+  }
+  return adj;
+}
 
 void circulationControlTask() {
   if (!isPumpEnabled(PUMP_CIRC)) return;

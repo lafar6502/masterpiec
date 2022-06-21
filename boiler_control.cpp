@@ -204,17 +204,17 @@ void zeroCrossHandler() {
  }
 
 
-//power in % 0..100, cycleLength 1..255
+//power in % 0..255 (255 = 100%), cycleLength 1..255
 void breseInit(uint8_t power, uint8_t cycleLength) {
   kickstartCount = 0;
-  float powerPerc = ((float) power) * (g_CurrentConfig.BlowerMax == 0 ? 1.0 : (float) g_CurrentConfig.BlowerMax / 100.0);
+  float powerPerc = ((float) power) * (g_CurrentConfig.BlowerMax == 0 ? 1.0 : (float) g_CurrentConfig.BlowerMax / 255.0);
   if (power_set == 0) {
     counter = 0;
     power_counter = 0;    
     kickstartCount =  power > 0 && powerPerc < KICKSTART_MIN ? KICKSTART_MIN : 0;
   };
   power_set = power;
-  brese_increment = powerPerc * cycleLength / 100.0;
+  brese_increment = powerPerc * cycleLength / 255.0;
   brese_cycle = cycleLength;
 }
 

@@ -20,8 +20,11 @@ bool isHeaterOn();
 void setHeater(bool b);
 unsigned long getHeaterRunningTimeMs();
 
+///set blower power 0..255 (255 = 100%)
 void setBlowerPower(uint8_t power);
+///set blower power 0..255 (255 = 100%)
 void setBlowerPower(uint8_t power, uint8_t powerCycle);
+///get blower power 0..255 (255 = 100%)
 uint8_t getCurrentBlowerPower();
 uint8_t getCurrentBlowerCycle();
 

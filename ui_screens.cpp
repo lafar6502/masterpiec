@@ -329,9 +329,12 @@ void scrEditVariable(uint8_t idx, char* lines[])
 {
   const TUIStateEntry* ps = UI_STATES + g_CurrentUIState;
   const TUIVarEntry* pv = UI_VARIABLES + g_CurrentlyEditedVariable;
-  
-  sprintf_P(lines[0], "<-%S->", pv->Name);
-  if (pv->PrintTo != NULL) pv->PrintTo(g_CurrentlyEditedVariable, g_editCopy, lines[1], false);
+  strcpy_P(lines[1], pv->Name);
+  sprintf(lines[0], "<-%s->", lines[1]);
+  if (pv->PrintTo != NULL) 
+    pv->PrintTo(g_CurrentlyEditedVariable, g_editCopy, lines[1], false);
+  else
+    lines[1][0] = '\0';
 }
 void printUint16_1000(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   uint16_t* pv = (uint16_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
@@ -355,7 +358,8 @@ void printUint8_perc(uint8_t varIdx, void* editCopy, char* buf, bool parseString
     *pv = (uint8_t) (atof(buf) * 2.55);
     return;
   }
-  sprintf(buf, "%f", (float) *pv / 2.55);
+  float f = (float) *pv / 2.55;
+  dtostrf(f, 2, 1, buf);
 }
 
 
@@ -649,6 +653,21 @@ void* copyVBoolSwitch(uint8_t varIdx, void* pData, bool save) {
 }
 typedef uint8_t (*U8Fun)();
 void printVU8(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
+    
+  U8Fun f = (U8Fun) UI_VARIABLES[varIdx].DataPtr;
+  if (parseString) {
+    if (editCopy == NULL) return;
+    uint8_t* pv = (uint8_t*) editCopy;
+    *pv = (uint8_t) (atof(buf) * 2.55);
+    return;
+  }
+  if (f == NULL) return;
+  float fv = (float) f() / 2.55;
+  dtostrf(fv, 2, 1, buf);
+  
+}
+
+void printVU8_perc(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   U8Fun f = (U8Fun) UI_VARIABLES[varIdx].DataPtr;
   if (parseString) {
     if (editCopy == NULL) return;
@@ -872,7 +891,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {MPSTR("Pompa CO"),0, PUMP_CO1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
   {MPSTR("Pompa CWU"),0, PUMP_CWU1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
   {MPSTR("Pompa obieg"),0, PUMP_CIRC, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
-  {MPSTR("Dmuchawa"),0, getCurrentBlowerPower, 0, 100, printVU8, adjustBlowerState, NULL, NULL, NULL},
+  {MPSTR("Dmuchawa"),0, getCurrentBlowerPower, 0, 256, printVU8, adjustBlowerState, NULL, NULL, NULL},
   {MPSTR("Podajnik"),0, isFeederOn, 0, 1, printVBoolSwitch, adjustFeederState, NULL, NULL},
   {MPSTR("Zapalarka"),0, isHeaterOn, 0, 1, printVBoolSwitch, adjustHeaterState, NULL, NULL},
   {MPSTR("Temp.CO"),0, &g_CurrentConfig.TCO, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
@@ -898,7 +917,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {MPSTR("Max T podajnika"), VAR_ADVANCED, &g_CurrentConfig.FeederTempLimit, 0, 200, printUint8, adjustUint8, copyU8, commitConfig}, 
   {MPSTR("Wygasniecie po"), VAR_ADVANCED, &g_CurrentConfig.NoHeatAlarmCycles, 0, 60, printUint8, adjustUint8, copyU8, commitConfig}, 
   {MPSTR("Dmuchawa CZ"), VAR_ADVANCED, &g_DeviceConfig.DefaultBlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitDevConfig},
-  {MPSTR("Dmuchawa Max"), VAR_ADVANCED, &g_CurrentConfig.BlowerMax, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Dmuchawa Max"), VAR_ADVANCED, &g_CurrentConfig.BlowerMax, 0, 256, printUint8_perc, adjustUint8, copyU8, commitConfig},
   {MPSTR("Kg/h podajnik"), VAR_ADVANCED, &g_CurrentConfig.FuelGrH, 0, 60000, printUint16_1000, adjustUint16, copyU16, commitConfig},
   {MPSTR("MJ/Kg opal"), VAR_ADVANCED, &g_CurrentConfig.FuelHeatValueMJ10, 0, 500, printUint16_10, adjustUint16, copyU16, commitConfig},
   {MPSTR("Automat rozpal"), VAR_ADVANCED, &g_CurrentConfig.FireStartMode, 0, 2, printUint8, adjustUint8, copyU8, commitConfig},
@@ -916,22 +935,22 @@ const TUIVarEntry UI_VARIABLES[] = {
   {MPSTR("P0 podawanie"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec}},
   {MPSTR("P0 wegiel co"), VAR_ADVANCED, &g_CurrentConfig.P0FuelFreq, 1, 5, printUint8, adjustUint8, copyU8, commitConfig},
   {MPSTR("P0 dmuchawa sek"), VAR_ADVANCED, &g_CurrentConfig.P0BlowerTime, 1, 240, printUint8, adjustUint8, copyU8, commitConfig},
-  {MPSTR("P0 dmuchawa %"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("P0 dmuchawa %"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].BlowerPower, 0, 256, printUint8_perc, adjustUint8, copyU8, commitConfig},
   {MPSTR("P0 dmuchawa CZ"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   
   {MPSTR("P1 cykl sek."), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
   {MPSTR("P1 podawanie"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P1].CycleSec}},
-  {MPSTR("P1 dmuchawa %"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("P1 dmuchawa %"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].BlowerPower, 0, 256, printUint8_perc, adjustUint8, copyU8, commitConfig},
   {MPSTR("P1 dmuchawa CZ"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
 
   {MPSTR("P2 cykl sek."), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
   {MPSTR("P2 podawanie"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec}},
-  {MPSTR("P2 dmuchawa %"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("P2 dmuchawa %"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerPower, 0, 256, printUint8_perc, adjustUint8, copyU8, commitConfig},
   {MPSTR("P2 dmuchawa CZ"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
 
   {MPSTR("RO cykl sek."), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
   {MPSTR("RO podawanie"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec}},
-  {MPSTR("RO dmuchawa %"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].BlowerPower, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("RO dmuchawa %"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].BlowerPower, 0, 256, printUint8_perc, adjustUint8, copyU8, commitConfig},
   {MPSTR("RO dmuchawa CZ"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
 
   {MPSTR("Wygasz po cykl"), VAR_ADVANCED, &g_CurrentConfig.P0CyclesBeforeStandby, 0, 50, printUint8, adjustUint8, copyU8, commitConfig},

@@ -40,7 +40,7 @@ typedef struct BurnParams {
     //czas podawania wegla, * 10 (50 = 5 sekund)
     uint16_t FuelSecT10;
     //moc nadmuchu
-    uint8_t BlowerPower;
+    uint8_t BlowerPower; //0 .. 255 (100%)
     uint8_t BlowerCycle; //cykl dmuchawy dla zasilania grupowego. 0 gdy fazowe.
 } TBurnParams;
 
@@ -91,6 +91,7 @@ typedef struct ControlConfiguration {
   uint8_t FireDetCOIncr10; //how much has CO temp to increase
   uint8_t P0CyclesBeforeStandby;
   uint8_t AirFlowCoeff;  //normalization coefficient for air flow voltage. 0 .. 255, where 255=1024 - maximum input value
+  uint8_t AirControlMode; //0 - just blower %, 1 - flow meter. If flow meter then 
 } TControlConfiguration;
 
 #define CFG_SLOT_SIZE 140 //size of single config settings struct (with some extra space for future) - utility.cpp
@@ -141,6 +142,18 @@ void forceState(TSTATE st);
 
 void processSensorValues();
 
+int8_t calculateBlowerPowerAdjustment(uint8_t desiredFlow, uint8_t measuredFlow, uint8_t currentBlowerPower);
+
+
+
+
+
+void setBlowerPower(uint8_t power);
+///set blower power 0..255 (255 = 100%)
+void setBlowerPower(uint8_t power, uint8_t powerCycle);
+///get blower power 0..255 (255 = 100%)
+uint8_t getCurrentBlowerPower();
+
 
 extern const TBurnTransition  BURN_TRANSITIONS[];
 extern const TBurnStateConfig BURN_STATES[];
@@ -174,6 +187,7 @@ extern float g_InitialTempCO;
 extern float g_InitialTempExh;
 extern float g_AirFlow;
 extern uint8_t g_AirFlowNormal;  //normalized airflow range 0..255 (or make it 0..100?)
+extern int8_t g_BlowerPowerCorrection; //correction to blower power calculated based on flow meter
 extern uint8_t g_ReductionsToP0; //reductions P1 -> P0 or P2 -> P0 which we dont ave 
 extern uint8_t g_ReductionsToP1; //reductions P2 -> P1
 extern uint16_t g_burnCycleNum; //nr cyklu spalania w biez stanie
