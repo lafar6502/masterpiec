@@ -50,6 +50,7 @@ typedef struct DeviceConfiguration {
   uint8_t  SettingsBank;
   uint8_t DallasAddress[8][8]; //dallas sensor addresses. if zero - sensor not present
   uint8_t DefaultBlowerCycle;  
+  uint8_t AirFlowCoeff;  //normalization coefficient for air flow voltage. 0 .. 255, where 255=1024 - maximum input value
 } TDeviceConfiguration;
 
 //zestaw ustawień pieca (aktualna konfiguracja). Nie zawiera bieżących wartości.
@@ -90,7 +91,6 @@ typedef struct ControlConfiguration {
   uint8_t FireDetExhIncrD10; //how much has exh temp to increase
   uint8_t FireDetCOIncr10; //how much has CO temp to increase
   uint8_t P0CyclesBeforeStandby;
-  uint8_t AirFlowCoeff;  //normalization coefficient for air flow voltage. 0 .. 255, where 255=1024 - maximum input value
   uint8_t AirControlMode; //0 - just blower %, 1 - flow meter. If flow meter then 
 } TControlConfiguration;
 

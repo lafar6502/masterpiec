@@ -7,6 +7,7 @@
 #include "ui_handler.h"
 #include "varholder.h"
 #include <MD_DS1307.h>
+#include <pid.h>
 
 #define MAX_TEMP 90
 
@@ -39,7 +40,7 @@ char* g_Alarm;
 unsigned long g_P1Time = 0;
 unsigned long g_P2Time = 0;
 unsigned long g_P0Time = 0;
-
+epid_t g_flow_pid_ctx;
 TReading lastCOTemperatures[11];
 TReading lastExhaustTemperatures[11]; //every 30 sec => 5 minutes
 TReading lastFlows[4];
@@ -65,6 +66,8 @@ TSTATE getInitialState() {
 }
 
 void initializeBurningLoop() {
+  
+  
   g_TargetTemp = g_CurrentConfig.TCO;
   g_HomeThermostatOn = true;
   TSTATE startState = getInitialState();
@@ -172,7 +175,7 @@ void processSensorValues() {
     for (int i=0; i<n; i++) {
       f0 += g_lastFlows.GetAt(i)->Val;
     }
-    float f1 = (float) g_CurrentConfig.AirFlowCoeff * 4.0 + 3.0;
+    float f1 = (float) g_DeviceConfig.AirFlowCoeff * 4.0 + 3.0;
     f1 *= n;
     g_AirFlowNormal = (uint8_t) ((f0 * 255.0) / f1);
 
