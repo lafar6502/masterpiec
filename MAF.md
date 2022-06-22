@@ -19,7 +19,7 @@ Wyprowadzenia przedstawiają się tak: <br>
 A - zasilanie +12V<br>
 B - GND<br>
 C - GND<br>
-D - sygnał czujnika 0..5V<br>
+D - sygnał czujnika 0..5V - odczytywany przez wejście analogowe Arduino, np A0<br>
 
 ![image](https://user-images.githubusercontent.com/1706814/174991645-42abb5e7-1ce4-499b-aaa7-12e494611787.png)
 
