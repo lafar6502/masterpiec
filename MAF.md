@@ -21,6 +21,8 @@ B - GND<br>
 C - GND<br>
 D - sygnał czujnika 0..5V - odczytywany przez wejście analogowe Arduino, np A0<br>
 
+Żeby przetestować ten typ MAF wystarczy zasilanie 12V i woltomierz -badamy napięcie na pinie wyjściowym oraz, dmuchając do przepływomierza, sprawdzamy czy napięcie odpowiednio się zmienia. Pobór prądu podczas pracy powinien być na poziomie 10mA.
+
 ![image](https://user-images.githubusercontent.com/1706814/174991645-42abb5e7-1ce4-499b-aaa7-12e494611787.png)
 
 
@@ -38,7 +40,7 @@ Wyprowadzenia: <br>
 3 - zasilanie +5V<br>
 4 - wyjście impuls prostokątny<br>
 
-Żeby sprawdzić rodzaj MAFa najlepiej podłączyć zasilanie 12V i sprawdzić co jest generowane na wyjściu 4/D (np oscyloskopem)
+Żeby sprawdzić rodzaj MAFa najlepiej podłączyć zasilanie 12V i sprawdzić co jest generowane na wyjściu 4/D (np oscyloskopem). Powinien być widoczny sygnał prostokątny. Konieczne jest podwójne zasilanie  - 12 i 5V.
 
 ![image](https://user-images.githubusercontent.com/1706814/174993647-45c46403-0cfc-4bfe-8f74-a0b608ba6647.png)
 
