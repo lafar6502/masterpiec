@@ -40,7 +40,8 @@ Wyprowadzenia: <br>
 
 Żeby sprawdzić rodzaj MAFa najlepiej podłączyć zasilanie 12V i sprawdzić co jest generowane na wyjściu 4/D (np oscyloskopem)
 
-![image](https://user-images.githubusercontent.com/1706814/174988638-8fe8374d-95a2-4395-8b75-83c608b6189e.png)
+![image](https://user-images.githubusercontent.com/1706814/174993647-45c46403-0cfc-4bfe-8f74-a0b608ba6647.png)
+
 
 
 ## Inne MAFy
