@@ -24,6 +24,7 @@ float g_InitialTempCO = 0;
 float g_InitialTempExh = 0;
 float g_AirFlow = 0; //air flow measurement
 uint8_t g_AirFlowNormal = 0;
+uint8_t g_TargetFlow; //
 int8_t g_BlowerPowerCorrection = 0;
 TSTATE g_BurnState = STATE_UNDEFINED;  //aktualny stan grzania
 TSTATE g_ManualState = STATE_UNDEFINED; //wymuszony ręcznie stan (STATE_UNDEFINED: brak wymuszenia)
@@ -202,15 +203,39 @@ int8_t calculateBlowerPowerAdjustment(uint8_t desiredFlow, uint8_t currentFlow, 
   if (desiredFlow == 0) return -currentBlowerPower;
   float diff = (float) (desiredFlow - currentFlow) / (float) desiredFlow;
   
-  if (abs(diff) <= 0.01) return 0;
-  int8_t adj = desiredFlow - currentFlow / 2;
+  if (abs(diff) <= 0.03) return 0;
+  Serial.print("adj diff:");
+  Serial.print(diff);
+  Serial.print(", cur:");
+  Serial.print(currentFlow);
+  Serial.print(",trg:");
+  Serial.print(desiredFlow);
+  int8_t adj = diff * currentBlowerPower;
   if (adj > 0) {
     if (currentBlowerPower + adj < currentBlowerPower) adj = 255 - currentBlowerPower;
   }
   else {
     if (currentBlowerPower + adj > currentBlowerPower) adj = -currentBlowerPower;
   }
+  Serial.print(", adj:");
+  Serial.println(adj);
   return adj;
+}
+
+
+void maintainDesiredFlow() {
+  static unsigned long lastRun = 0L;
+  unsigned long t = millis();
+  if (t - lastRun < 5000) return;
+  lastRun = t;
+  uint8_t pow = getCurrentBlowerPower();
+  int8_t correction = calculateBlowerPowerAdjustment(g_TargetFlow, g_AirFlowNormal, pow);
+  if (correction != 0) {
+    setBlowerPower(pow + correction);  
+    Serial.print(F("POW correct:"));
+    Serial.println(getCurrentBlowerPower());
+  }
+  
 }
 
 void circulationControlTask() {
@@ -419,6 +444,7 @@ void workStateInitialize(TSTATE prev) {
 void stopStateInitialize(TSTATE prev) {
   assert(g_BurnState == STATE_STOP);
   setBlowerPower(0);
+  g_TargetFlow = 0;
   setFeederOff();
   setHeater(false);
   g_CurStateStart = millis();
@@ -426,6 +452,7 @@ void stopStateInitialize(TSTATE prev) {
   g_CurBurnCycleStart = g_CurStateStart;
   g_InitialTempCO = g_TempCO;
   g_InitialTempExh = g_TempSpaliny;
+  g_overrideBurning = false;
 }
 
 ///pętla palenia dla stanu pracy
@@ -506,6 +533,7 @@ void offStateInit(TSTATE prev) {
   g_CurBurnCycleStart = g_CurStateStart;
   g_InitialTempCO = g_TempCO;
   g_InitialTempExh = g_TempSpaliny;
+  g_TargetFlow = 0;
   setHeater(false);  
   setBlowerPower(0);
   setFeederOff();
@@ -570,6 +598,7 @@ void podtrzymanieStateInitialize(TSTATE prev) {
   g_InitialTempExh = g_TempSpaliny;
   g_overrideBurning = false;
   setBlowerPower(0);
+  g_TargetFlow = 0;
   setFeederOff();
   setHeater(false);
 }
@@ -616,6 +645,8 @@ void manualStateLoop() {
       setHeater(false);
     }
   }
+
+  maintainDesiredFlow();
 }
 
 
@@ -1089,7 +1120,7 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_FIRESTART, STATE_P0, cond_firestartOverride, NULL},
   {STATE_FIRESTART, STATE_ALARM, cond_firestartTimeout, NULL}, //failed to start fire
   {STATE_OFF, STATE_FIRESTART, cond_D_belowTargetTempAndNeedHeatAndAutoAllowed, NULL},
-
+  {STATE_OFF, STATE_FIRESTART, cond_firestartOverride, NULL},
   {STATE_OFF, STATE_ALARM, NULL, NULL},
   
   {STATE_UNDEFINED, STATE_UNDEFINED, NULL, NULL} //sentinel

@@ -191,7 +191,7 @@ extern int8_t g_BlowerPowerCorrection; //correction to blower power calculated b
 extern uint8_t g_ReductionsToP0; //reductions P1 -> P0 or P2 -> P0 which we dont ave 
 extern uint8_t g_ReductionsToP1; //reductions P2 -> P1
 extern uint16_t g_burnCycleNum; //nr cyklu spalania w biez stanie
-
+extern uint8_t g_TargetFlow;
 extern TSTATE g_BurnState;  //aktualny stan grzania
 extern bool   g_HomeThermostatOn;  //true - termostat pokojowy kazał zaprzestać grzania
 extern unsigned long g_P1Time; //accumulated P1 time
