@@ -13,7 +13,7 @@ Jeśli chodzi o komunikację (sposób przekazywania pomiarów), MAFy mogą wykor
 * inne - oczywiście występują też MAFy których zasady działania nie byłem w stanie zidentyfikować
 
 ## Jaki MAF dla Masterpiec
-Używamy MAF typu 'napięciowego' tzn takiego który generuje napięcie proporcjonalne do szybkości przepływu. Są to czujniki spotykane w starszych samochodach, można je znaleźć np w Ford-ach (Mondeo, KA). Mają złącze z czterema przewodami, natomiast na wtyczce są często umieszczone symbole ABCD lub EABCDF oznaczające poszczególne wyprowadzenia.
+Używamy MAF typu 'napięciowego' tzn takiego który generuje napięcie proporcjonalne do szybkości przepływu. Są to czujniki spotykane w starszych samochodach, można je znaleźć np w Ford-ach (Mondeo, KA). Mają złącze z czterema przewodami, natomiast na wtyczce są często umieszczone symbole ABCD lub EABCDF oznaczające poszczególne wyprowadzenia. Używane czujniki tego typu można łatwo kupić w cenie ok 10 PLN.
 
 Wyprowadzenia przedstawiają się tak: <br>
 A - zasilanie +12V<br>
