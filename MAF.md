@@ -32,12 +32,17 @@ Szerokość impulsu zależy od zmierzonego przepływu
 
 Wyprowadzenia: <br>
 1 - zasilanie +12V <br>
-2 - GND
+2 - GND <br>
 3 - zasilanie +5V<br>
 4 - wyjście impuls prostokątny<br>
 
+Żeby sprawdzić rodzaj MAFa najlepiej podłączyć zasilanie 12V i sprawdzić co jest generowane na wyjściu 4/D (np oscyloskopem)
 
 ![image](https://user-images.githubusercontent.com/1706814/174988638-8fe8374d-95a2-4395-8b75-83c608b6189e.png)
 
+
+## Inne MAFy
+W szczególności firmy 'continental', 'siemens' - stosowane w różnych samochodach. Mają także 4 wyprowadzenia, ale nie udało mi się zidentyfikować sposobu ich podłączenia ani zasady działania.
+Uwaga: zalecana ostrożność w podłączaniu do Arduino, w nieznanym typie MAF na wyjściach może pojawić się np napięcie 12V które doprowadzi do uszkodzenia arduino.
 
 
