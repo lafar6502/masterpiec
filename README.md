@@ -55,6 +55,10 @@ Sterownik jest zbudowany z gotowych modułów, nie wymaga robienia własnych pł
 - zabezpieczenie przed przekraczaniem temp zadanej (poprzez zmniejszenie mocy z wyprzedzeniem)
 - cyrkulacja w trybie ciągłym lub załączanie cykliczne w celu ograniczenia strat ciepła
 
+## MAF - wykorzystanie samochodowego przepływomierza
+
+[Poradnik MAF](MAF.md)
+
 ## Podziękowania, inspiracje
 
 Główną inspiracją dla masterpieca był Lucjan - czyli sterownik kotła w wersji DIY udostępniony przez UZI18 
