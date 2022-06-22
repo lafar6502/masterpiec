@@ -16,10 +16,10 @@ Jeśli chodzi o komunikację (sposób przekazywania pomiarów), MAFy mogą wykor
 Używamy MAF typu 'napięciowego' tzn takiego który generuje napięcie proporcjonalne do szybkości przepływu. Są to czujniki spotykane w starszych samochodach, można je znaleźć np w Ford-ach (Mondeo, KA). Mają złącze z czterema przewodami, natomiast na wtyczce są często umieszczone symbole ABCD lub EABCDF oznaczające poszczególne wyprowadzenia.
 
 I tak, 
-A - zasilanie +12V
-B - GND
-C - GND
-D - sygnał czujnika 0..5V
+A - zasilanie +12V<br>
+B - GND<br>
+C - GND<br>
+D - sygnał czujnika 0..5V<br>
 
 ![maf_ford](https://user-images.githubusercontent.com/1706814/174986853-192e27db-4cfa-488d-8cd3-0739687729a8.jpg)
 
