@@ -28,7 +28,8 @@ Drugi potencjalnie łatwy do zastosowania rodzaj MAFa to grupa III, tj sterując
 Są to MAFy nieco nowszej generacji, często produkowane przez firmę Bosch, dla samochodów Volkswagen, Rover, innych
 Posiadają one również cztery wyprowadzenia, ale najczęściej oznaczane cyframi 1,2,3,4
 Podczas pracy generują impuls w przybliżeniu prostokątny, o napięciu ok 3.3V i częstotliwości ok 19Hz
-Szerokość impulsu zależy od zmierzonego przepływu
+Szerokość impulsu zależy od zmierzonego przepływu.
+W tej chwili Masterpiec nie używa tego typu przepływomierzy, ale jest szansa na ich wykorzystanie w przyszłości.
 
 Wyprowadzenia: <br>
 1 - zasilanie +12V <br>
