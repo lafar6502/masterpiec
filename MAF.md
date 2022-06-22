@@ -37,7 +37,7 @@ Wyprowadzenia: <br>
 4 - wyjście impuls prostokątny<br>
 
 
-![image ](https://user-images.githubusercontent.com/1706814/174988638-8fe8374d-95a2-4395-8b75-83c608b6189e.png=200x200)
+![image ](https://user-images.githubusercontent.com/1706814/174988638-8fe8374d-95a2-4395-8b75-83c608b6189e.png =200x200)
 
 
 
