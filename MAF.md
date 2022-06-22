@@ -28,7 +28,7 @@ D - sygnał czujnika 0..5V - odczytywany przez wejście analogowe Arduino, np A0
 
 ## Drugi typ MAF
 Drugi potencjalnie łatwy do zastosowania rodzaj MAFa to grupa III, tj sterujący szerokością impulsu.
-Są to MAFy nieco nowszej generacji, często produkowane przez firmę Bosch, dla samochodów Volkswagen, Rover, innych
+Są to MAFy nieco nowszej generacji, często produkowane przez firmę Bosch, dla samochodów Volkswagen, Rover, Opel i innych.
 Posiadają one również cztery wyprowadzenia, ale najczęściej oznaczane cyframi 1,2,3,4
 Podczas pracy generują impuls w przybliżeniu prostokątny, o napięciu ok 3.3V i częstotliwości ok 19Hz
 Szerokość impulsu zależy od zmierzonego przepływu.
