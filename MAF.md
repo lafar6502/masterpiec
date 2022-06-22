@@ -15,12 +15,29 @@ Jeśli chodzi o komunikację (sposób przekazywania pomiarów), MAFy mogą wykor
 ## Jaki MAF dla Masterpiec
 Używamy MAF typu 'napięciowego' tzn takiego który generuje napięcie proporcjonalne do szybkości przepływu. Są to czujniki spotykane w starszych samochodach, można je znaleźć np w Ford-ach (Mondeo, KA). Mają złącze z czterema przewodami, natomiast na wtyczce są często umieszczone symbole ABCD lub EABCDF oznaczające poszczególne wyprowadzenia.
 
-I tak, 
+Wyprowadzenia przedstawiają się tak: <br>
 A - zasilanie +12V<br>
 B - GND<br>
 C - GND<br>
 D - sygnał czujnika 0..5V<br>
 
 ![maf_ford](https://user-images.githubusercontent.com/1706814/174986853-192e27db-4cfa-488d-8cd3-0739687729a8.jpg)
+
+## Drugi typ MAF
+Drugi potencjalnie łatwy do zastosowania rodzaj MAFa to grupa III, tj sterujący szerokością impulsu.
+Są to MAFy nieco nowszej generacji, często produkowane przez firmę Bosch, dla samochodów Volkswagen, Rover, innych
+Posiadają one również cztery wyprowadzenia, ale najczęściej oznaczane cyframi 1,2,3,4
+Podczas pracy generują impuls w przybliżeniu prostokątny, o napięciu ok 3.3V i częstotliwości ok 19Hz
+Szerokość impulsu zależy od zmierzonego przepływu
+
+Wyprowadzenia: <br>
+1 - zasilanie +12V <br>
+2 - GND
+3 - zasilanie +5V<br>
+4 - wyjście impuls prostokątny<br>
+
+
+![image](https://user-images.githubusercontent.com/1706814/174988638-8fe8374d-95a2-4395-8b75-83c608b6189e.png)
+
 
 
