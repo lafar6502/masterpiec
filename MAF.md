@@ -21,7 +21,8 @@ B - GND<br>
 C - GND<br>
 D - sygnał czujnika 0..5V<br>
 
-![maf_ford](https://user-images.githubusercontent.com/1706814/174986853-192e27db-4cfa-488d-8cd3-0739687729a8.jpg)
+![image](https://user-images.githubusercontent.com/1706814/174991645-42abb5e7-1ce4-499b-aaa7-12e494611787.png)
+
 
 ## Drugi typ MAF
 Drugi potencjalnie łatwy do zastosowania rodzaj MAFa to grupa III, tj sterujący szerokością impulsu.
