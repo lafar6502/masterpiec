@@ -26,7 +26,6 @@ float g_InitialTempExh = 0;
 float g_AirFlow = 0; //air flow measurement
 uint8_t g_AirFlowNormal = 0;
 uint8_t g_TargetFlow; //
-int8_t g_BlowerPowerCorrection = 0;
 TSTATE g_BurnState = STATE_UNDEFINED;  //aktualny stan grzania
 TSTATE g_ManualState = STATE_UNDEFINED; //wymuszony ręcznie stan (STATE_UNDEFINED: brak wymuszenia)
 CWSTATE g_CWState = CWSTATE_OK; //current cw status
@@ -40,10 +39,11 @@ char* g_Alarm;
 unsigned long g_P1Time = 0;
 unsigned long g_P2Time = 0;
 unsigned long g_P0Time = 0;
-epid_t g_flow_pid_ctx;
+
 TReading lastCOTemperatures[11];
 TReading lastExhaustTemperatures[11]; //every 30 sec => 5 minutes
 TReading lastFlows[4];
+epid_t g_flow_pid_ctx;
 
 CircularBuffer<TReading> g_lastCOReads(lastCOTemperatures, sizeof(lastCOTemperatures)/sizeof(TReading));
 CircularBuffer<TReading> g_lastExhaustReads(lastExhaustTemperatures, sizeof(lastExhaustTemperatures)/sizeof(TReading));
@@ -65,11 +65,28 @@ TSTATE getInitialState() {
   return STATE_FIRESTART;
 }
 
-void initializeBurningLoop() {
+#define EPID_KP  2.0f
+#define EPID_KI  0.15f
+#define EPID_KD  0.1f
+#define PID_LIM_MIN 0.0f /* Limit for PWM. */
+#define PID_LIM_MAX 255.0f /* Limit for PWM. */
+#define DEADBAND 0.02f /* Off==0 */
+
+void initializeAirflowPid() {
+  epid_info_t epid_err = epid_init(&g_flow_pid_ctx,
+        g_AirFlowNormal, g_AirFlowNormal, g_TargetFlow,
+        EPID_KP, EPID_KI, EPID_KD);
+
+    if (epid_err != EPID_ERR_NONE) {
+        Serial.print("\n\n** ERROR: epid_err != EPID_ERR_NONE **\n\n");
+    }
   
-  
+}
+
+void initializeBurningLoop() {  
   g_TargetTemp = g_CurrentConfig.TCO;
   g_HomeThermostatOn = true;
+  initializeAirflowPid();
   TSTATE startState = getInitialState();
   forceState(startState);
 }
@@ -172,14 +189,14 @@ void processSensorValues() {
 
     int n = g_lastFlows.GetCount();
     float f0 = 0.0;
+    int nd = 0;
     for (int i=0; i<n; i++) {
-      f0 += g_lastFlows.GetAt(i)->Val;
+      f0 += g_lastFlows.GetAt(i)->Val * (i + 1);
+      nd += (i + 1);
     }
     float f1 = (float) g_DeviceConfig.AirFlowCoeff * 4.0 + 3.0;
-    f1 *= n;
+    f1 *= nd;
     g_AirFlowNormal = (uint8_t) ((f0 * 255.0) / f1);
-
-    
   }
   TReading nw;
   nw.Ms = ms;
@@ -226,19 +243,69 @@ int8_t calculateBlowerPowerAdjustment(uint8_t desiredFlow, uint8_t currentFlow, 
 }
 
 
-void maintainDesiredFlow() {
+void maintainDesiredFlow1() {
   static unsigned long lastRun = 0L;
   unsigned long t = millis();
   if (t - lastRun < 5000) return;
   lastRun = t;
   uint8_t pow = getCurrentBlowerPower();
-  int8_t correction = calculateBlowerPowerAdjustment(g_TargetFlow, g_AirFlowNormal, pow);
-  if (correction != 0) {
-    setBlowerPower(pow + correction);  
-    Serial.print(F("POW correct:"));
-    Serial.println(getCurrentBlowerPower());
-  }
+  if (g_TargetFlow == 0) return;
+
+  if (pow == 0 && getManualControlMode()) pow = g_TargetFlow;
+  float setF = (float) g_TargetFlow;
+  float actF = (float) g_AirFlowNormal;
+  epid_pid_calc(&g_flow_pid_ctx, setF, actF); /* Calc PID terms values */
+
+   
+  Serial.print("PID flow trg:");
+  Serial.print(setF);
+  Serial.print(", cur:");
+  Serial.print(actF);
   
+
+    /* Apply deadband filter to `delta[k]`. */
+    float deadband_delta = g_flow_pid_ctx.p_term + g_flow_pid_ctx.i_term + g_flow_pid_ctx.d_term;
+    if (true || (deadband_delta != deadband_delta) || (fabsf(deadband_delta) >= DEADBAND)) {
+        /* Compute new control signal output */
+        epid_pid_sum(&g_flow_pid_ctx, PID_LIM_MIN, PID_LIM_MAX);
+        Serial.print(", calc pwr:");
+        Serial.print(g_flow_pid_ctx.y_out);
+        setBlowerPower((uint8_t) g_flow_pid_ctx.y_out);
+    }
+    Serial.println();
+}
+
+void maintainDesiredFlow() {
+  static unsigned long lastRun = millis();
+  unsigned long t = millis();
+  if (t - lastRun < 5000) return;
+  lastRun = t;
+  if (g_TargetFlow == 0) return;
+  
+  int16_t cp = getCurrentBlowerPower();
+  
+  if (cp == 0 && getManualControlMode()) cp = g_TargetFlow;
+  float setF = (float) g_TargetFlow;
+  float actF = (float) g_AirFlowNormal;
+  int8_t corr = getBlowerPowerCorrection();
+  float dev = (setF - actF) / setF;
+  if (abs(dev) <= 0.05) {
+    return;
+  }
+  Serial.print("flow:");
+  Serial.print(g_AirFlowNormal);
+  Serial.print(", dev:");
+  Serial.print(dev);
+  int8_t d = dev > 0.0 ? 1 : -1;
+  if (abs(dev) > 0.2) d *= 2;
+  corr += d;
+  if (corr > 120) corr = 120;
+  if (corr < -120) corr = -120;
+  Serial.print(", corr:");
+  Serial.print(corr);
+  Serial.println();
+  setBlowerPowerCorrection(corr);
+  //setBlowerPower(cp);
 }
 
 void circulationControlTask() {

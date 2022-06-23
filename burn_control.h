@@ -42,6 +42,7 @@ typedef struct BurnParams {
     //moc nadmuchu
     uint8_t BlowerPower; //0 .. 255 (100%)
     uint8_t BlowerCycle; //cykl dmuchawy dla zasilania grupowego. 0 gdy fazowe.
+    uint8_t AirFlow; //air flow value, if zero then not used. If specified then BlowerPower is the starting power, then adjusted to AirFlow
 } TBurnParams;
 
 
@@ -113,6 +114,7 @@ typedef struct BurnStateConfig {
   void (*fInitialize)(TSTATE s);
   void (*fLoop)();
 } TBurnStateConfig;
+
 
 //initialize the burning automatic algorithm
 void initializeBurningLoop();
@@ -187,7 +189,6 @@ extern float g_InitialTempCO;
 extern float g_InitialTempExh;
 extern float g_AirFlow;
 extern uint8_t g_AirFlowNormal;  //normalized airflow range 0..255 (or make it 0..100?)
-extern int8_t g_BlowerPowerCorrection; //correction to blower power calculated based on flow meter
 extern uint8_t g_ReductionsToP0; //reductions P1 -> P0 or P2 -> P0 which we dont ave 
 extern uint8_t g_ReductionsToP1; //reductions P2 -> P1
 extern uint16_t g_burnCycleNum; //nr cyklu spalania w biez stanie

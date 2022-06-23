@@ -45,25 +45,29 @@ TControlConfiguration defaultConfig() {
         5 * 60, //P0 - 5 min
         50,
         20,
-        7
+        7,
+        60
       },
       {
         60,  //P1 - 60 sec
         4*10,
         20,
-        0
+        0,
+        60
       },
       {
         60, //P2 - 42 sec
         9 * 10,
         50,
-        0
+        0,
+        140
       },
       {
         150, //P2 - 42 sec
         25 * 10,
         50,
-        0
+        0,
+        140
       }
     }, //  TBurnParams BurnConfigs[MAX_POWER_STATES]; //first one [0] is the podtrzymanie
     80, //uint8_t FeederTempLimit;

@@ -763,6 +763,7 @@ void adjustHeaterState(uint8_t varIdx, void*d, int8_t increment) {
 
 void adjustBlowerState(uint8_t varIdx, void* d, int8_t increment) {
   if (!getManualControlMode()) return;
+  g_TargetFlow = 0;
   uint8_t v = getCurrentBlowerPower();
   v += increment;
   setBlowerPower(v);
@@ -936,21 +937,25 @@ const TUIVarEntry UI_VARIABLES[] = {
   {MPSTR("P0 wegiel co"), VAR_ADVANCED, &g_CurrentConfig.P0FuelFreq, 1, 5, printUint8, adjustUint8, copyU8, commitConfig},
   {MPSTR("P0 dmuchawa sek"), VAR_ADVANCED, &g_CurrentConfig.P0BlowerTime, 1, 240, printUint8, adjustUint8, copyU8, commitConfig},
   {MPSTR("P0 dmuchawa"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].BlowerPower, 0, 256, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("P0 flow"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].AirFlow, 0, 256, printUint8, adjustUint8, copyU8, commitConfig},
   {MPSTR("P0 dmuchawa CZ"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
   
   {MPSTR("P1 cykl sek."), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
   {MPSTR("P1 podawanie"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P1].CycleSec}},
   {MPSTR("P1 dmuchawa"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].BlowerPower, 0, 256, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("P1 flow"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].AirFlow, 0, 256, printUint8, adjustUint8, copyU8, commitConfig},
   {MPSTR("P1 dmuchawa CZ"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P1].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
 
   {MPSTR("P2 cykl sek."), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
   {MPSTR("P2 podawanie"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec}},
   {MPSTR("P2 dmuchawa"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerPower, 0, 256, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("P2 flow"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].AirFlow, 0, 256, printUint8, adjustUint8, copyU8, commitConfig},
   {MPSTR("P2 dmuchawa CZ"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P2].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
 
   {MPSTR("RO cykl sek."), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].CycleSec, 0, 300, printUint16, adjustUint16, copyU16, commitConfig},
   {MPSTR("RO podawanie"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].FuelSecT10, 0, 600, printFeedRate_WithHeatPower, adjustUint16, copyU16, commitConfig, {.ptr = &g_CurrentConfig.BurnConfigs[STATE_P2].CycleSec}},
   {MPSTR("RO dmuchawa"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].BlowerPower, 0, 256, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("RO flow"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].AirFlow, 0, 256, printUint8, adjustUint8, copyU8, commitConfig},
   {MPSTR("RO dmuchawa CZ"), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_FIRESTART].BlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitConfig},
 
   {MPSTR("Wygasz po cykl"), VAR_ADVANCED, &g_CurrentConfig.P0CyclesBeforeStandby, 0, 50, printUint8, adjustUint8, copyU8, commitConfig},

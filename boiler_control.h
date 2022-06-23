@@ -33,6 +33,9 @@ void gatherStatsTask();
 
 bool isThermostatOn();
 
+int8_t getBlowerPowerCorrection();
+void   setBlowerPowerCorrection(int8_t c);
+
 //accumulated feeder run time, in ms
 extern unsigned long g_FeederRunTime;
 

@@ -18,6 +18,7 @@ struct tPowerControlPin {
 //flags for synced turning on/off of port K bits
 volatile uint8_t g_powerFlags = 0;
 volatile uint8_t g_powerBits = 0;
+int8_t g_BlowerPowerCorrection = 0; //blower power adjustment for current burn state. we adjust this adjustment when correcting flow.
 
 //PINTK, PO
 #define POWER_PORT_MASK 0b11111111
@@ -204,10 +205,15 @@ void zeroCrossHandler() {
  }
 
 
+
 //power in % 0..255 (255 = 100%), cycleLength 1..255
 void breseInit(uint8_t power, uint8_t cycleLength) {
   kickstartCount = 0;
-  float powerPerc = ((float) power) * (g_CurrentConfig.BlowerMax == 0 ? 1.0 : (float) g_CurrentConfig.BlowerMax / 255.0);
+  if (power == 0) g_BlowerPowerCorrection = 0;
+  float p0 = power + g_BlowerPowerCorrection;
+  if (p0 < 0) p0 = 0;
+  if (p0 > 255) p0 = 255;
+  float powerPerc = p0 * (g_CurrentConfig.BlowerMax == 0 ? 1.0 : (float) g_CurrentConfig.BlowerMax / 255.0);
   if (power_set == 0) {
     counter = 0;
     power_counter = 0;    
@@ -217,6 +223,15 @@ void breseInit(uint8_t power, uint8_t cycleLength) {
   brese_increment = powerPerc * cycleLength / 255.0;
   brese_cycle = cycleLength;
 }
+
+int8_t getBlowerPowerCorrection() {
+  return g_BlowerPowerCorrection;
+}
+void   setBlowerPowerCorrection(int8_t c) {
+  g_BlowerPowerCorrection = c;
+  breseInit(power_set, brese_cycle);
+}
+
 
 void initializeBlowerControl() {
   brese_cycle = g_DeviceConfig.DefaultBlowerCycle;
@@ -274,6 +289,10 @@ uint8_t getCurrentBlowerCycle() {
 uint8_t getCurrentBlowerPower() {
   return power_set;
 }
+
+int8_t getBlowerPowerCorrection();
+void   setBlowerPowerCorrection();
+
 
 unsigned long g_feederRunMs = 0;
 unsigned long g_pumpCORunMs = 0;
