@@ -202,6 +202,10 @@ void zeroCrossHandler() {
     g_powerFlags &= ~MASK_BLOWER;
   }
   PORTK = g_powerFlags & POWER_PORT_MASK; //put all bits at once
+  if (power_set == 0)
+    PORTC &= ~MASK_FLOW_PWR;
+  else
+    PORTC |= MASK_FLOW_PWR;
  }
 
 
@@ -239,26 +243,27 @@ void initializeBlowerControl() {
   triacOff();
   pinMode(HW_ZERO_DETECT_PIN, INPUT);
   attachInterrupt(digitalPinToInterrupt(HW_ZERO_DETECT_PIN), zeroCrossHandler2, RISING);  
-  pinModeFast(HW_PUMP_CO1_CTRL_PIN, OUTPUT);
-  pinModeFast(HW_PUMP_CWU1_CTRL_PIN, OUTPUT);
-  pinModeFast(HW_PUMP_CO2_CTRL_PIN, OUTPUT);
-  pinModeFast(HW_PUMP_CIRC_CTRL_PIN, OUTPUT);
-  pinModeFast(HW_FEEDER_CTRL_PIN, OUTPUT);
-  pinModeFast(HW_HEATER_CTRL_PIN, OUTPUT);
-  
+  pinMode(HW_PUMP_CO1_CTRL_PIN, OUTPUT);
+  pinMode(HW_PUMP_CWU1_CTRL_PIN, OUTPUT);
+  pinMode(HW_PUMP_CO2_CTRL_PIN, OUTPUT);
+  pinMode(HW_PUMP_CIRC_CTRL_PIN, OUTPUT);
+  pinMode(HW_FEEDER_CTRL_PIN, OUTPUT);
+  pinMode(HW_HEATER_CTRL_PIN, OUTPUT);
+  pinMode(HF_FLOW_SENSOR_POWER_PIN, OUTPUT);
   digitalWriteFast(HW_PUMP_CO1_CTRL_PIN, LOW);
   digitalWriteFast(HW_PUMP_CWU1_CTRL_PIN, LOW);
   digitalWriteFast(HW_PUMP_CO2_CTRL_PIN, LOW);
   digitalWriteFast(HW_PUMP_CIRC_CTRL_PIN, LOW);
   digitalWriteFast(HW_FEEDER_CTRL_PIN, LOW);
   digitalWriteFast(HW_HEATER_CTRL_PIN, LOW);
+  digitalWrite(HF_FLOW_SENSOR_POWER_PIN, LOW);
   if (HW_THERMOSTAT_PIN != 0) 
   {
-    pinModeFast(HW_THERMOSTAT_PIN, INPUT_PULLUP);  
+    pinMode(HW_THERMOSTAT_PIN, INPUT_PULLUP);  
   }
   if (HW_THERMOSTAT_PIN_ALT != 0) 
   {
-    pinModeFast(HW_THERMOSTAT_PIN_ALT, INPUT); 
+    pinMode(HW_THERMOSTAT_PIN_ALT, INPUT); 
   }
 }
 

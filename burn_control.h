@@ -92,7 +92,7 @@ typedef struct ControlConfiguration {
   uint8_t FireDetExhIncrD10; //how much has exh temp to increase
   uint8_t FireDetCOIncr10; //how much has CO temp to increase
   uint8_t P0CyclesBeforeStandby;
-  uint8_t AirControlMode; //0 - just blower %, 1 - flow meter. If flow meter then 
+  uint8_t AirControlMode; //0 - just blower %, 1 - flow meter (both % and then flow for adjustment) 2 - just the flow value is used 
 } TControlConfiguration;
 
 #define CFG_SLOT_SIZE 140 //size of single config settings struct (with some extra space for future) - utility.cpp

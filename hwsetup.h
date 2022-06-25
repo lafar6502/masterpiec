@@ -18,11 +18,11 @@
 //89  PK0 ( ADC8/PCINT16 )  Analog pin 8
 
 
-#define HW_ENCODER_PINA 15
-#define HW_ENCODER_PINB 18
-#define HW_ENCODER_PINBTN 34
-#define HW_DISPLAY_PIN 1
-#define HW_ZERO_DETECT_PIN 2
+#define HW_ENCODER_PINA 15 //PJ0
+#define HW_ENCODER_PINB 18 //PD3
+#define HW_ENCODER_PINBTN 34 //PC3
+#define HW_DISPLAY_PIN 1     //PE1
+#define HW_ZERO_DETECT_PIN 2 //PE0
 
 
 //#define HW_FLOW_SENSOR_PULSE_PIN 3  //pulse width detection pin for pulse-driven flow meter
@@ -34,14 +34,28 @@
 #define BLOWER 5
 
 //#define HW_PUMP_CIRC_CTRL_PIN  A8   //portk 0
-#define HW_FLOW_SENSOR_INPUT_PIN A0  //flow sensor input voltage (for voltage-out flow meter)
-#define HW_PUMP_CO1_CTRL_PIN  A9    //portk 1
-#define HW_FEEDER_CTRL_PIN A10      //portk 2
-#define HW_PUMP_CIRC_CTRL_PIN  A11  //portk 3
-#define HW_BLOWER_CTRL_PIN A12      //portk 5 remember mask
-#define HW_HEATER_CTRL_PIN  A13    //portk 4
-#define HW_PUMP_CO2_CTRL_PIN  A14   //portk 6
-#define HW_PUMP_CWU1_CTRL_PIN  A15  //portk 7
+#define HW_FLOW_SENSOR_INPUT_PIN A0  //PF0 flow sensor input voltage (for voltage-out flow meter)
+#define HW_PUMP_CO1_CTRL_PIN  A9    //PK1 portk 1
+#define HW_FEEDER_CTRL_PIN A10      //PK2 portk 2
+#define HW_PUMP_CIRC_CTRL_PIN  A11  //PK3 portk 3
+#define HW_BLOWER_CTRL_PIN A12      //PK4 portk 4 remember mask
+#define HW_HEATER_CTRL_PIN  A13     //PK5 portk 5
+#define HW_PUMP_CO2_CTRL_PIN  A14   //PK6 portk 6
+#define HW_PUMP_CWU1_CTRL_PIN  A15  //PK7 portk 7
+
+#define HF_FLOW_SENSOR_POWER_PIN 30  //PC7 flow sensor power control (use of this is optional). This one goes to high level when fan is running
+#define HW_THERMOSTAT_PIN 47 // PORTL PL2
+#define HW_THERMOSTAT_PIN_ALT 26 //PA4
+
+#define MAX6675_0_SCK_PIN 39  //PG2
+#define MAX6675_0_CS_PIN 41   //PG0 
+#define MAX6675_0_SO_PIN 40   //PL5
+
+#define MAX6675_1_SCK_PIN 0 //disable
+#define MAX6675_1_CS_PIN 44  //PL5
+#define MAX6675_1_SO_PIN 46  //PL3
+
+
 
 //#define MASK_PUMP_CIRC  0b00000001
 #define MASK_PUMP_CO1   0b00000010
@@ -51,18 +65,7 @@
 #define MASK_HEATER     0b00100000
 #define MASK_PUMP_CO2   0b01000000
 #define MASK_PUMP_CWU1  0b10000000
-
-
-#define HW_THERMOSTAT_PIN 47
-#define HW_THERMOSTAT_PIN_ALT 26
-
-#define MAX6675_0_SCK_PIN 39
-#define MAX6675_0_CS_PIN 41
-#define MAX6675_0_SO_PIN 40
-
-#define MAX6675_1_SCK_PIN 0 //disable
-#define MAX6675_1_CS_PIN 44
-#define MAX6675_1_SO_PIN 46
+#define MASK_FLOW_PWR   0b10000000
 
 
 #define DISPLAY_TEXT_LINES 2

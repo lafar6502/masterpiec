@@ -248,10 +248,21 @@ void maintainDesiredFlow1() {
   unsigned long t = millis();
   if (t - lastRun < 5000) return;
   lastRun = t;
-  uint8_t pow = getCurrentBlowerPower();
   if (g_TargetFlow == 0) return;
+  if (!getManualControlMode()) 
+  {
+    if (g_CurrentConfig.AirControlMode != 1 && g_CurrentConfig.AirControlMode != 2) return;
+    if (g_BurnState != STATE_P0 && g_BurnState != STATE_P1 && g_BurnState != STATE_P2 && g_BurnState != STATE_FIRESTART && g_BurnState != STATE_REDUCE1 && g_BurnState != STATE_REDUCE2) return;
+  };
+  
+  uint8_t pow = getCurrentBlowerPower();
+  
 
-  if (pow == 0 && getManualControlMode()) pow = g_TargetFlow;
+  if (pow == 0 && getManualControlMode()) 
+  {
+    pow = g_TargetFlow;
+    setBlowerPower(pow);
+  }
   float setF = (float) g_TargetFlow;
   float actF = (float) g_AirFlowNormal;
   epid_pid_calc(&g_flow_pid_ctx, setF, actF); /* Calc PID terms values */
@@ -278,18 +289,26 @@ void maintainDesiredFlow1() {
 void maintainDesiredFlow() {
   static unsigned long lastRun = millis();
   unsigned long t = millis();
-  if (t - lastRun < 5000) return;
+  if (t - lastRun < 4000) return;
   lastRun = t;
   if (g_TargetFlow == 0) return;
+  if (!getManualControlMode()) 
+  {
+    if (g_CurrentConfig.AirControlMode != 1 && g_CurrentConfig.AirControlMode != 2) return;
+    if (g_BurnState != STATE_P0 && g_BurnState != STATE_P1 && g_BurnState != STATE_P2 && g_BurnState != STATE_FIRESTART && g_BurnState != STATE_REDUCE1 && g_BurnState != STATE_REDUCE2) return;
+  };
   
   int16_t cp = getCurrentBlowerPower();
   
-  if (cp == 0 && getManualControlMode()) cp = g_TargetFlow;
+  if (cp == 0 && getManualControlMode()) {
+    cp = g_TargetFlow;
+    setBlowerPower(cp);
+  }
   float setF = (float) g_TargetFlow;
   float actF = (float) g_AirFlowNormal;
-  int8_t corr = getBlowerPowerCorrection();
+  int16_t corr = getBlowerPowerCorrection();
   float dev = (setF - actF) / setF;
-  if (abs(dev) <= 0.05) {
+  if (abs(dev) <= 0.04) { //less than 5%
     return;
   }
   Serial.print("flow:");
@@ -297,10 +316,11 @@ void maintainDesiredFlow() {
   Serial.print(", dev:");
   Serial.print(dev);
   int8_t d = dev > 0.0 ? 1 : -1;
-  if (abs(dev) > 0.2) d *= 2;
+  if (abs(dev) > 0.1) d *= 2;
+  if (abs(dev) > 0.25) d *= 2;
   corr += d;
-  if (corr > 120) corr = 120;
-  if (corr < -120) corr = -120;
+  if (corr > 127) corr = 127;
+  if (corr < -127) corr = -127;
   Serial.print(", corr:");
   Serial.print(corr);
   Serial.println();
@@ -503,6 +523,9 @@ void workStateInitialize(TSTATE prev) {
   curStateMaxTempCO = g_TempCO;
   g_burnCycleNum = 0;
   setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_DeviceConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
+  if (g_CurrentConfig.AirControlMode != 0 && g_CurrentConfig.BurnConfigs[g_BurnState].AirFlow > 0) {
+    g_TargetFlow = g_CurrentConfig.BurnConfigs[g_BurnState].AirFlow;
+  }
   Serial.print(F("Burn init, cycle: "));
   Serial.println(g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec);
   setHeater(false);
@@ -549,8 +572,12 @@ void workStateBurnLoop() {
     setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_DeviceConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
     g_BurnCyclesBelowMinTemp = g_TempCO <= g_CurrentConfig.TMinPomp ? g_BurnCyclesBelowMinTemp + 1 : 0;
     g_burnCycleNum++;
+    if (g_CurrentConfig.AirControlMode != 0 && g_CurrentConfig.BurnConfigs[g_BurnState].AirFlow > 0) {
+      g_TargetFlow = g_CurrentConfig.BurnConfigs[g_BurnState].AirFlow;
+    }
   }
   if (g_BurnState != STATE_FIRESTART) setHeater(false);
+  maintainDesiredFlow();
 }
 
 unsigned long _reductionStateEndMs = 0; //inside reduction state - this is the calculated end time. Outside (before reduction) - we put remaining P1 or P2 time there before going to reduction.
@@ -567,7 +594,11 @@ void firestartStateInit(TSTATE prev) {
   g_InitialTempExh = g_TempSpaliny;
   g_overrideBurning = false;
   uint8_t bp = g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower;
+  setBlowerPower(0);
   setBlowerPower(bp, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_DeviceConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
+  if (g_CurrentConfig.AirControlMode != 0 && g_CurrentConfig.BurnConfigs[g_BurnState].AirFlow > 0) {
+    g_TargetFlow = g_CurrentConfig.BurnConfigs[g_BurnState].AirFlow;
+  }
   if (bp > 0) {
     setHeater(true);
   }
@@ -588,6 +619,7 @@ void firestartStateLoop() {
     if (!heater) {
 
     }
+    maintainDesiredFlow();
   }
 
   setHeater(heater);
@@ -636,6 +668,9 @@ void reductionStateInit(TSTATE prev) {
   if (prev == STATE_P2) adj += ((unsigned long) g_CurrentConfig.ReductionP2ExtraTime * (unsigned long) g_CurrentConfig.BurnConfigs[prev].CycleSec * 10L); // * 1000 / 100;
   _reductionStateEndMs = g_CurStateStart + _reductionStateEndMs + adj; //
   setBlowerPower(g_CurrentConfig.BurnConfigs[prev].BlowerPower, g_CurrentConfig.BurnConfigs[prev].BlowerCycle == 0 ? g_DeviceConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[prev].BlowerCycle);
+  if (g_CurrentConfig.AirControlMode != 0 && g_CurrentConfig.BurnConfigs[prev].AirFlow > 0) {
+    g_TargetFlow = g_CurrentConfig.BurnConfigs[g_BurnState].AirFlow;
+  }
   setFeederOff();
   setHeater(false);
   Serial.print(F("red: cycle should end in "));
@@ -655,6 +690,7 @@ void reductionStateLoop() {
     Serial.print(F("reduction should end by now:"));
     Serial.println(g_CurBurnCycleStart);
   }
+  maintainDesiredFlow();
 }
 
 
@@ -857,23 +893,23 @@ bool cond_firestartIsBurning() {
   
   if (ctd > 0) {
     if (d >= ctd || (g_dTExh > 0.5 && d + g_dTExh > ctd)) {
-      Serial.print("FIRE: d:");
-      Serial.println(d);
+      //Serial.print("FIRE: d:");
+      //Serial.println(d);
       return true;
     }
   }
 
   if (ctd2 > 0 && e >= ctd2) {
-    Serial.print("FIRE2: e:");
-    Serial.println(e);
+    //Serial.print("FIRE2: e:");
+    //Serial.println(e);
     return true;
   }
   
   
   if (crate > 0 && g_TempCO > g_CurrentConfig.TMinPomp && tRun >= 180000) { //3 min
       if (f >= crate) {
-        Serial.print("FIRE3: f:");
-        Serial.println(f);  
+        //Serial.print("FIRE3: f:");
+        //Serial.println(f);  
         return true;
       }
   }

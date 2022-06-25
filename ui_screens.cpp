@@ -50,7 +50,7 @@ void scrSensors1(uint8_t idx, char* lines[] ) {
   dtostrf(g_TempSpaliny,3, 1, buf1);
   dtostrf(g_AirFlow, 3, 1, buf2);
   sprintf(lines[0], "TSpalin:%s", buf1);
-  sprintf(lines[1], "Flow:%d", g_AirFlowNormal);
+  sprintf(lines[1], "Flow:%d %d", g_AirFlowNormal, getBlowerPowerCorrection());
 }
 
 void scrSensors2(uint8_t idx, char* lines[] ) {
@@ -87,7 +87,7 @@ void scrBurnInfo(uint8_t idx, char* lines[]) {
     dtostrf(f2, 2, 2, zbuf);
     
     sprintf(lines[0], "#%c %skW T%d", BURN_STATES[g_BurnState].Code, zbuf, g_CurrentConfig.BurnConfigs[g_BurnState].CycleSec - (tnow - g_CurBurnCycleStart) / 1000); 
-    sprintf(lines[1], "%c%d%% %d %ld", nh == NEED_HEAT_NONE ? '_' : nh == NEED_HEAT_CO ? '!' : '@', getCurrentBlowerPower(), g_burnCycleNum, tt);
+    sprintf(lines[1], "%c%d %d %ld", nh == NEED_HEAT_NONE ? '_' : nh == NEED_HEAT_CO ? '!' : '@', getCurrentBlowerPower(), g_burnCycleNum, tt);
   }
   else if (g_BurnState == STATE_REDUCE1 || g_BurnState == STATE_REDUCE2) 
   {
