@@ -680,6 +680,20 @@ void printVU8(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   sprintf(buf, "%d", v);
 }
 
+void printVU8_blower(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
+  U8Fun f = (U8Fun) UI_VARIABLES[varIdx].DataPtr;
+  if (parseString) {
+    if (editCopy == NULL) return;
+    uint8_t* pv = (uint8_t*) editCopy;
+    *pv = (uint8_t) (atof(buf) * 10);
+    return;
+  }
+  if (f == NULL) return;
+  uint8_t v = f();
+  
+  sprintf(buf, "%d F%d", v, g_AirFlowNormal);
+}
+
 
 void printPumpState(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   int i = (int) UI_VARIABLES[varIdx].DataPtr;
@@ -890,7 +904,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {MPSTR("Pompa CO"),0, PUMP_CO1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
   {MPSTR("Pompa CWU"),0, PUMP_CWU1, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
   {MPSTR("Pompa obieg"),0, PUMP_CIRC, 0, 1, printPumpState, adjustPumpState, NULL, NULL},
-  {MPSTR("Dmuchawa"),0, getCurrentBlowerPower, 0, 256, printVU8, adjustBlowerState, NULL, NULL, NULL},
+  {MPSTR("Dmuchawa"),0, getCurrentBlowerPower, 0, 256, printVU8_blower, adjustBlowerState, NULL, NULL, NULL},
   {MPSTR("Sila nadmuch"),0, &g_TargetFlow, 0, 256, printUint8, adjustUint8, NULL, NULL, NULL},
   {MPSTR("Podajnik"),0, isFeederOn, 0, 1, printVBoolSwitch, adjustFeederState, NULL, NULL},
   {MPSTR("Zapalarka"),0, isHeaterOn, 0, 1, printVBoolSwitch, adjustHeaterState, NULL, NULL},

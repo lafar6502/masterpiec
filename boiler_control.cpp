@@ -189,6 +189,7 @@ void zeroCrossHandler() {
  void zeroCrossHandler2() {
   counter++;
   g_powerBits = PINK & POWER_PORT_MASK;
+  uint8_t pcBits = PINC;
   uint8_t stp = breseControlStep();
   if (kickstartCount > 0 && power_set > 0) {
      stp = 1;
@@ -203,9 +204,9 @@ void zeroCrossHandler() {
   }
   PORTK = g_powerFlags & POWER_PORT_MASK; //put all bits at once
   if (power_set == 0)
-    PORTC &= ~MASK_FLOW_PWR;
+    PORTC = pcBits & ~MASK_FLOW_PWR;
   else
-    PORTC |= MASK_FLOW_PWR;
+    PORTC = pcBits | +MASK_FLOW_PWR;
  }
 
 

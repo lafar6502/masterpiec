@@ -1,6 +1,28 @@
 #ifndef _HWSETUP_H_INCLUDED_
 #define _HWSETUP_H_INCLUDED_
 
+
+#ifdef NEWLAYOUT_PINS
+//PORTC pins - 8 pins for 8 triac 230v channels
+//PC0 37
+//PC1 36
+//PC2 35
+//PC3 34
+//PC4 33
+//PC5 32
+//PC6 31
+//PC7 30
+
+//dallas data pin digital
+#define DALLAS_SENSOR_DATA_PIN 22 //PA0
+
+#define HW_DISPLAY_PIN 1     //PE1
+#define HW_ZERO_DETECT_PIN 2 //PE0
+
+
+
+#endif
+
 #define DALLAS_SENSOR_DATA_PIN 22
 #define MAX_DALLAS_SENSORS 8
 
@@ -16,6 +38,7 @@
 //87  PK2 ( ADC10/PCINT18 ) Analog pin 10
 //88  PK1 ( ADC9/PCINT17 )  Analog pin 9
 //89  PK0 ( ADC8/PCINT16 )  Analog pin 8
+
 
 
 #define HW_ENCODER_PINA 15 //PJ0

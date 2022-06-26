@@ -174,10 +174,10 @@ uint8_t g_SDEnabled = 0;
 void sdInit() {
 #ifdef ENABLE_SD
   g_SDEnabled = 0;
-  //pinMode(10,OUTPUT);
+  pinMode(53,OUTPUT);
   //digitalWrite(10,HIGH);
   Serial.print(F("Starting SD.."));
-  if(!SD.begin(4)) {
+  if(!SD.begin(53)) {
     Serial.println(F(" - failed"));
   }
   else {
