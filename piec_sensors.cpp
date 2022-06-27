@@ -65,7 +65,7 @@ void printAddress(DeviceAddress d)
 void printDallasInfo(uint8_t idx, char* buf)
 {
   uint8_t* d  = g_dallasSensors[idx].Addr;
-  sprintf(buf, "%d%c%02X%02X%02X%02X%02X %d", idx, g_dallasSensors[idx].Active ? '.':'!', d[3], d[4], d[5], d[6], d[7], g_dallasSensors[idx].Active ? (uint8_t) g_dallasSensors[idx].LastValue * 10 : 0);
+  sprintf(buf, "%d%c%02X%02X%02X%02X %d", idx, g_dallasSensors[idx].Active ? '.':'!', d[3], d[4], d[6], d[7], g_dallasSensors[idx].Active ? (uint8_t) g_dallasSensors[idx].LastValue * 10 : 0);
 }
 
 int findDallasIndex(uint8_t addr[8])
@@ -77,13 +77,15 @@ int findDallasIndex(uint8_t addr[8])
 }
 
 void initializeDallasSensors() {
+  
   sensors.begin();
 
   Serial.print(F("Scanning OneWire Dallas sensors found "));
   
   int deviceCount = sensors.getDeviceCount();
   Serial.print(deviceCount, DEC);
-  Serial.println();
+  Serial.print(", pin ");
+  Serial.println(DALLAS_SENSOR_DATA_PIN);
   DeviceAddress tmp;
   sensors.setWaitForConversion(false);  
   int m = millis();

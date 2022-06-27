@@ -47,7 +47,7 @@ void setTriacOutOff(uint8_t num) {
 }
 
 bool isTriacOutOnNow(uint8_t num) {
-  return (PINK & pump_ctrl_pins[num].Mask) != 0;
+  return (PINC & pump_ctrl_pins[num].Mask) != 0;
 }
 
 void setPumpOn(uint8_t num) {
@@ -110,7 +110,7 @@ void setFeederOff() {
 }
 //czy podajnik działa
 bool isFeederOn() {
-  return (PINK & MASK_FEEDER) != 0;
+  return (PINC & MASK_FEEDER) != 0;
  //return digitalReadFast(HW_FEEDER_CTRL_PIN) != LOW;
 }
 
@@ -118,7 +118,7 @@ unsigned long g_heaterStartTimeMs = 0;
 
 bool isHeaterOn() {
   //return digitalReadFast(HW_HEATER_CTRL_PIN) != LOW;
-  return (PINK & MASK_HEATER) != 0;
+  return (PINC & MASK_HEATER) != 0;
 }
 void setHeater(bool on) {
    //digitalWriteFast(HW_HEATER_CTRL_PIN, b ? HIGH : LOW);
@@ -188,8 +188,8 @@ void zeroCrossHandler() {
 }
  void zeroCrossHandler2() {
   counter++;
-  g_powerBits = PINK & POWER_PORT_MASK;
-  uint8_t pcBits = PINC;
+  g_powerBits = PINC & POWER_PORT_MASK;
+  uint8_t pcBits = PINL;
   uint8_t stp = breseControlStep();
   if (kickstartCount > 0 && power_set > 0) {
      stp = 1;
@@ -202,11 +202,11 @@ void zeroCrossHandler() {
   else {
     g_powerFlags &= ~MASK_BLOWER;
   }
-  PORTK = g_powerFlags & POWER_PORT_MASK; //put all bits at once
+  PORTC = g_powerFlags & POWER_PORT_MASK; //put all bits at once
   if (power_set == 0)
-    PORTC = pcBits & ~MASK_FLOW_PWR;
+    PORTL = pcBits & ~MASK_FLOW_PWR;
   else
-    PORTC = pcBits | +MASK_FLOW_PWR;
+    PORTL = pcBits | +MASK_FLOW_PWR;
  }
 
 
