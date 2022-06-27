@@ -1,4 +1,10 @@
 
+2022-06-27
+
+* Obsługa samochodowego czujnika MAF do pomiaru ilości powietrza
+* Funkcja korekcji prędkości dmuchawy w czasie pracy w oparciu o odczyt MAF
+* Zmiana połączeń arduino-peryferia (zmiany numerów pinów) z powodu reorganizacji kabelków
+
 2022-06-19
 
 * Obsluga zapalarki 
