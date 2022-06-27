@@ -55,7 +55,10 @@ Uwaga: zalecana ostrożność w podłączaniu do Arduino, w nieznanym typie MAF 
 
 Odczyt przepływu powietrza działa podczas pracy dmuchawy. Gdy dmuchawa nie pracuje MAF jest wyłączany (zakładam że nie jest to czujnik przeznaczony do pracy 24/7).
 Podaawana przez czujnik wartość przepływu nie jest wyrażona w żadnych jednostkach, jest to po prostu odczyt napięcia z czujnika.
+
 Standardowo wartość napięcia odczytywana przez Arduino może być z przedziału 0...1023 gdzie 1023 odpowiada napięciu 5V. Czujnik MAF nie osiąga 5V na wyjściu, zwykle są to napięcia z zakresu 2-3.5V - dlatego dokonujemy przeskalowania wyniku pomiaru do docelowej wartości z zakresu 0..255 (0 - brak przepływu, 255 - maksymalny możliwy przepływ).
 
+
 Parametr "MAF Skala" określa skalowanie - Flow = odczyt napięcia * 255 / (4 * MAF_Skala + 3) 
+
 MAF Skala należy dobrać doswiadczalnie zależnie od posiadanego MAFa
