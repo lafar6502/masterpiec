@@ -11,3 +11,9 @@ wiec temperatura nam w koncu zacznie spadać
 
 
 powinnismy ograniczyc czas wstecz na jaki patrzymy, np skupic sie tylko na ost 10 minutach. jesli wiecej od startu to beirzemy wartosc 10 minut wstecz
+
+---
+cykl 'chłodzenia' - tj przekazywanie ciepłej wody do bojlera lub co
+- wprowadzić jakąś histerezę - chłodzenie załącza się powyżej temp X a wyłącza poniżej, czasami powoduje to wielokrotne załącz/wyłącz na pompie
+- chłodzenie do CWU można prowadzić w zależności od temp powrotu a nie tylko od temp z czujnika bojlera (wtedy więcej wody by się nagrzało w bojlerze)
+- jesli kocioł nie pracuje, temp bojlera spadła poniżej tCO + delta to można też dogrzać bojler - tak jak w trybie chłodzenia.
