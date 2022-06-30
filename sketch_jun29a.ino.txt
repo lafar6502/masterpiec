@@ -1,0 +1,95 @@
+
+#define GEN_PIN 5
+#define ICP_PIN 48
+#define OUT_PIN 12
+
+                        // some variables to help see that something is happening in the interrupt handlers
+volatile unsigned int Value = 0;     // this stores the current ICR1 value
+
+volatile unsigned int Overflows = 0;
+volatile unsigned int PulseCount = 0;
+unsigned int prevPC = 0;
+unsigned int prevMs = 0;
+
+/* Overflow interrupt vector */
+ISR(TIMER4_OVF_vect){                 // here if no input pulse detected 
+   Overflows++;                       // incriment overflow count  
+}
+
+/* ICR interrupt vector */
+ISR(TIMER4_CAPT_vect){
+   TCNT4 = 0;                            // reset the counter  
+   if( bit_is_set(TCCR4B ,ICES1)){       // was rising edge detected ?   
+        digitalWrite(OUT_PIN,HIGH );      // yes, set our output pin high to mirror the input
+   }
+   else {                                // falling edge was detected 
+        Value = ICR4;                    // save the input capture value 
+        digitalWrite(OUT_PIN,LOW );       // set our output pin low to mirror the input  
+        PulseCount++;
+            
+   }     
+   TCCR4B ^= _BV(ICES1);                 // toggle bit value to trigger on the other edge    
+}
+
+
+
+void setup() {
+  Serial.begin(115200);
+  
+  // put your setup code here, to run once:
+  pinMode(GEN_PIN, OUTPUT);
+  pinMode(OUT_PIN, OUTPUT);
+  pinMode(ICP_PIN, INPUT);                // ICP pin (digital pin 8 on arduino) as input
+
+
+
+  TCCR4A = 0 ;                    // this register set to 0!
+  TCCR4B =_BV(CS11);              // NORMAL MODE!!, prescaller 8, rising edge ICP1 - this works
+  TCCR4B |= _BV(ICES1);           // enable input capture     
+
+  TIMSK4 =  _BV(ICIE1);                         // enable input capture interrupt for timer 1
+  TIMSK4 |= _BV(TOIE1);                         
+
+  prevMs = millis();
+}
+
+void dump() {
+  Serial.print("count:");
+  Serial.print(PulseCount);
+  Serial.print(", ovflows:");
+  Serial.print(Overflows);
+  Serial.print(", val:");
+  Serial.println(Value);
+  
+}
+
+
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  int vals[] = {30, 40, 50, 60, 120, 190, 50, 10};
+
+
+  delay(100);
+  //Serial.print("V:");
+  Serial.println(Value);
+  return;
+  for (int i=0; i<sizeof(vals)/sizeof(int); i++) {
+    Serial.print("Setting pwm:");
+    Serial.println(vals[i]);
+    analogWrite(GEN_PIN, vals[i]);
+    for (int j=0; j<4; j++) {
+      delay(1000);
+      dump();    
+      unsigned int m = millis();
+      unsigned int dc = PulseCount - prevPC;
+      float mc = (float) (m - prevMs) / 1000.0;
+      float frq =  (float) dc / mc;
+      Serial.print("frq:");
+      Serial.println(frq);
+      
+      prevPC = PulseCount;
+      prevMs = m;
+    }
+  }
+}
