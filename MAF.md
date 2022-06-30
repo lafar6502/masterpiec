@@ -15,15 +15,41 @@ Jeśli chodzi o komunikację (sposób przekazywania pomiarów), MAFy mogą wykor
 ## Jaki MAF dla Masterpiec
 Używamy MAF typu 'napięciowego' tzn takiego który generuje napięcie proporcjonalne do szybkości przepływu. Są to czujniki spotykane w starszych samochodach, można je znaleźć np w Ford-ach (Mondeo, KA). Mają złącze z czterema przewodami, natomiast na wtyczce są często umieszczone symbole ABCD lub EABCDF oznaczające poszczególne wyprowadzenia. Używane czujniki tego typu można łatwo kupić w cenie ok 10 PLN.
 
-Wyprowadzenia przedstawiają się tak: <br>
+
+MAF FORD - Wyprowadzenia przedstawiają się tak: <br>
 A - zasilanie +12V<br>
 B - GND<br>
 C - GND<br>
 D - sygnał czujnika 0..5V - odczytywany przez wejście analogowe Arduino, np A0<br>
+Przykładowe numery części: 97BP-12B579-AA,96FP-12B579-AB
 
 Żeby przetestować ten typ MAF wystarczy zasilanie 12V i woltomierz -badamy napięcie na pinie wyjściowym oraz, dmuchając do przepływomierza, sprawdzamy czy napięcie odpowiednio się zmienia. Pobór prądu podczas pracy powinien być na poziomie 10mA.
 
 ![image](https://user-images.githubusercontent.com/1706814/174991645-42abb5e7-1ce4-499b-aaa7-12e494611787.png)
+
+MAF Bosch <br/>
+Bosch produkuje MAFy w wersji analogowej (sygnał napięciowy) albo cyfrowej.
+Wyprowadzenia w 4-pinowym Boschu analogowym przedstawiają się tak (piny 1 2 3 4):<br/>
+1 - GND<br>
+2 - sygnał - (może być GND)<br>
+3 - +12V<br>
+4. sygnał + <br>
+Interesuje nas różnica napięć między pin 2 i 4, ale w sumie wystarczy różnica między GND a pin 4.<br>
+
+Dla 5-pinowych Bosch:<br>
+1 - NTC (czujnik temperatury) - ignorujemy<br>
+2 - +12V <br>
+3 - GND<br>
+4. +5V<br>
+5. Wyjście czujnika 0..5V<br>
+
+Przykładowe numery części:
+(4 pin) 0 280 217 111 (4pin), 0 280 217 102, 0 280 217 120, 0 280 217 519, 0 280 217 801, 0 280 217 107<br/>
+(5 pin) 0 280 217 123,  0 280 218 019,  0 280 217 531, 0 280 218 008, 0 281 002 421 <br> 
+0 280 217 123 (5pin), 0 280 218 037 (5pin), 0 280 218 116 (5 pin), 0 280 218 335 (5 pin),  0 280 218 088, 0 280 218 440 (5 pin), 
+0 280 218 446, 0 280 218 089, 
+
+
 
 
 ## Drugi typ MAF
