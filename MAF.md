@@ -44,38 +44,29 @@ Dla 5-pinowych Bosch:<br>
 5. Wyjście czujnika 0..5V<br>
 
 Przykładowe numery części:
-(4 pin) 0 280 217 111 (4pin), 0 280 217 102, 0 280 217 120, 0 280 217 519, 0 280 217 801, 0 280 217 107<br/>
+(4 pin) 0 280 217 111 (4pin), 0 280 217 102, 0 280 217 120, 0 280 217 519, 0 280 217 801, 0 280 217 107<br>
 (5 pin) 0 280 217 123,  0 280 218 019,  0 280 217 531, 0 280 218 008, 0 281 002 421 <br> 
-0 280 217 123 (5pin), 0 280 218 037 (5pin), 0 280 218 116 (5 pin), 0 280 218 335 (5 pin),  0 280 218 088, 0 280 218 440 (5 pin), 
+0 280 217 123 (5pin), 0 280 218 037 (5pin), 0 280 218 116 (5 pin), 0 280 218 335 (5 pin),  0 280 218 088, 0 280 218 440 (5 pin), <br>
 0 280 218 446, 0 280 218 089, 
 
 
 
 
-## Drugi typ MAF
-Drugi potencjalnie łatwy do zastosowania rodzaj MAFa to grupa III, tj sterujący szerokością impulsu.
-Są to MAFy nieco nowszej generacji, często produkowane przez firmę Bosch, dla samochodów Volkswagen, Rover, Opel i innych.
-Posiadają one również cztery wyprowadzenia, ale najczęściej oznaczane cyframi 1,2,3,4
-Podczas pracy generują impuls w przybliżeniu prostokątny, o napięciu ok 3.3V i częstotliwości ok 19Hz
-Szerokość impulsu zależy od zmierzonego przepływu.
+## MAF typ 2 - częstotliwość
+Drugi potencjalnie łatwy do zastosowania rodzaj MAFa to grupa 2, tj sterujący częstotliwością impulsu.
 W tej chwili Masterpiec nie używa tego typu przepływomierzy, ale jest szansa na ich wykorzystanie w przyszłości.
 
-Wyprowadzenia: <br>
-1 - zasilanie +12V <br>
-2 - GND <br>
-3 - zasilanie +5V<br>
-4 - wyjście impuls prostokątny<br>
 
-Żeby sprawdzić rodzaj MAFa najlepiej podłączyć zasilanie 12V i sprawdzić co jest generowane na wyjściu 4/D (np oscyloskopem). Powinien być widoczny sygnał prostokątny. Konieczne jest podwójne zasilanie  - 12 i 5V.
+## MAF typ 3 - szerokość pulsu
+Uzupełnię gdy znajdę przykład
 
-![image](https://user-images.githubusercontent.com/1706814/174993647-45c46403-0cfc-4bfe-8f74-a0b608ba6647.png)
-
-
+## MAF typ 4 - cyfrowy
+Bosch produkuje takie MAFy, na pierwszy rzut oka nie różnią się niczym od wersji z grupy 1 ale wyniki pomiaru są dostarczane w postaci cyfrowej. Protokół komunikacyjny nie jest mi znany i nie ma dokumentacji. Nie będziemy takich wykorzystywać w masterpiec.
 
 ## Inne MAFy
 W szczególności firmy 'continental', 'siemens' - stosowane w różnych samochodach. Mają także 4 wyprowadzenia, ale nie udało mi się zidentyfikować sposobu ich podłączenia ani zasady działania.
 Uwaga: zalecana ostrożność w podłączaniu do Arduino, w nieznanym typie MAF na wyjściach może pojawić się np napięcie 12V które doprowadzi do uszkodzenia arduino.
-
+Dotyczy wszystkich MAFów.
 
 ## Wykorzystanie czujnika przepływu do sterowania spalaniem
 
