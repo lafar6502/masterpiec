@@ -68,6 +68,12 @@ W szczególności firmy 'continental', 'siemens' - stosowane w różnych samocho
 Uwaga: zalecana ostrożność w podłączaniu do Arduino, w nieznanym typie MAF na wyjściach może pojawić się np napięcie 12V które doprowadzi do uszkodzenia arduino.
 Dotyczy wszystkich MAFów.
 
+## Zasilanie MAF
+
+MAFy samochodowe są przystosowane do zasilania napięciem 12V (a konkretnie ok 14V) więc można wykorzystać zasilacz 12V do zasilania zarówno MAFa jak i Arduino.
+Natomiast bez problemu powinno dać się też pracować z zasilaczem 9V bo MAFy mają dość szerokie napięcie zasilania, z przedziału mniej-więcej 8.5V do 17V.
+Pobór prądu przez MAF powinien być w  okolicach 10-15mA.
+
 ## Wykorzystanie czujnika przepływu do sterowania spalaniem
 
 Odczyt przepływu powietrza działa podczas pracy dmuchawy. Gdy dmuchawa nie pracuje MAF jest wyłączany (zakładam że nie jest to czujnik przeznaczony do pracy 24/7).
