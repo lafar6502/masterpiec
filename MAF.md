@@ -7,10 +7,10 @@ Po zainstalowaniu na dmuchawie można go wykorzystać także do pomiaru ilości 
 ## Jak działa MAF
 MAF opiera swoje działanie na pomiarze szybkości chłodzenia rozgrzanego drucika przez opływające powietrze. Oznacza to ze nie ma żadnych części ruchomych.
 Jeśli chodzi o komunikację (sposób przekazywania pomiarów), MAFy mogą wykorzystywać różne techniki:
-* napięcie - najprostszy, starszy typ MAF. Na wyjściu czujnika jest generowane napięcie z zakresu 0..5V proporcjonalne do szybkości przepływu powietrza
-* częstotliwość - MAF generuje impulsy o częstotliwości zależnej od szybkości przepływu
-* szerokość pulsu - MAF generuje impulsy o stałej częstotliwości (ok 19Hz) natomiast szerokość impulsu jest zależna od szybkości przepływu
-* inne - oczywiście występują też MAFy których zasady działania nie byłem w stanie zidentyfikować
+1. napięcie - najprostszy, starszy typ MAF. Na wyjściu czujnika jest generowane napięcie z zakresu 0..5V proporcjonalne do szybkości przepływu powietrza
+2. częstotliwość - MAF generuje impulsy o częstotliwości zależnej od szybkości przepływu
+3. szerokość pulsu (?) - nie wiem czy takie występują
+4. cyfrowe -np Bosch  i inne. Nie udało mi się ustalić jak działa komunikacja z nimi.
 
 ## Jaki MAF dla Masterpiec
 Używamy MAF typu 'napięciowego' tzn takiego który generuje napięcie proporcjonalne do szybkości przepływu. Są to czujniki spotykane w starszych samochodach, można je znaleźć np w Ford-ach (Mondeo, KA). Mają złącze z czterema przewodami, natomiast na wtyczce są często umieszczone symbole ABCD lub EABCDF oznaczające poszczególne wyprowadzenia. Używane czujniki tego typu można łatwo kupić w cenie ok 10 PLN.
