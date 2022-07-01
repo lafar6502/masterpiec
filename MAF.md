@@ -13,8 +13,8 @@ Jeśli chodzi o komunikację (sposób przekazywania pomiarów), MAFy mogą wykor
 4. cyfrowe -np Bosch  i inne. Nie udało mi się ustalić jak działa komunikacja z nimi.
 
 ## Jaki MAF dla Masterpiec
-Używamy MAF typu 'napięciowego' tzn takiego który generuje napięcie proporcjonalne do szybkości przepływu. Są to czujniki spotykane w starszych samochodach, można je znaleźć np w Ford-ach (Mondeo, KA). Mają złącze z czterema przewodami, natomiast na wtyczce są często umieszczone symbole ABCD lub EABCDF oznaczające poszczególne wyprowadzenia. Używane czujniki tego typu można łatwo kupić w cenie ok 10 PLN.
-
+Używamy MAF typu 'napięciowego' tzn takiego który generuje napięcie proporcjonalne do szybkości przepływu. Są to czujniki spotykane w starszych samochodach, można je znaleźć np w Ford-ach (Mondeo, KA). Mają złącze z czterema przewodami, natomiast na wtyczce są często umieszczone symbole ABCD lub EABCDF oznaczające poszczególne wyprowadzenia. Używane czujniki tego typu można łatwo kupić w cenie ok 10 PLN.<br>
+Generalnie powinniśmy wybierać MAFy od silników o niskiej pojemności bo czujniki te są przystosowane do mniejszych przepływów powietrza i dają dzięki temu dokładniejsze wyniki pomiaru. 
 
 MAF FORD - Wyprowadzenia przedstawiają się tak: <br>
 A - zasilanie +12V<br>
@@ -43,7 +43,7 @@ Dla 5-pinowych Bosch:<br>
 4. +5V<br>
 5. Wyjście czujnika 0..5V<br>
 
-Przykładowe numery części:
+Przykładowe numery części Bosch:
 (4 pin) 0 280 217 111 (4pin), 0 280 217 102, 0 280 217 120, 0 280 217 519, 0 280 217 801, 0 280 217 107<br>
 (5 pin) 0 280 217 123,  0 280 218 019,  0 280 217 531, 0 280 218 008, 0 281 002 421 <br> 
 0 280 217 123 (5pin), 0 280 218 037 (5pin), 0 280 218 116 (5 pin), 0 280 218 335 (5 pin),  0 280 218 088, 0 280 218 440 (5 pin), <br>
@@ -71,17 +71,18 @@ Dotyczy wszystkich MAFów.
 ## Zasilanie MAF
 
 MAFy samochodowe są przystosowane do zasilania napięciem 12V (a konkretnie ok 14V) więc można wykorzystać zasilacz 12V do zasilania zarówno MAFa jak i Arduino.
-Natomiast bez problemu powinno dać się też pracować z zasilaczem 9V bo MAFy mają dość szerokie napięcie zasilania, z przedziału mniej-więcej 8.5V do 17V.
+Natomiast bez problemu powinno dać się też pracować z zasilaczem 9V bo MAFy mają dość szerokie dopuszczalne napięcie zasilania, z przedziału mniej-więcej 8.5V do 17V.
 Pobór prądu przez MAF powinien być w  okolicach 10-15mA.
 
 ## Wykorzystanie czujnika przepływu do sterowania spalaniem
 
 Odczyt przepływu powietrza działa podczas pracy dmuchawy. Gdy dmuchawa nie pracuje MAF jest wyłączany (zakładam że nie jest to czujnik przeznaczony do pracy 24/7).
-Podaawana przez czujnik wartość przepływu nie jest wyrażona w żadnych jednostkach, jest to po prostu odczyt napięcia z czujnika.
+Podawana przez czujnik wartość przepływu nie jest wyrażona w żadnych jednostkach, jest to po prostu odczyt napięcia z czujnika.
 
 Standardowo wartość napięcia odczytywana przez Arduino może być z przedziału 0...1023 gdzie 1023 odpowiada napięciu 5V. Czujnik MAF nie osiąga 5V na wyjściu, zwykle są to napięcia z zakresu 2-3.5V - dlatego dokonujemy przeskalowania wyniku pomiaru do docelowej wartości z zakresu 0..255 (0 - brak przepływu, 255 - maksymalny możliwy przepływ).
 
 
-Parametr "MAF Skala" określa skalowanie - Flow = odczyt napięcia * 255 / (4 * MAF_Skala + 3) 
+Parametr "MAF Skala" określa skalowanie - Flow = odczyt napięcia * 255 / (4 * MAF_Skala + 3) <br>
+Np MAF Skala=160 oznacza że masterpiec będzie widział maksymalny przepływ (255) gdy odczyt z pinu A0 da wartość 160*4 + 3 = 643. Co odpowiada napięciu ok 3.15V z MAFa.
 
 MAF Skala należy dobrać doswiadczalnie zależnie od posiadanego MAFa
