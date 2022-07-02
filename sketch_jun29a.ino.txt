@@ -1,4 +1,8 @@
 
+
+//INPUT CAPTURE EXAMPLE
+//measure frequency and pulse width
+
 #define GEN_PIN 5
 #define ICP_PIN 48
 #define OUT_PIN 12
