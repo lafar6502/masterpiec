@@ -38,5 +38,7 @@ float calculateFuelWeightKg(unsigned long feedTimeSec);
 void commandHandlingTask();
 void processCommand(char*);
 bool updateVariableFromString(uint8_t varIdx, const char* str);
+//czy mamy tryb automatyczny
+bool getManualControlMode();
 
 #endif

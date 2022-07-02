@@ -867,7 +867,7 @@ void queueCommitTime(uint8_t varIdx) {
   g_uiBottomHalfCtx = UI_VARIABLES[varIdx].DataPtr;
 }
 
-const TUIStateEntry UI_STATES[] = {
+const TUIStateEntry UI_STATES[] PROGMEM = {
     {'0', NULL, 1, stDefaultEventHandler, NULL},
     {'V', {.numV=0}, 3 ,stSelectVariableHandler, NULL},
     {'W', {.numV=1}, 3,stSelectVariableHandler, NULL},
@@ -876,7 +876,7 @@ const TUIStateEntry UI_STATES[] = {
     
 };
 
-const TUIScreenEntry UI_SCREENS[]  = {
+const TUIScreenEntry UI_SCREENS[] PROGMEM = {
     {'\0', NULL, scrSplash},
     {'0', NULL, scrDefault},
     {'0', NULL, scrTime},
@@ -892,7 +892,7 @@ const TUIScreenEntry UI_SCREENS[]  = {
 const uint8_t N_UI_SCREENS = sizeof(UI_SCREENS) / sizeof(TUIScreenEntry);
 
 
-const TUIVarEntry UI_VARIABLES[] = {
+const TUIVarEntry UI_VARIABLES[] PROGMEM = {
   {MPSTR("Rok"), VAR_ADVANCED, &RTC.yyyy, 2019, 3000, printUint16, adjustUint16, copyU16, queueCommitTime},
   {MPSTR("Miesiac"), VAR_ADVANCED, &RTC.mm, 1, 12, printUint8, adjustUint8, copyU8, queueCommitTime},
   {MPSTR("Dzien"), VAR_ADVANCED, &RTC.dd, 1, 31, printUint8, adjustUint8, copyU8, queueCommitTime},

@@ -32,6 +32,10 @@ typedef uint8_t CWSTATE;
 #define COOLOFF_OVERHEAT 1 //first mode - run cooloff only when above set temp + delta
 #define COOLOFF_LOWER 2 //second mode- run cooloff while above the set temp
 
+#define FIRESTART_MODE_DISABLED 0
+#define FIRESTART_MODE_JUSTSTOP 1   //will switch off when done heating, but will not auto start
+#define FIRESTART_MODE_STARTSTOP 2
+
 typedef uint8_t HEATNEED;
 
 //konfiguracja jednego z poziomów mocy
@@ -125,8 +129,6 @@ void burnControlTask();
 // f.ex. circulation pump
 void circulationControlTask();
 
-//czy mamy tryb automatyczny
-bool getManualControlMode();
 //wlacz/wylacz tryb automatyczny
 void setManualControlMode(bool b);
 //wlacz/wylacz tryb reczny z ustawieniem stanu

@@ -56,9 +56,9 @@ unsigned long g_CurBurnCycleStart = 0; //timestamp, w ms, w ktorym rozpoczelismy
 
 
 TSTATE getInitialState() {
-  if (g_CurrentConfig.FireStartMode == 0) return STATE_P0;
-  if (g_CurrentConfig.FireStartMode == 1) return STATE_FIRESTART;
-  if (g_CurrentConfig.FireStartMode == 2) {
+  if (g_CurrentConfig.FireStartMode == FIRESTART_MODE_DISABLED) return STATE_P0;
+  if (g_CurrentConfig.FireStartMode == FIRESTART_MODE_JUSTSTOP) return STATE_FIRESTART;
+  if (g_CurrentConfig.FireStartMode == FIRESTART_MODE_STARTSTOP) {
     if (g_needHeat != NEED_HEAT_NONE) return STATE_FIRESTART;
     return STATE_OFF;
   }
@@ -224,12 +224,6 @@ int8_t calculateBlowerPowerAdjustment(uint8_t desiredFlow, uint8_t currentFlow, 
   float diff = (float) (desiredFlow - currentFlow) / (float) desiredFlow;
   
   if (abs(diff) <= 0.03) return 0;
-  Serial.print("adj diff:");
-  Serial.print(diff);
-  Serial.print(", cur:");
-  Serial.print(currentFlow);
-  Serial.print(",trg:");
-  Serial.print(desiredFlow);
   int8_t adj = diff * currentBlowerPower;
   if (adj > 0) {
     if (currentBlowerPower + adj < currentBlowerPower) adj = 255 - currentBlowerPower;
@@ -237,8 +231,15 @@ int8_t calculateBlowerPowerAdjustment(uint8_t desiredFlow, uint8_t currentFlow, 
   else {
     if (currentBlowerPower + adj > currentBlowerPower) adj = -currentBlowerPower;
   }
+  /*Serial.print("adj diff:");
+  Serial.print(diff);
+  Serial.print(", cur:");
+  Serial.print(currentFlow);
+  Serial.print(",trg:");
+  Serial.print(desiredFlow);
+  
   Serial.print(", adj:");
-  Serial.println(adj);
+  Serial.println(adj);*/
   return adj;
 }
 
@@ -311,21 +312,21 @@ void maintainDesiredFlow() {
   if (abs(dev) <= 0.04) { //less than 5%
     return;
   }
-  Serial.print("flow:");
-  Serial.print(g_AirFlowNormal);
-  Serial.print(", dev:");
-  Serial.print(dev);
+  
   int8_t d = dev > 0.0 ? 1 : -1;
   if (abs(dev) > 0.1) d *= 2;
   if (abs(dev) > 0.25) d *= 2;
   corr += d;
   if (corr > 127) corr = 127;
   if (corr < -127) corr = -127;
-  Serial.print(", corr:");
-  Serial.print(corr);
-  Serial.println();
+  //Serial.print("flow:");
+  //Serial.print(g_AirFlowNormal);
+  //Serial.print(", dev:");
+  //Serial.print(dev);
+  //Serial.print(", corr:");
+  //Serial.print(corr);
+  //Serial.println();
   setBlowerPowerCorrection(corr);
-  //setBlowerPower(cp);
 }
 
 void circulationControlTask() {
@@ -669,7 +670,7 @@ void reductionStateInit(TSTATE prev) {
   _reductionStateEndMs = g_CurStateStart + _reductionStateEndMs + adj; //
   setBlowerPower(g_CurrentConfig.BurnConfigs[prev].BlowerPower, g_CurrentConfig.BurnConfigs[prev].BlowerCycle == 0 ? g_DeviceConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[prev].BlowerCycle);
   if (g_CurrentConfig.AirControlMode != 0 && g_CurrentConfig.BurnConfigs[prev].AirFlow > 0) {
-    g_TargetFlow = g_CurrentConfig.BurnConfigs[g_BurnState].AirFlow;
+    g_TargetFlow = g_CurrentConfig.BurnConfigs[prev].AirFlow;
   }
   setFeederOff();
   setHeater(false);
@@ -936,7 +937,7 @@ bool cond_noHeating() {
 //in P1 temp is supposed to drop and so exhaust temp will drop as well, even if the fire is burning all the time
 //so how we detect? 
 bool isAlarm_NoHeating() {
-  if (g_CurrentConfig.FireStartMode == 2) return false;
+  if (g_CurrentConfig.FireStartMode == FIRESTART_MODE_STARTSTOP) return false;
   
   if (cond_noHeating()) {
     g_Alarm = "Wygaslo";
@@ -946,7 +947,7 @@ bool isAlarm_NoHeating() {
 }
 
 bool cond_noHeating_Firestart() {
-  if (g_CurrentConfig.FireStartMode != 2) return false;
+  if (g_CurrentConfig.FireStartMode != FIRESTART_MODE_STARTSTOP) return false;
   return cond_noHeating();
 }
 
@@ -989,7 +990,7 @@ bool cond_D_belowTargetTempAndNeedHeat() {
 }
 
 bool cond_D_belowTargetTempAndNeedHeatAndAutoAllowed() {
-  if (g_CurrentConfig.FireStartMode != 2) return false;
+  if (g_CurrentConfig.FireStartMode != FIRESTART_MODE_STARTSTOP) return false;
   return cond_D_belowTargetTempAndNeedHeat();
   
 }
@@ -1038,7 +1039,7 @@ unsigned long _coolTs = 0;
 
 bool cond_canCoolWithCWU() {
   if (!isPumpEnabled(PUMP_CWU1)) return false;
-  if (g_TempCWU  <= g_TempCWU + g_CurrentConfig.TDeltaCWU) return false;
+  if (g_TempCO  <= g_TempCWU + (g_CurrentConfig.TDeltaCWU / 2)) return false;
   if (g_TempCWU >= g_CurrentConfig.TCWU + 2 * g_CurrentConfig.THistCwu) return false; //cwu too hot
   return true;
 }
@@ -1046,15 +1047,24 @@ bool cond_canCoolWithCWU() {
 //0 = no need to cool, 1 - should cool, 2 - should cool, possibly with CWU
 uint8_t cond_needCooling() {
   static uint8_t _cwCnt = 0;
-  if (g_TempCO >= MAX_TEMP) {_coolState = 0; return true;} //always
+  bool cw = (_cwCnt % 2) == 0 && cond_canCoolWithCWU();
+  
+  if (g_TempCO >= MAX_TEMP) {_coolState = 0; return cw ? 2 : 1;} //always
   bool hot = g_CurrentConfig.CooloffMode == COOLOFF_NONE ? false : g_CurrentConfig.CooloffMode == COOLOFF_LOWER ? (g_TempCO > g_TargetTemp + (_coolState == 1 ? 0.1 : 0.4)) : (g_TempCO > g_TargetTemp + g_CurrentConfig.TDeltaCO);
+
+  if (!hot && g_CurrentConfig.FireStartMode != FIRESTART_MODE_DISABLED && cw && g_BurnState == STATE_OFF && g_TempCO >= g_CurrentConfig.TMinPomp) {
+    hot = true; //standby, but cwu can be heated
+  }
+  
   if (getManualControlMode() || !hot || g_BurnState == STATE_ALARM) {
     _coolState = 0;
     return 0;
   }
-  
+
+  //if (g_CurrentConfig.SummerMode && isPumpEnabled(PUMP_CWU1) && isDallasEnabled(TSENS_CWU)) {
+  //     cw = true;
+  //  }
   unsigned long t = millis();
-  bool cw = (_cwCnt % 2) == 0 && cond_canCoolWithCWU();
   switch(_coolState) {
     case 1:
       if ((t - _coolTs) > (unsigned long) g_CurrentConfig.CooloffTimeM10 * 6L * 1000) {//pause
@@ -1135,7 +1145,7 @@ bool cond_firestartOverride() {
 
 //check: we are in P0 and we need to shut the burner down
 bool cond_shouldGoToStandby() {
-  if (g_CurrentConfig.FireStartMode != 1 && g_CurrentConfig.FireStartMode != 2) return false;
+  if (g_CurrentConfig.FireStartMode != FIRESTART_MODE_JUSTSTOP && g_CurrentConfig.FireStartMode != FIRESTART_MODE_STARTSTOP) return false;
   if (g_needHeat != NEED_HEAT_NONE) return false;
   if (g_burnCycleNum < g_CurrentConfig.P0CyclesBeforeStandby) return false;
   return true;
@@ -1174,7 +1184,7 @@ void onReductionCycleEnded(int trans) {
 
 #define CONTROL_VARIANT 2
 
-const TBurnTransition  BURN_TRANSITIONS[]   = 
+const TBurnTransition  BURN_TRANSITIONS[] PROGMEM  = 
 {
 
   //{STATE_P0, STATE_P1, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v2  

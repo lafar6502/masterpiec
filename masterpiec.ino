@@ -25,6 +25,7 @@ void updateDallasSensorAssignmentFromConfig();
 void setup() {
   //initialize interrupts etc
   //initialize hardware
+  delay(500);
   Serial.begin(9600);
   if (!RTC.isRunning()) {
     //Serial.println("RTC not runnning, starting the clock");

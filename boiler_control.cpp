@@ -174,18 +174,7 @@ uint8_t breseControlStep()
 
 
 
-void zeroCrossHandler() {
-  counter++;
-  uint8_t stp = breseControlStep();
-  if (stp) {
-    power_counter++;
-    
-    triacOn();
-  }
-  else {
-    triacOff();
-  }
-}
+
  void zeroCrossHandler2() {
   counter++;
   g_powerBits = PINC & POWER_PORT_MASK;
@@ -203,10 +192,10 @@ void zeroCrossHandler() {
     g_powerFlags &= ~MASK_BLOWER;
   }
   PORTC = g_powerFlags & POWER_PORT_MASK; //put all bits at once
-  if (power_set == 0)
+  if (power_set == 0 && !getManualControlMode())
     PORTL = pcBits & ~MASK_FLOW_PWR;
   else
-    PORTL = pcBits | +MASK_FLOW_PWR;
+    PORTL = pcBits | MASK_FLOW_PWR;
  }
 
 
@@ -243,7 +232,6 @@ void initializeBlowerControl() {
   pinModeFast(HW_BLOWER_CTRL_PIN, OUTPUT);
   triacOff();
   pinMode(HW_ZERO_DETECT_PIN, INPUT);
-  attachInterrupt(digitalPinToInterrupt(HW_ZERO_DETECT_PIN), zeroCrossHandler2, RISING);  
   pinMode(HW_PUMP_CO1_CTRL_PIN, OUTPUT);
   pinMode(HW_PUMP_CWU1_CTRL_PIN, OUTPUT);
   pinMode(HW_PUMP_CO2_CTRL_PIN, OUTPUT);
@@ -251,12 +239,12 @@ void initializeBlowerControl() {
   pinMode(HW_FEEDER_CTRL_PIN, OUTPUT);
   pinMode(HW_HEATER_CTRL_PIN, OUTPUT);
   pinMode(HF_FLOW_SENSOR_POWER_PIN, OUTPUT);
-  digitalWriteFast(HW_PUMP_CO1_CTRL_PIN, LOW);
-  digitalWriteFast(HW_PUMP_CWU1_CTRL_PIN, LOW);
-  digitalWriteFast(HW_PUMP_CO2_CTRL_PIN, LOW);
-  digitalWriteFast(HW_PUMP_CIRC_CTRL_PIN, LOW);
-  digitalWriteFast(HW_FEEDER_CTRL_PIN, LOW);
-  digitalWriteFast(HW_HEATER_CTRL_PIN, LOW);
+  digitalWrite(HW_PUMP_CO1_CTRL_PIN, LOW);
+  digitalWrite(HW_PUMP_CWU1_CTRL_PIN, LOW);
+  digitalWrite(HW_PUMP_CO2_CTRL_PIN, LOW);
+  digitalWrite(HW_PUMP_CIRC_CTRL_PIN, LOW);
+  digitalWrite(HW_FEEDER_CTRL_PIN, LOW);
+  digitalWrite(HW_HEATER_CTRL_PIN, LOW);
   digitalWrite(HF_FLOW_SENSOR_POWER_PIN, LOW);
   if (HW_THERMOSTAT_PIN != 0) 
   {
@@ -266,6 +254,8 @@ void initializeBlowerControl() {
   {
     pinMode(HW_THERMOSTAT_PIN_ALT, INPUT); 
   }
+  attachInterrupt(digitalPinToInterrupt(HW_ZERO_DETECT_PIN), zeroCrossHandler2, RISING);  
+  
 }
 
 
