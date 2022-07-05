@@ -125,7 +125,10 @@ uint16_t findNextView(uint16_t currentView, bool increment, bool (*f)(uint16_t))
 }
 
 bool viewCodeMatchesState(uint16_t n) {
-  return UI_SCREENS[n].Code == UI_STATES[g_CurrentUIState].Code;
+  TUIScreenEntry se;
+  memcpy_P(&se, UI_SCREENS + n, sizeof(TUIScreenEntry));
+    
+  return se.Code == UI_STATES[g_CurrentUIState].Code;
 }
 
 bool variableIsAdvanced(uint16_t n) {
@@ -867,7 +870,7 @@ void queueCommitTime(uint8_t varIdx) {
   g_uiBottomHalfCtx = UI_VARIABLES[varIdx].DataPtr;
 }
 
-const TUIStateEntry UI_STATES[] PROGMEM = {
+const TUIStateEntry UI_STATES[] = {
     {'0', NULL, 1, stDefaultEventHandler, NULL},
     {'V', {.numV=0}, 3 ,stSelectVariableHandler, NULL},
     {'W', {.numV=1}, 3,stSelectVariableHandler, NULL},
@@ -892,7 +895,7 @@ const TUIScreenEntry UI_SCREENS[] PROGMEM = {
 const uint8_t N_UI_SCREENS = sizeof(UI_SCREENS) / sizeof(TUIScreenEntry);
 
 
-const TUIVarEntry UI_VARIABLES[] PROGMEM = {
+const TUIVarEntry UI_VARIABLES[] = {
   {MPSTR("Rok"), VAR_ADVANCED, &RTC.yyyy, 2019, 3000, printUint16, adjustUint16, copyU16, queueCommitTime},
   {MPSTR("Miesiac"), VAR_ADVANCED, &RTC.mm, 1, 12, printUint8, adjustUint8, copyU8, queueCommitTime},
   {MPSTR("Dzien"), VAR_ADVANCED, &RTC.dd, 1, 31, printUint8, adjustUint8, copyU8, queueCommitTime},

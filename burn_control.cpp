@@ -1184,7 +1184,7 @@ void onReductionCycleEnded(int trans) {
 
 #define CONTROL_VARIANT 2
 
-const TBurnTransition  BURN_TRANSITIONS[] PROGMEM  = 
+const TBurnTransition  BURN_TRANSITIONS[]   = 
 {
 
   //{STATE_P0, STATE_P1, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v2  

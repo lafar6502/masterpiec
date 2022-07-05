@@ -80,7 +80,7 @@ extern char* g_DisplayBuf[];
 #define VAR_INPLACE 16 //variable can be edited in place, without making a temporary copy
 
 typedef struct UIVariableEntry {
-  char PROGMEM Name[20]; //we could declare fixed size array and put everything in progmem. names will never be longer than display width - 16 or 20
+  const  PROGMEM char * Name; //nazwa zmiennej
   uint16_t Flags; //flagi
   void* DataPtr; //variable pointer or some other context data
   float Min; //minimum val.

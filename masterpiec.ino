@@ -26,7 +26,7 @@ void setup() {
   //initialize interrupts etc
   //initialize hardware
   delay(500);
-  Serial.begin(9600);
+  Serial.begin(115200);
   if (!RTC.isRunning()) {
     //Serial.println("RTC not runnning, starting the clock");
     RTC.control(DS1307_CLOCK_HALT, DS1307_OFF);

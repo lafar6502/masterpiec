@@ -81,6 +81,6 @@ template<class T> class CircularBuffer
 };
 
 
-//#define MPSTR(s) ([]{ static const char c[] PROGMEM = (s); return &c[0]; }())
-#define MPSTR(s) s
+#define MPSTR(s) ([]{ static const char c[] PROGMEM = (s); return &c[0]; }())
+
 #endif

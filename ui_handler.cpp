@@ -171,10 +171,12 @@ void updateView() {
   }
   else 
   {
-    if (UI_SCREENS[g_CurrentUIView].UpdateView != NULL) 
+    TUIScreenEntry se;
+    memcpy_P(&se, UI_SCREENS + g_CurrentUIView, sizeof(TUIScreenEntry));
+    if (se.UpdateView != NULL) 
     {
       clearDipslayBuf();
-      UI_SCREENS[g_CurrentUIView].UpdateView(g_CurrentUIView, g_DisplayBuf);
+      se.UpdateView(g_CurrentUIView, g_DisplayBuf);
       eraseDisplayToEnd(g_DisplayBuf[0]);
       eraseDisplayToEnd(g_DisplayBuf[1]);
       if (false) {
