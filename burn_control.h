@@ -71,13 +71,13 @@ typedef struct ControlConfiguration {
   uint8_t TDeltaCWU; //delta cwu - temp powyżej bojlera do ktorej rozgrzewamy piec
   uint8_t P0BlowerTime; //czas pracy dmuchawy w podtrzymaniu
   uint8_t P0FuelFreq; //podawanie wegla co x cykli przedmuchu
-  bool    _HomeThermostat;
+  bool    _delHomeThermostat;
   bool    SummerMode; //tryb letni
   
   TBurnParams BurnConfigs[MAX_POWER_STATES]; //first one [0] is the podtrzymanie
   uint8_t FeederTempLimit;
   uint8_t NoHeatAlarmCycles; //time needed to deterimine if we have the fire
-  uint8_t EnableThermostat; //0 or 1
+  uint8_t EnableThermostat; //0 disabled, 1 - NO, 2 - NC
   uint8_t CooloffTimeM10; //minutes * 10
   uint16_t CooloffPauseM10; //minutes * 10
   uint16_t FuelGrH; //fuel grams per hour of feeder work. 10 kg=10000. 

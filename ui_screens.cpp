@@ -31,7 +31,7 @@ void scrDefault(uint8_t idx, char* lines[])
   sprintf(buf3, "CW:");
   dtostrf(g_TempCWU,3, 1, buf3);
   uint8_t nh = needHeatingNow(); 
-  sprintf(lines[0], "T:%s/%s B:%s", buf2, buf1, buf3);
+  sprintf(lines[0], "T%c%s/%s B:%s",g_HomeThermostatOn ? ';' : ':', buf2, buf1, buf3);
   dtostrf(g_dTl3, 3, 1, buf1);
   buf2[0] = 0;
   if (g_BurnState == STATE_STOP) sprintf(buf2, "STOP");
@@ -920,7 +920,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {MPSTR("Pomin rozpal"),VAR_IMMEDIATE, &g_overrideBurning, 0, 1, printBool, adjustBool, NULL, NULL},
   
   {MPSTR("Temp.min.pomp"), VAR_ADVANCED, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
-  {MPSTR("Zewn. termostat"), VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 1, printUint8AsBool, adjustUint8, NULL, commitConfig},
+  {MPSTR("Zewn. termostat"), VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 2, printUint8, adjustUint8, NULL, commitConfig},
   {MPSTR("Chlodz. praca m"), VAR_ADVANCED, &g_CurrentConfig.CooloffTimeM10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig},
   {MPSTR("Chlodz.przerwa m"), VAR_ADVANCED, &g_CurrentConfig.CooloffPauseM10, 0, 1200, printUint16_10, adjustUint16, copyU16, commitConfig},
   {MPSTR("Chlodz. tryb"), VAR_ADVANCED, &g_CurrentConfig.CooloffMode, 0, 2, printUint8, adjustUint8, copyU8, commitConfig},
