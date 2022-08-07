@@ -42,12 +42,12 @@ unsigned long g_P0Time = 0;
 
 TReading lastCOTemperatures[11];
 TReading lastExhaustTemperatures[11]; //every 30 sec => 5 minutes
-TReading lastFlows[4];
+float lastFlows[11];
 epid_t g_flow_pid_ctx;
 
 CircularBuffer<TReading> g_lastCOReads(lastCOTemperatures, sizeof(lastCOTemperatures)/sizeof(TReading));
 CircularBuffer<TReading> g_lastExhaustReads(lastExhaustTemperatures, sizeof(lastExhaustTemperatures)/sizeof(TReading));
-CircularBuffer<TReading> g_lastFlows(lastFlows, sizeof(lastFlows)/sizeof(TReading));
+CircularBuffer<float> g_lastFlows(lastFlows, sizeof(lastFlows)/sizeof(float));
 //czas wejscia w bieżący stan, ms
 unsigned long g_CurStateStart = 0;
 //float  g_CurStateStartTempCO = 0; //temp pieca w momencie wejscia w bież. stan.
@@ -183,21 +183,16 @@ void processSensorValues() {
   {
     g_lastCOReads.Enqueue({ms, g_TempCO});
   }
-  const TReading* lastFlow = g_lastFlows.GetLast();
-  if (lastFlow == NULL || ms - lastFlow->Ms > 1000) {
-    g_lastFlows.Enqueue({ms, g_AirFlow});
-
-    int n = g_lastFlows.GetCount();
-    float f0 = 0.0;
-    int nd = 0;
-    for (int i=0; i<n; i++) {
-      f0 += g_lastFlows.GetAt(i)->Val * (i + 1);
-      nd += (i + 1);
-    }
-    float f1 = (float) g_DeviceConfig.AirFlowCoeff * 4.0 + 3.0;
-    f1 *= nd;
-    g_AirFlowNormal = (uint8_t) ((f0 * 255.0) / f1);
+  g_lastFlows.Enqueue(g_AirFlow);
+  int n = g_lastFlows.GetCount();
+  float f0 = 0.0;
+  for (int i=0; i<n; i++) {
+    f0 += *g_lastFlows.GetAt(i);
   }
+  f0 /= n;
+  float f1 = (float) g_DeviceConfig.AirFlowCoeff * 4.0 + 3.0;
+  g_AirFlowNormal = (uint8_t) ((f0 * 255.0) / f1);
+
   TReading nw;
   nw.Ms = ms;
   nw.Val = g_TempSpaliny;
@@ -773,6 +768,8 @@ void handleHeatNeedStatus() {
       g_TargetTemp = g_CurrentConfig.TCO;
       Serial.print(F("CWU ready - adjusted target temp to "));
       Serial.println(g_TargetTemp);
+    } else {
+      g_TargetTemp = max(g_CurrentConfig.TCO, g_CurrentConfig.TCWU + g_CurrentConfig.TDeltaCWU);
     }
   }
   else assert(false);
