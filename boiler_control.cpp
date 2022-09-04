@@ -169,6 +169,9 @@ uint8_t breseControlStep()
     brese_curV = round(brese_error);
     brese_error -= brese_curV;
   }
+  if (isFlowTooHigh()) {
+    return 0;
+  }
   return brese_curV > rem ? 1 : 0;
 }
 

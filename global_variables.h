@@ -41,4 +41,5 @@ bool updateVariableFromString(uint8_t varIdx, const char* str);
 //czy mamy tryb automatyczny
 bool getManualControlMode();
 
+bool isFlowTooHigh();
 #endif

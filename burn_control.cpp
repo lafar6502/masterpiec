@@ -24,7 +24,7 @@ float g_TempBurner = 0;
 float g_InitialTempCO = 0;
 float g_InitialTempExh = 0;
 float g_AirFlow = 0; //air flow measurement
-uint8_t g_AirFlowNormal = 0;
+volatile uint8_t g_AirFlowNormal = 0;
 uint8_t g_TargetFlow; //
 TSTATE g_BurnState = STATE_UNDEFINED;  //aktualny stan grzania
 TSTATE g_ManualState = STATE_UNDEFINED; //wymuszony ręcznie stan (STATE_UNDEFINED: brak wymuszenia)
@@ -280,6 +280,14 @@ void maintainDesiredFlow1() {
         setBlowerPower((uint8_t) g_flow_pid_ctx.y_out);
     }
     Serial.println();
+}
+
+
+bool isFlowTooHigh() {
+  if (g_CurrentConfig.AirControlMode != 3) return false;
+  if (g_BurnState != STATE_P0 && g_BurnState != STATE_P1 && g_BurnState != STATE_P2 && g_BurnState != STATE_FIRESTART && g_BurnState != STATE_REDUCE1 && g_BurnState != STATE_REDUCE2) return;
+  if (g_TargetFlow == 0) return false;
+  return g_AirFlowNormal > g_TargetFlow + 1;
 }
 
 void maintainDesiredFlow() {

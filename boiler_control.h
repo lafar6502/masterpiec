@@ -45,7 +45,6 @@ extern unsigned long g_pumpCWURunMs;
 extern unsigned long g_pumpCircRunMs;
 extern unsigned long g_heaterStartTimeMs;
 
-
 float getCurrentFlowRate();
 void initializeFlowMeter();
 #endif

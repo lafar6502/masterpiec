@@ -946,7 +946,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {MPSTR("Rozp wzrost TSp"), VAR_ADVANCED, &g_CurrentConfig.FireDetExhIncrD10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
   {MPSTR("Rozp wzrost TCo"), VAR_ADVANCED, &g_CurrentConfig.FireDetCOIncr10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
   {MPSTR("MAF skala"), VAR_ADVANCED, &g_DeviceConfig.AirFlowCoeff, 0, 256, printUint8, adjustUint8, copyU8, commitDevConfig}, 
-  {MPSTR("Ster nadmuch"), VAR_ADVANCED, &g_CurrentConfig.AirControlMode, 0, 1, printUint8, adjustUint8, copyU8, commitConfig}, 
+  {MPSTR("Ster nadmuch"), VAR_ADVANCED, &g_CurrentConfig.AirControlMode, 0, 3, printUint8, adjustUint8, copyU8, commitConfig}, 
   
   
   {MPSTR("P0 cykl sek."), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec, 0, 3600, printUint16, adjustUint16, copyU16, commitConfig},
