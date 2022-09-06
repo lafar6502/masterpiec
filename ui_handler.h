@@ -39,6 +39,7 @@ typedef void (*SetFFun)(float);
 
 typedef union {
   void* ptr;
+  const char** strings;
   SetBoolFun setBoolF;
   SetU8Fun  setU8F;
   SetU16Fun setU16F;

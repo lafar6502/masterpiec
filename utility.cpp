@@ -421,9 +421,10 @@ void dumpVariablesToSerial() {
   for(int i=0; i<N_UI_VARIABLES; i++) {
     const TUIVarEntry& ent = UI_VARIABLES[i];
     if (ent.PrintTo == NULL) continue;
-    ent.PrintTo(i, NULL, buf, false);
-    Serial.print(ent.Name);
+    strcpy_P(buf, ent.Name);
+    Serial.print(buf);
     Serial.print('=');
+    ent.PrintTo(i, NULL, buf, false);
     Serial.println(buf);
   }
 }

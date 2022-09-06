@@ -447,6 +447,35 @@ void printUint8(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   sprintf(buf, "%d", *pv);
 }
 
+//print value from strings array
+void printUint8_values(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
+  uint8_t* pv = (uint8_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
+  const char** arr = UI_VARIABLES[varIdx].Data.strings;
+  uint8_t mx = (uint8_t) UI_VARIABLES[varIdx].Max;
+  char tmp[20];
+  if (parseString) {
+    if (pv == NULL) return;
+    if (arr != NULL) {
+      
+      for(int i=0; i<mx; i++) {
+        strcpy_P(tmp, (char*)pgm_read_word(&(arr[i])));
+        if (strcmp(buf, tmp) == 0) {
+          *pv = i;
+          return;
+        }
+      }
+    }
+    *pv = (uint8_t) atoi(buf);
+    return;
+  }
+  if (arr != NULL && *pv <= mx) {
+    strcpy_P(buf, (char*)pgm_read_word(&(arr[*pv])));
+  }
+  else {
+    sprintf(buf, "%d", *pv);  
+  }
+}
+
 void printUint8AsBool(uint8_t varIdx, void* editCopy, char* buf, bool parseString) {
   uint8_t* pv = (uint8_t*) (editCopy == NULL ? UI_VARIABLES[varIdx].DataPtr : editCopy);
   if (parseString) {
@@ -894,6 +923,28 @@ const TUIScreenEntry UI_SCREENS[] PROGMEM = {
 
 const uint8_t N_UI_SCREENS = sizeof(UI_SCREENS) / sizeof(TUIScreenEntry);
 
+const char str_off[] PROGMEM = "OFF/brak";
+const char str_on[] PROGMEM = "ON/wlacz";
+
+const char str_cool_1[] PROGMEM = "T1";
+const char str_cool_2[] PROGMEM = "T2";
+const char str_cool_3[] PROGMEM = "T3 cwu";
+
+const char str_thermo_no[] PROGMEM = "Styk NO";
+const char str_thermo_nc[] PROGMEM = "Styk NC";
+
+const char str_firestart_autostop[] PROGMEM = "Tylko wygasza";
+const char str_firestart_full[] PROGMEM = "Full auto";
+
+const char str_flowctrl_1[] PROGMEM = "T1 korekcja";
+const char str_flowctrl_2[] PROGMEM = "T2 korekcja";
+const char str_flowctrl_3[] PROGMEM = "T3 hit&miss";
+
+
+const char* const values_cool_mode[] PROGMEM = {str_off, str_cool_1, str_cool_2, str_cool_3};
+const char* const values_onoff[] PROGMEM = {str_off, str_on};
+const char* const values_firestart_mode[] PROGMEM = {str_off, str_firestart_autostop, str_firestart_full};
+const char* const values_flow_ctrl_mode[] PROGMEM = {str_off, str_flowctrl_1, str_flowctrl_2, str_flowctrl_3};
 
 const TUIVarEntry UI_VARIABLES[] = {
   {MPSTR("Rok"), VAR_ADVANCED, &RTC.yyyy, 2019, 3000, printUint16, adjustUint16, copyU16, queueCommitTime},
@@ -923,21 +974,21 @@ const TUIVarEntry UI_VARIABLES[] = {
   {MPSTR("Zewn. termostat"), VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 2, printUint8, adjustUint8, NULL, commitConfig},
   {MPSTR("Chlodz. praca m"), VAR_ADVANCED, &g_CurrentConfig.CooloffTimeM10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig},
   {MPSTR("Chlodz.przerwa m"), VAR_ADVANCED, &g_CurrentConfig.CooloffPauseM10, 0, 1200, printUint16_10, adjustUint16, copyU16, commitConfig},
-  {MPSTR("Chlodz. tryb"), VAR_ADVANCED, &g_CurrentConfig.CooloffMode, 0, 2, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Chlodz. tryb"), VAR_ADVANCED, &g_CurrentConfig.CooloffMode, 0, 2, printUint8_values, adjustUint8, copyU8, commitConfig, {.strings = values_cool_mode}},
   {MPSTR("Cykl cyrkul. min"), VAR_ADVANCED, &g_CurrentConfig.CircCycleMin, 0, 250, printUint8, adjustUint8, copyU8, commitConfig},
   {MPSTR("Cyrkulacja sek"), VAR_ADVANCED, &g_CurrentConfig.CircWorkTimeS, 0, 250, printUint8, adjustUint8, copyU8, commitConfig},
   {MPSTR("Wydluz dopal.P2%"), VAR_ADVANCED, &g_CurrentConfig.ReductionP2ExtraTime, 0, 250, printUint8, adjustUint8, copyU8, commitConfig},
   
   {MPSTR("DeltaT"), VAR_ADVANCED, &g_CurrentConfig.TDeltaCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
   {MPSTR("DeltaCWU"), VAR_ADVANCED, &g_CurrentConfig.TDeltaCWU, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
-  {MPSTR("Tryb letni"), VAR_ADVANCED, &g_CurrentConfig.SummerMode, 0, 1, printBool, adjustBool, copyBool, commitConfig},
+  {MPSTR("Tryb letni"), VAR_ADVANCED, &g_CurrentConfig.SummerMode, 0, 1, printBool, adjustBool, copyBool, commitConfig, {.strings=values_onoff}},
   {MPSTR("Max T podajnika"), VAR_ADVANCED, &g_CurrentConfig.FeederTempLimit, 0, 200, printUint8, adjustUint8, copyU8, commitConfig}, 
   {MPSTR("Wygasniecie po"), VAR_ADVANCED, &g_CurrentConfig.NoHeatAlarmCycles, 0, 60, printUint8, adjustUint8, copyU8, commitConfig}, 
   {MPSTR("Dmuchawa CZ"), VAR_ADVANCED, &g_DeviceConfig.DefaultBlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitDevConfig},
   {MPSTR("Dmuchawa Max"), VAR_ADVANCED, &g_CurrentConfig.BlowerMax, 0, 256, printUint8_perc, adjustUint8, copyU8, commitConfig},
   {MPSTR("Kg/h podajnik"), VAR_ADVANCED, &g_CurrentConfig.FuelGrH, 0, 60000, printUint16_1000, adjustUint16, copyU16, commitConfig},
   {MPSTR("MJ/Kg opal"), VAR_ADVANCED, &g_CurrentConfig.FuelHeatValueMJ10, 0, 500, printUint16_10, adjustUint16, copyU16, commitConfig},
-  {MPSTR("Automat rozpal"), VAR_ADVANCED, &g_CurrentConfig.FireStartMode, 0, 2, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Automat rozpal"), VAR_ADVANCED, &g_CurrentConfig.FireStartMode, 0, 2, printUint8_values, adjustUint8, copyU8, commitConfig, {.strings = values_firestart_mode}},
   {MPSTR("Cykle rozpalania"), VAR_ADVANCED, &g_CurrentConfig.NumFireStartCycles, 0, 20, printUint8, adjustUint8, copyU8, commitConfig},
   {MPSTR("Zapalarka S max"), VAR_ADVANCED, &g_CurrentConfig.HeaterMaxRunTimeS, 0, 250, printUint8, adjustUint8, copyU8, commitConfig}, 
 
@@ -946,7 +997,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {MPSTR("Rozp wzrost TSp"), VAR_ADVANCED, &g_CurrentConfig.FireDetExhIncrD10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
   {MPSTR("Rozp wzrost TCo"), VAR_ADVANCED, &g_CurrentConfig.FireDetCOIncr10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
   {MPSTR("MAF skala"), VAR_ADVANCED, &g_DeviceConfig.AirFlowCoeff, 0, 256, printUint8, adjustUint8, copyU8, commitDevConfig}, 
-  {MPSTR("Ster nadmuch"), VAR_ADVANCED, &g_CurrentConfig.AirControlMode, 0, 3, printUint8, adjustUint8, copyU8, commitConfig}, 
+  {MPSTR("Ster nadmuch"), VAR_ADVANCED, &g_CurrentConfig.AirControlMode, 0, 3, printUint8_values, adjustUint8, copyU8, commitConfig, {.strings = values_flow_ctrl_mode }}, 
   
   
   {MPSTR("P0 cykl sek."), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec, 0, 3600, printUint16, adjustUint16, copyU16, commitConfig},
