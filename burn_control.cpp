@@ -989,6 +989,14 @@ bool cond_C_belowHysteresisAndNoNeedToHeat() {
   return false;
 }
 
+//we're below hysteresis, but auto stop is not allowed
+bool cond_C_belowHysteresisAndNoNeedToHeat_NoAutoStop() {
+  if (g_CurrentConfig.FireStartMode != FIRESTART_MODE_DISABLED) return false;
+  if (g_needHeat == NEED_HEAT_NONE and g_TempCO < g_TargetTemp - g_CurrentConfig.THistCO) return true;
+  return false;
+}
+
+
 bool cond_D_belowTargetTempAndNeedHeat() {
   if (g_needHeat != NEED_HEAT_NONE && g_TempCO < g_TargetTemp - 0.5) return true;
   return false;
@@ -1052,23 +1060,23 @@ bool cond_canCoolWithCWU() {
 //0 = no need to cool, 1 - should cool, 2 - should cool, possibly with CWU
 uint8_t cond_needCooling() {
   static uint8_t _cwCnt = 0;
-  bool cw = (_cwCnt % 2) == 0 && cond_canCoolWithCWU();
+  bool cw = ((_cwCnt % 2) == 0 || g_CurrentConfig.SummerMode) && cond_canCoolWithCWU();
   
   if (g_TempCO >= MAX_TEMP) {_coolState = 0; return cw ? 2 : 1;} //always
   bool hot = g_CurrentConfig.CooloffMode == COOLOFF_NONE ? false : g_CurrentConfig.CooloffMode == COOLOFF_LOWER ? (g_TempCO > g_TargetTemp + (_coolState == 1 ? 0.1 : 0.4)) : (g_TempCO > g_TargetTemp + g_CurrentConfig.TDeltaCO);
 
-  if (!hot && g_CurrentConfig.FireStartMode != FIRESTART_MODE_DISABLED && cw && g_BurnState == STATE_OFF && g_TempCO >= g_CurrentConfig.TMinPomp) {
-    hot = true; //standby, but cwu can be heated
+  if (!hot && g_CurrentConfig.FireStartMode != FIRESTART_MODE_DISABLED  && g_BurnState == STATE_OFF && g_CurrentConfig.CooloffMode != COOLOFF_NONE) {
+    //standby, we can go lower
+    hot = g_CurrentConfig.CooloffMode == COOLOFF_LOWER ? g_TempCO >= g_CurrentConfig.TMinPomp : g_TempCO >= g_TargetTemp - g_CurrentConfig.THistCO;
   }
+  
   
   if (getManualControlMode() || !hot || g_BurnState == STATE_ALARM) {
     _coolState = 0;
     return 0;
   }
 
-  //if (g_CurrentConfig.SummerMode && isPumpEnabled(PUMP_CWU1) && isDallasEnabled(TSENS_CWU)) {
-  //     cw = true;
-  //  }
+  //hot now!
   unsigned long t = millis();
   switch(_coolState) {
     case 1:
@@ -1121,7 +1129,11 @@ bool cond_targetTempReachedAndHeatingNotNeeded() {
   return g_TempCO >= g_TargetTemp && g_needHeat == NEED_HEAT_NONE;
 }
 
-
+//we're in auto stop mode and we're above min temp
+bool cond_autoFire_minTempReachedAndHeatingNotNeeded() {
+  if (g_CurrentConfig.FireStartMode == FIRESTART_MODE_DISABLED) return false;
+  return g_needHeat == NEED_HEAT_NONE && g_TempCO > g_CurrentConfig.TMinPomp; 
+}
 
 //verify if fire is no longer burning
 //this can only be detected in work cycles
@@ -1193,7 +1205,7 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
 {
 
   //{STATE_P0, STATE_P1, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v2  
-  {STATE_P0, STATE_P2, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v3: switch to P2 to quickly start burning, then reduce to P1 if no heat needed and temp above hysteresis
+  {STATE_P0, STATE_P2, cond_C_belowHysteresisAndNoNeedToHeat_NoAutoStop, NULL}, //#v3: switch to P2 to quickly start burning, then reduce to P1 if no heat needed and temp above hysteresis
   {STATE_P0, STATE_P2, cond_B_belowHysteresisAndNeedHeat, NULL}, //this fires only if heat needed bc cond_C is earlier
   {STATE_P0, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
   {STATE_P0, STATE_P2, cond_willFallBelowHysteresisSoon, NULL}, //temp is dropping fast, we need heat -> P2
@@ -1202,19 +1214,23 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   
   {STATE_P1, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction}, //E. P1 -> P0
   {STATE_P1, STATE_REDUCE1, cond_targetTempReachedAndHeatingNotNeeded, onSwitchToReduction}, //F. P1 -> P0
+  {STATE_P1, STATE_REDUCE1, cond_autoFire_minTempReachedAndHeatingNotNeeded, onSwitchToReduction}, //F. P1 -> P0
   {STATE_P1, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL},
+  
   {STATE_P1, STATE_P2, cond_B_belowHysteresisAndNeedHeat, NULL},
   
   
   {STATE_REDUCE1, STATE_P2, cond_A_needSuddenHeatAndBelowTargetTemp, NULL}, //juz nie redukujemy  - np sytuacja się zmieniła i temp. została podniesiona. uwaga - ten sam war. co w #10 - cykl
   {STATE_REDUCE1, STATE_P2, cond_B_belowHysteresisAndNeedHeat, NULL},
-  {STATE_REDUCE1, STATE_P1, cond_C_belowHysteresisAndNoNeedToHeat, NULL}, //#v2
+  {STATE_REDUCE1, STATE_P1, cond_C_belowHysteresisAndNoNeedToHeat_NoAutoStop, NULL}, //#v2
   {STATE_REDUCE1, STATE_P1, cond_D_belowTargetTempAndNeedHeat, NULL},
   {STATE_REDUCE1, STATE_P0, cond_cycleEnded, onReductionCycleEnded},
 
   
   {STATE_P2, STATE_REDUCE2, cond_targetTempReached, onSwitchToReduction}, //10 P2 -> P1
   {STATE_P2, STATE_REDUCE2, cond_willReachTargetSoon, onSwitchToReduction}, //10 P2 -> P1
+  {STATE_P2, STATE_REDUCE2, cond_autoFire_minTempReachedAndHeatingNotNeeded, onSwitchToReduction}, //10 P2 -> P1
+  
   //{STATE_P2, STATE_REDUCE2, cond_suddenHeatOffAndAboveHysteresis, onSwitchToReduction}, //v2 10 P2 -> P1
   {STATE_P2, STATE_REDUCE2,   cond_noNeedToHeatAndAboveHysteresis, onSwitchToReduction}, //v3 10 P2 -> P1
 
