@@ -163,13 +163,22 @@ uint8_t kickstartCount = 0;
 uint8_t breseControlStep() 
 {
   uint8_t rem = counter % brese_cycle;
+  static uint8_t skipper = 0;
   
   if (rem == 0) {
     brese_error += brese_increment;
     brese_curV = round(brese_error);
     brese_error -= brese_curV;
   }
+  uint8_t b = brese_curV > rem ? 1 : 0;
   if (isFlowTooHigh()) {
+    uint8_t m = g_CurrentConfig.AirControlMode - AIRCONTROL_HITMISS0 + 1;
+    if (m > 1 && m <= 4) {
+        if (b != 0) {
+          skipper++;
+          return (skipper % m) == 0;
+        }
+    }
     return 0;
   }
   return brese_curV > rem ? 1 : 0;

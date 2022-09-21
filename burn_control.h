@@ -36,6 +36,15 @@ typedef uint8_t CWSTATE;
 #define FIRESTART_MODE_JUSTSTOP 1   //will switch off when done heating, but will not auto start
 #define FIRESTART_MODE_STARTSTOP 2
 
+//for config AirControlMode
+#define AIRCONTROL_NONE 0
+#define AIRCONTROL_CORRECT1 1
+#define AIRCONTROL_CORRECT2 2
+#define AIRCONTROL_HITMISS0 3
+#define AIRCONTROL_HITMISS3 6
+
+  
+
 typedef uint8_t HEATNEED;
 
 //konfiguracja jednego z poziomów mocy

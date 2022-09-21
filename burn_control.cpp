@@ -247,7 +247,7 @@ void maintainDesiredFlow1() {
   if (g_TargetFlow == 0) return;
   if (!getManualControlMode()) 
   {
-    if (g_CurrentConfig.AirControlMode != 1 && g_CurrentConfig.AirControlMode != 2) return;
+    if (g_CurrentConfig.AirControlMode != AIRCONTROL_CORRECT1 && g_CurrentConfig.AirControlMode != AIRCONTROL_CORRECT2) return;
     if (g_BurnState != STATE_P0 && g_BurnState != STATE_P1 && g_BurnState != STATE_P2 && g_BurnState != STATE_FIRESTART && g_BurnState != STATE_REDUCE1 && g_BurnState != STATE_REDUCE2) return;
   };
   
@@ -284,7 +284,7 @@ void maintainDesiredFlow1() {
 
 
 bool isFlowTooHigh() {
-  if (g_CurrentConfig.AirControlMode != 3) return false;
+  if (g_CurrentConfig.AirControlMode < AIRCONTROL_HITMISS0 || g_CurrentConfig.AirControlMode > AIRCONTROL_HITMISS3) return false;
   if (g_BurnState != STATE_P0 && g_BurnState != STATE_P1 && g_BurnState != STATE_P2 && g_BurnState != STATE_FIRESTART && g_BurnState != STATE_REDUCE1 && g_BurnState != STATE_REDUCE2) return;
   if (g_TargetFlow == 0) return false;
   return g_AirFlowNormal > g_TargetFlow + 1;
@@ -298,7 +298,7 @@ void maintainDesiredFlow() {
   if (g_TargetFlow == 0) return;
   if (!getManualControlMode()) 
   {
-    if (g_CurrentConfig.AirControlMode != 1 && g_CurrentConfig.AirControlMode != 2) return;
+    if (g_CurrentConfig.AirControlMode != AIRCONTROL_CORRECT1 && g_CurrentConfig.AirControlMode != AIRCONTROL_CORRECT2) return;
     if (g_BurnState != STATE_P0 && g_BurnState != STATE_P1 && g_BurnState != STATE_P2 && g_BurnState != STATE_FIRESTART && g_BurnState != STATE_REDUCE1 && g_BurnState != STATE_REDUCE2) return;
   };
   
@@ -527,7 +527,7 @@ void workStateInitialize(TSTATE prev) {
   curStateMaxTempCO = g_TempCO;
   g_burnCycleNum = 0;
   setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_DeviceConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
-  if (g_CurrentConfig.AirControlMode != 0 && g_CurrentConfig.BurnConfigs[g_BurnState].AirFlow > 0) {
+  if (g_CurrentConfig.AirControlMode != AIRCONTROL_NONE && g_CurrentConfig.BurnConfigs[g_BurnState].AirFlow > 0) {
     g_TargetFlow = g_CurrentConfig.BurnConfigs[g_BurnState].AirFlow;
   }
   Serial.print(F("Burn init, cycle: "));
@@ -576,7 +576,7 @@ void workStateBurnLoop() {
     setBlowerPower(g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_DeviceConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
     g_BurnCyclesBelowMinTemp = g_TempCO <= g_CurrentConfig.TMinPomp ? g_BurnCyclesBelowMinTemp + 1 : 0;
     g_burnCycleNum++;
-    if (g_CurrentConfig.AirControlMode != 0 && g_CurrentConfig.BurnConfigs[g_BurnState].AirFlow > 0) {
+    if (g_CurrentConfig.AirControlMode != AIRCONTROL_NONE && g_CurrentConfig.BurnConfigs[g_BurnState].AirFlow > 0) {
       g_TargetFlow = g_CurrentConfig.BurnConfigs[g_BurnState].AirFlow;
     }
   }
@@ -600,7 +600,7 @@ void firestartStateInit(TSTATE prev) {
   uint8_t bp = g_CurrentConfig.BurnConfigs[g_BurnState].BlowerPower;
   setBlowerPower(0);
   setBlowerPower(bp, g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle == 0 ? g_DeviceConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[g_BurnState].BlowerCycle);
-  if (g_CurrentConfig.AirControlMode != 0 && g_CurrentConfig.BurnConfigs[g_BurnState].AirFlow > 0) {
+  if (g_CurrentConfig.AirControlMode != AIRCONTROL_NONE && g_CurrentConfig.BurnConfigs[g_BurnState].AirFlow > 0) {
     g_TargetFlow = g_CurrentConfig.BurnConfigs[g_BurnState].AirFlow;
   }
   if (bp > 0) {
@@ -672,7 +672,7 @@ void reductionStateInit(TSTATE prev) {
   if (prev == STATE_P2) adj += ((unsigned long) g_CurrentConfig.ReductionP2ExtraTime * (unsigned long) g_CurrentConfig.BurnConfigs[prev].CycleSec * 10L); // * 1000 / 100;
   _reductionStateEndMs = g_CurStateStart + _reductionStateEndMs + adj; //
   setBlowerPower(g_CurrentConfig.BurnConfigs[prev].BlowerPower, g_CurrentConfig.BurnConfigs[prev].BlowerCycle == 0 ? g_DeviceConfig.DefaultBlowerCycle : g_CurrentConfig.BurnConfigs[prev].BlowerCycle);
-  if (g_CurrentConfig.AirControlMode != 0 && g_CurrentConfig.BurnConfigs[prev].AirFlow > 0) {
+  if (g_CurrentConfig.AirControlMode != AIRCONTROL_NONE && g_CurrentConfig.BurnConfigs[prev].AirFlow > 0) {
     g_TargetFlow = g_CurrentConfig.BurnConfigs[prev].AirFlow;
   }
   setFeederOff();

@@ -939,12 +939,15 @@ const char str_firestart_full[] PROGMEM = "Full auto";
 const char str_flowctrl_1[] PROGMEM = "T1 korekcja";
 const char str_flowctrl_2[] PROGMEM = "T2 korekcja";
 const char str_flowctrl_3[] PROGMEM = "T3 hit&miss";
+const char str_flowctrl_4[] PROGMEM = "T4 hit&miss";
+const char str_flowctrl_5[] PROGMEM = "T5 hit&miss";
+const char str_flowctrl_6[] PROGMEM = "T6 hit&miss";
 
 
 const char* const values_cool_mode[] PROGMEM = {str_off, str_cool_1, str_cool_2, str_cool_3};
 const char* const values_onoff[] PROGMEM = {str_off, str_on};
 const char* const values_firestart_mode[] PROGMEM = {str_off, str_firestart_autostop, str_firestart_full};
-const char* const values_flow_ctrl_mode[] PROGMEM = {str_off, str_flowctrl_1, str_flowctrl_2, str_flowctrl_3};
+const char* const values_flow_ctrl_mode[] PROGMEM = {str_off, str_flowctrl_1, str_flowctrl_2, str_flowctrl_3, str_flowctrl_4, str_flowctrl_5, str_flowctrl_6};
 
 const TUIVarEntry UI_VARIABLES[] = {
   {MPSTR("Rok"), VAR_ADVANCED, &RTC.yyyy, 2019, 3000, printUint16, adjustUint16, copyU16, queueCommitTime},
@@ -997,7 +1000,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   {MPSTR("Rozp wzrost TSp"), VAR_ADVANCED, &g_CurrentConfig.FireDetExhIncrD10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
   {MPSTR("Rozp wzrost TCo"), VAR_ADVANCED, &g_CurrentConfig.FireDetCOIncr10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig}, 
   {MPSTR("MAF skala"), VAR_ADVANCED, &g_DeviceConfig.AirFlowCoeff, 0, 256, printUint8, adjustUint8, copyU8, commitDevConfig}, 
-  {MPSTR("Ster nadmuch"), VAR_ADVANCED, &g_CurrentConfig.AirControlMode, 0, 3, printUint8_values, adjustUint8, copyU8, commitConfig, {.strings = values_flow_ctrl_mode }}, 
+  {MPSTR("Ster nadmuch"), VAR_ADVANCED, &g_CurrentConfig.AirControlMode, AIRCONTROL_NONE, AIRCONTROL_HITMISS3, printUint8_values, adjustUint8, copyU8, commitConfig, {.strings = values_flow_ctrl_mode }}, 
   
   
   {MPSTR("P0 cykl sek."), VAR_ADVANCED, &g_CurrentConfig.BurnConfigs[STATE_P0].CycleSec, 0, 3600, printUint16, adjustUint16, copyU16, commitConfig},
