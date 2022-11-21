@@ -10,8 +10,8 @@
 #include <pid.h>
 
 #define MAX_TEMP 90
-
-
+#define FIRESTART_STABILIZE_TIME 30000 //30 sec
+#define EXHAUST_TEMP_DELTA_BELOW_CO 2.0 // 
 
 
 float g_TargetTemp = 0.1; //aktualnie zadana temperatura pieca (która może być wyższa od temp. zadanej w konfiguracji bo np grzejemy CWU)
@@ -176,7 +176,8 @@ void processSensorValues() {
   const TReading* lastExh = g_lastExhaustReads.GetLast();
   if (lastExh == NULL || (ms - lastExh->Ms) >= 30000) 
   {
-    g_lastExhaustReads.Enqueue({ms, g_TempSpaliny});
+    float ts = g_TempSpaliny < g_TempCO - EXHAUST_TEMP_DELTA_BELOW_CO ? g_TempCO - EXHAUST_TEMP_DELTA_BELOW_CO : g_TempSpaliny;
+    g_lastExhaustReads.Enqueue({ms, ts});
   }
   const TReading* lastCo = g_lastCOReads.GetLast();
   if (lastCo == NULL || (ms - lastCo->Ms) >= 30000) 
@@ -612,6 +613,17 @@ void firestartStateInit(TSTATE prev) {
 
 void firestartStateLoop() {
 	workStateBurnLoop();
+
+  unsigned long tRun = millis() - g_CurStateStart;
+  if (tRun < FIRESTART_STABILIZE_TIME) {
+    g_InitialTempCO = g_TempCO;
+    g_InitialTempExh = g_TempSpaliny;
+  }
+  else {
+    if (g_TempCO < g_InitialTempCO) g_InitialTempCO = g_TempCO;
+    if (g_TempSpaliny < g_InitialTempExh) g_InitialTempExh = g_TempSpaliny;
+  }
+  
   uint8_t bp = getCurrentBlowerPower();
   bool heater = bp > 0;
   if (heater && g_CurrentConfig.HeaterMaxRunTimeS != 0) {
@@ -628,8 +640,6 @@ void firestartStateLoop() {
 
   setHeater(heater);
   
-  if (g_TempCO < g_InitialTempCO) g_InitialTempCO = g_TempCO;
-  if (g_TempSpaliny < g_InitialTempExh) g_InitialTempExh = g_TempSpaliny;
 }
 
 void offStateInit(TSTATE prev) {
@@ -796,7 +806,7 @@ void handleHeatNeedStatus() {
 }
 
 uint8_t cond_needCooling(); //below
-bool cond_willFallBelowHysteresisSoon();
+bool cond_willFallBelowHysteresisSoon(float adj = 0);
 //
 // which pumps and when
 // cwu heating needed -> turn on cwu pump if current temp is above min pump temp and above cwu temp + delta
@@ -831,7 +841,8 @@ void updatePumpStatus() {
     }
     return;
   }
-  if (g_needHeat == NEED_HEAT_CO && !cond_willFallBelowHysteresisSoon()) { //co pump on - thermostat on or thermostat disabled (co pump always on)
+  bool pco = isPumpOn(PUMP_CO1);
+  if (g_needHeat == NEED_HEAT_CO && !cond_willFallBelowHysteresisSoon(pco ? -0.1 : 0.1)) { //co pump on - thermostat on or thermostat disabled (co pump always on)
     setPumpOn(PUMP_CO1);
     setPumpOff(PUMP_CWU1); //just to be sure
     return;
@@ -888,34 +899,44 @@ bool isAlarm_feederOnFire() {
 bool cond_firestartIsBurning() {
   
   unsigned long tRun = millis() - g_CurStateStart;
-  if (tRun < 40000) return false;
+  if (tRun < FIRESTART_STABILIZE_TIME) return false;
   
   float crate = g_CurrentConfig.FireDetExhDt10 / 10.0;
   float ctd = g_CurrentConfig.FireDetExhIncrD10 / 10.0;
   float ctd2 = g_CurrentConfig.FireDetCOIncr10 / 10.0;
-  float d = g_TempSpaliny  - g_InitialTempExh;
+
+  float exhStart = g_InitialTempExh < g_InitialTempCO - EXHAUST_TEMP_DELTA_BELOW_CO ? g_InitialTempCO - EXHAUST_TEMP_DELTA_BELOW_CO : g_InitialTempExh; //jesli temp spalin jest ponizej temp kotla to znaczy ze komin sie wychlodzil bardziej niz kociol - nieprawidl. wartosc
+  
+  float d = g_TempSpaliny  - exhStart;
   float e = g_TempCO - g_InitialTempCO;
   float f = g_TempSpaliny - g_TempCO;
   
   if (ctd > 0) {
-    if (d >= ctd || (g_dTExh > 0.5 && d + g_dTExh > ctd)) {
-      //Serial.print("FIRE: d:");
-      //Serial.println(d);
-      return true;
+    if (g_TempSpaliny > g_TempCO - EXHAUST_TEMP_DELTA_BELOW_CO) { //exh temp high enough
+      if (d >= ctd || (exhStart > g_InitialTempCO - EXHAUST_TEMP_DELTA_BELOW_CO && g_dTExh > 0.5 && d + g_dTExh > ctd)) {
+        //Serial.print("FIRE: d:");
+        //Serial.print(d);
+        //Serial.print(",tRun:");
+        //Serial.print(tRun);
+        //Serial.print(",ctd:");
+        //Serial.println(ctd);
+        return true;
+      }  
     }
+    
   }
 
   if (ctd2 > 0 && e >= ctd2) {
-    //Serial.print("FIRE2: e:");
-    //Serial.println(e);
+    Serial.print("FIRE2: e:");
+    Serial.println(e);
     return true;
   }
   
   
   if (crate > 0 && g_TempCO > g_CurrentConfig.TMinPomp && tRun >= 180000) { //3 min
       if (f >= crate) {
-        //Serial.print("FIRE3: f:");
-        //Serial.println(f);  
+        Serial.print("FIRE3: f:");
+        Serial.println(f);  
         return true;
       }
   }
@@ -1036,10 +1057,10 @@ bool cond_noNeedToHeatAndAboveHysteresis() {
   return false;
 }
 
-bool cond_willFallBelowHysteresisSoon() {
+bool cond_willFallBelowHysteresisSoon(float adj = 0) {
   if (g_needHeat == NEED_HEAT_NONE) return false;
   if (g_dTl3 > -0.5) return false;
-  if (g_TempCO + 2 * g_dTl3 < g_TargetTemp - g_CurrentConfig.THistCO) return true;
+  if (g_TempCO + 2 * g_dTl3 < g_TargetTemp - g_CurrentConfig.THistCO + adj) return true;
   return false;
 }
 
