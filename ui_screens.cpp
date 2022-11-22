@@ -63,12 +63,13 @@ void scrSensors2(uint8_t idx, char* lines[] ) {
 
 void scrSensors3(uint8_t idx, char* lines[] ) {
   char buf1[10], buf2[10];
+  int fc = firestartIsBurningCheck();
   dtostrf(g_TempSpaliny - g_InitialTempExh, 3, 1, buf1);
   dtostrf(g_TempCO - g_InitialTempCO,3, 1, buf2);
-  sprintf(lines[0], "WSp:%s WCo:%s", buf1, buf2);
+  sprintf(lines[0], "WS:%s WC:%s", buf1, buf2);
   dtostrf(g_TempSpaliny - g_TempCO, 3, 1, buf1);
   dtostrf(g_dTExh,3, 1, buf2);
-  sprintf(lines[1], "SPCo:%s dE:%s", buf1, buf2);
+  sprintf(lines[1], "%dSC:%s E:%s", fc, buf1, buf2);
 }
 
 extern unsigned long _reductionStateEndMs; //burn control

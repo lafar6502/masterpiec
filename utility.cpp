@@ -320,6 +320,8 @@ void sdLoggingTask() {
   df.print('\t');
   printFloat(g_TempCO-g_InitialTempCO, df);
   df.print('\t');
+  df.print(firestartIsBurningCheck());
+  df.print('\t');
   df.print(isHeaterOn());
   df.print('\t');
   df.print(g_AirFlowNormal);

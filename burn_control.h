@@ -157,7 +157,7 @@ void processSensorValues();
 
 int8_t calculateBlowerPowerAdjustment(uint8_t desiredFlow, uint8_t measuredFlow, uint8_t currentBlowerPower);
 
-
+int firestartIsBurningCheck();
 
 
 

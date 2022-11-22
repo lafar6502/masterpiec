@@ -199,7 +199,7 @@ void processSensorValues() {
   nw.Val = g_TempSpaliny;
   //g_dTExh = CalcDtPerMinute(&g_lastExhaustReads, 2, &nw);
   //g_dTExhLong = CalcDtPerMinute(&g_lastExhaustReads, 6, NULL);
-  g_dTExh = CalcLinearRegression(&g_lastExhaustReads, 3, &nw);
+  g_dTExh = g_lastExhaustReads.GetCount() >= 3 ? CalcLinearRegression(&g_lastExhaustReads, 3, &nw) : 0.0;
 
   nw.Val = g_TempCO;
   //g_dTl3 = CalcDtPerMinute(&g_lastCOReads, 1, &nw);
@@ -894,12 +894,9 @@ bool isAlarm_feederOnFire() {
   return false;
 }
 
-
-//detect if fire has started in automatic fire start mode
-bool cond_firestartIsBurning() {
-  
+int firestartIsBurningCheck() {
   unsigned long tRun = millis() - g_CurStateStart;
-  if (tRun < FIRESTART_STABILIZE_TIME) return false;
+  if (tRun < FIRESTART_STABILIZE_TIME) return 0;
   
   float crate = g_CurrentConfig.FireDetExhDt10 / 10.0;
   float ctd = g_CurrentConfig.FireDetExhIncrD10 / 10.0;
@@ -912,37 +909,30 @@ bool cond_firestartIsBurning() {
   float f = g_TempSpaliny - g_TempCO;
   
   if (ctd > 0) {
-    if (g_TempSpaliny > g_TempCO - EXHAUST_TEMP_DELTA_BELOW_CO) { //exh temp high enough
-      if (d >= ctd || (exhStart > g_InitialTempCO - EXHAUST_TEMP_DELTA_BELOW_CO && g_dTExh > 0.5 && d + g_dTExh > ctd)) {
-        //Serial.print("FIRE: d:");
-        //Serial.print(d);
-        //Serial.print(",tRun:");
-        //Serial.print(tRun);
-        //Serial.print(",ctd:");
-        //Serial.println(ctd);
-        return true;
-      }  
+    if (g_TempSpaliny >= g_TempCO - EXHAUST_TEMP_DELTA_BELOW_CO) { //exh temp high enough
+      if (d >= ctd) return 1;
+      if (exhStart > g_InitialTempCO - EXHAUST_TEMP_DELTA_BELOW_CO && g_dTExh > 0.5 && d + g_dTExh > ctd) return 2;  
     }
     
   }
 
-  if (ctd2 > 0 && e >= ctd2) {
-    Serial.print("FIRE2: e:");
-    Serial.println(e);
-    return true;
-  }
+  if (ctd2 > 0 && e >= ctd2) return 3;
   
   
   if (crate > 0 && g_TempCO > g_CurrentConfig.TMinPomp && tRun >= 180000) { //3 min
       if (f >= crate) {
-        Serial.print("FIRE3: f:");
-        Serial.println(f);  
-        return true;
+        return 4;
       }
   }
 
   
   return false;
+}
+//detect if fire has started in automatic fire start mode
+bool cond_firestartIsBurning() {
+
+  int n = firestartIsBurningCheck();
+  return n != 0;
 }
 
 bool cond_noHeating() {
