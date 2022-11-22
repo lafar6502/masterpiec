@@ -64,7 +64,8 @@ void scrSensors2(uint8_t idx, char* lines[] ) {
 void scrSensors3(uint8_t idx, char* lines[] ) {
   char buf1[10], buf2[10];
   int fc = firestartIsBurningCheck();
-  dtostrf(g_TempSpaliny - g_InitialTempExh, 3, 1, buf1);
+  float exhStart = g_InitialTempExh < g_InitialTempCO - EXHAUST_TEMP_DELTA_BELOW_CO ? g_InitialTempCO - EXHAUST_TEMP_DELTA_BELOW_CO : g_InitialTempExh;
+  dtostrf(g_TempSpaliny - exhStart, 3, 1, buf1);
   dtostrf(g_TempCO - g_InitialTempCO,3, 1, buf2);
   sprintf(lines[0], "WS:%s WC:%s", buf1, buf2);
   dtostrf(g_TempSpaliny - g_TempCO, 3, 1, buf1);

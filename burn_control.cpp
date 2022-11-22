@@ -11,7 +11,7 @@
 
 #define MAX_TEMP 90
 #define FIRESTART_STABILIZE_TIME 30000 //30 sec
-#define EXHAUST_TEMP_DELTA_BELOW_CO 2.0 // 
+
 
 
 float g_TargetTemp = 0.1; //aktualnie zadana temperatura pieca (która może być wyższa od temp. zadanej w konfiguracji bo np grzejemy CWU)
@@ -895,8 +895,9 @@ bool isAlarm_feederOnFire() {
 }
 
 int firestartIsBurningCheck() {
+  bool isFirestart =  g_BurnState == STATE_FIRESTART;
   unsigned long tRun = millis() - g_CurStateStart;
-  if (tRun < FIRESTART_STABILIZE_TIME) return 0;
+  if (isFirestart && tRun < FIRESTART_STABILIZE_TIME) return 0;
   
   float crate = g_CurrentConfig.FireDetExhDt10 / 10.0;
   float ctd = g_CurrentConfig.FireDetExhIncrD10 / 10.0;
@@ -909,7 +910,7 @@ int firestartIsBurningCheck() {
   float f = g_TempSpaliny - g_TempCO;
   
   if (ctd > 0) {
-    if (g_TempSpaliny >= g_TempCO - EXHAUST_TEMP_DELTA_BELOW_CO) { //exh temp high enough
+    if (g_TempSpaliny >= g_InitialTempCO - EXHAUST_TEMP_DELTA_BELOW_CO) { //exh temp high enough
       if (d >= ctd) return 1;
       if (exhStart > g_InitialTempCO - EXHAUST_TEMP_DELTA_BELOW_CO && g_dTExh > 0.5 && d + g_dTExh > ctd) return 2;  
     }
@@ -919,7 +920,7 @@ int firestartIsBurningCheck() {
   if (ctd2 > 0 && e >= ctd2) return 3;
   
   
-  if (crate > 0 && g_TempCO > g_CurrentConfig.TMinPomp && tRun >= 180000) { //3 min
+  if (crate > 0 && (tRun >= (isFirestart ? 2 : 1) * FIRESTART_STABILIZE_TIME)) { 
       if (f >= crate) {
         return 4;
       }

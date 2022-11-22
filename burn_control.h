@@ -43,7 +43,7 @@ typedef uint8_t CWSTATE;
 #define AIRCONTROL_HITMISS0 3
 #define AIRCONTROL_HITMISS3 6
 
-  
+#define EXHAUST_TEMP_DELTA_BELOW_CO 2.0 //   
 
 typedef uint8_t HEATNEED;
 
