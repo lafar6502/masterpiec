@@ -51,6 +51,8 @@ template<class T> class CircularBuffer
       return _buf + (_head > 0 ? _head - 1 : _head - 1 + _bufLen);
     }
 
+    //GetAt(0) - first element (the oldest)
+    //GetAt(-1) - last element (the most recently added) - same as GetAt(GetCount() - 1)
     const T* GetAt(int16_t idx) const {
       if (_head == _tail) return NULL;
       if (idx >= 0) {
@@ -78,6 +80,8 @@ template<class T> class CircularBuffer
     bool IsFull() {
       return  _tail == (_head + 1) % _bufLen;
     }
+
+    
 };
 
 

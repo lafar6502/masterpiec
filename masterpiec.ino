@@ -153,7 +153,7 @@ void periodicDumpControlState() {
     Serial.print(F(":"));
     Serial.print(g_AirFlowNormal);
     Serial.print(F(", lastT:"));
-    Serial.print(g_lastCOReads.IsEmpty() ? 0.0 : g_lastCOReads.GetLast()->Val);
+    Serial.print(g_lastCOReads.IsEmpty() ? 0.0f : *g_lastCOReads.GetAt(-1));
 	Serial.print(F(", CNT:"));
     Serial.print(counter);
 	Serial.println();

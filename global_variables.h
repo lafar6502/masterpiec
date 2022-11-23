@@ -27,8 +27,8 @@ typedef struct {
 } TIntReading;
 
 extern TDailyLogEntry g_DailyLogEntries[];
-extern CircularBuffer<TReading> g_lastCOReads;
-extern CircularBuffer<TIntReading> g_lastBurnTransitions;
+extern CircularBuffer<float> g_lastCOReads;
+extern CircularBuffer<float> g_lastBurnTransitions;
 
 void loggingInit();
 void clearDailyLogs();

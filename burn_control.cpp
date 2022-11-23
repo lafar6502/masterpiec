@@ -40,13 +40,13 @@ unsigned long g_P1Time = 0;
 unsigned long g_P2Time = 0;
 unsigned long g_P0Time = 0;
 
-TReading lastCOTemperatures[11];
-TReading lastExhaustTemperatures[11]; //every 30 sec => 5 minutes
+float lastCOTemperatures[21];
+float lastExhaustTemperatures[21]; //every 30 sec => 10 minutes
 float lastFlows[11];
 epid_t g_flow_pid_ctx;
 
-CircularBuffer<TReading> g_lastCOReads(lastCOTemperatures, sizeof(lastCOTemperatures)/sizeof(TReading));
-CircularBuffer<TReading> g_lastExhaustReads(lastExhaustTemperatures, sizeof(lastExhaustTemperatures)/sizeof(TReading));
+CircularBuffer<float> g_lastCOReads(lastCOTemperatures, sizeof(lastCOTemperatures)/sizeof(float));
+CircularBuffer<float> g_lastExhaustReads(lastExhaustTemperatures, sizeof(lastExhaustTemperatures)/sizeof(float));
 CircularBuffer<float> g_lastFlows(lastFlows, sizeof(lastFlows)/sizeof(float));
 //czas wejscia w bieżący stan, ms
 unsigned long g_CurStateStart = 0;
@@ -103,112 +103,105 @@ float g_dTl3; //last 3 readings diff
 float g_dTExh; //1-min temp delta for exhaust
 
 
+const uint8_t RatioCoeffs[] = {6,4,3,2,2,1,1,1};
 
-void simpleLinReg(float* x, float* y, float* lrCoef, int n)
-{
-    float sum_x=0;
-    float sum_y=0;
-    float sum_xy=0;
-    float sum_xx=0;
-// pass x and y arrays (pointers), lrCoef pointer, and n. The lrCoef array is comprised of the slope=lrCoef[0] and intercept=lrCoef[1]. n is length of the x and y arrays.
-// http://en.wikipedia.org/wiki/Simple_linear_regression
-    
-    // calculations required for linear regression
-    for (int i=0; i<n; i++)
-    {
-    sum_x = sum_x+x[i];
-    sum_y = sum_y+y[i];
-    sum_xy = sum_xy+x[i]*y[i];
-    sum_xx = sum_xx+x[i]*x[i];
-    }
-    
-    // simple linear regression algorithm
-    lrCoef[0]=(n*sum_xy-sum_x*sum_y)/(n*sum_xx-sum_x*sum_x);
-    lrCoef[1]=(sum_y/n)-((lrCoef[0]*sum_x)/n);
+float CalcIncreaseRatio(const CircularBuffer<float>& buf, uint8_t numSamples) {
+  uint8_t c = buf.GetCount()-1;
+  if (c > numSamples) c = numSamples;
+  if (c > sizeof(RatioCoeffs)/sizeof(uint8_t)) c = sizeof(RatioCoeffs)/sizeof(uint8_t);
+  if (c == 0) return 0.0f;
+  uint8_t coeffs = 0;
+  float sum = 0.0f;
+  float curVal = *buf.GetAt(-1);
+  for (int i=0; i<c;i++) {
+    coeffs += RatioCoeffs[i];
+    float v = curVal - *buf.GetAt(-(i+2));
+    v *= RatioCoeffs[i];
+    v /= (i+1);
+    sum += v;
+  }
+  return sum / coeffs;
 }
 
-float CalcLinearRegression(CircularBuffer<TReading>* buf, int nPoints, const TReading* pLast) {
-
-  
-    float sum_x=0;
-    float sum_y=0;
-    float sum_xy=0;
-    float sum_xx=0;
-
-    int nR = pLast == NULL ? nPoints : nPoints - 1;
-    if (nR > buf->GetCount()) nR = buf->GetCount();
-    unsigned long b0 = buf->GetAt(-nR)->Ms;
-    for (int i=-nR; i<0; i++) {
-      const TReading* p = buf->GetAt(i);
-      float x = (p->Ms - b0) / 60000.0;
-      sum_x += x;
-      sum_y += p->Val;
-      sum_xy += x * p->Val;
-      sum_xx += x*x;
-    }
-    if (pLast != NULL) {
-      float x = (pLast->Ms - b0) / 60000.0;
-      sum_x += x;
-      sum_y += pLast->Val;
-      sum_xy += x * pLast->Val;
-      sum_xx += x*x;
-      nR += 1;
-    }
-    float coef0=(nR*sum_xy-sum_x*sum_y)/(nR*sum_xx-sum_x*sum_x);
-    float coef1=(sum_y/nR)-((coef0*sum_x)/nR);
-    return coef0;
+float CalcIncreaseRatio2(const CircularBuffer<float>& buf, uint8_t numSamples) {
+  uint8_t c = buf.GetCount()-1;
+  if (c > numSamples) c = numSamples;
+  if (c > sizeof(RatioCoeffs)/sizeof(uint8_t)) c = sizeof(RatioCoeffs)/sizeof(uint8_t);
+  if (c == 0) return 0.0f;
+  uint8_t coeffs = 0;
+  float sum = 0.0f;
+  float curVal = *buf.GetAt(-1);
+  for (int i=0; i<c;i++) {
+    coeffs += RatioCoeffs[i];
+    float v = curVal - *buf.GetAt(-(i+2));
+    v *= RatioCoeffs[i];
+    v /= (i+1);
+    sum += v;
+  }
+  return sum / coeffs;
 }
+
+
+#define AVG_CNT 10
+float _tempCoAvg[AVG_CNT];
+float _tempExhAvg[AVG_CNT];
+uint16_t _avgIdx = 0;
+
+#define TEMP_HISTORY_SAMPLE_TIME_MS 30000
 
 void processSensorValues() {
-  g_TempCO = getLastDallasValue(TSENS_BOILER);
+  unsigned long ms = millis();
+  static unsigned long prevMs = 0;
+  
+  float f1 = getLastDallasValue(TSENS_BOILER);
+  float f2 = getLastThermocoupleValue(T2SENS_EXHAUST);
+  _tempCoAvg[_avgIdx % AVG_CNT] = f1;
+  _tempExhAvg[_avgIdx % AVG_CNT] = f2;
+  _avgIdx++;
+
+  g_TempCO = f1;
+  g_TempSpaliny = f2;
+  
+  uint16_t n = _avgIdx >= AVG_CNT ? AVG_CNT : _avgIdx;
+  f1 = 0; f2 = 0;
+  if (n > 0) {
+    for(uint16_t i =0; i<n; i++) {
+      f1 += _tempCoAvg[i];
+      f2 += _tempExhAvg[i];
+    } 
+    g_TempCO = f1 / n;
+    g_TempSpaliny = f2 / n; 
+  }
+  
   g_TempCWU = getLastDallasValue(TSENS_CWU);
   g_TempPowrot = getLastDallasValue(TSENS_RETURN);
   g_TempFeeder = getLastDallasValue(TSENS_FEEDER);
   g_TempZewn = getLastDallasValue(TSENS_EXTERNAL);
-  g_TempSpaliny = getLastThermocoupleValue(T2SENS_EXHAUST);
   g_TempBurner = getLastThermocoupleValue(T2SENS_BURNER);
   g_AirFlow = getCurrentFlowRate();
   if (g_CurrentConfig.EnableThermostat) 
   {
     g_HomeThermostatOn = isThermostatOn();
   }
-  unsigned long ms = millis();
-  const TReading* lastExh = g_lastExhaustReads.GetLast();
-  if (lastExh == NULL || (ms - lastExh->Ms) >= 30000) 
-  {
-    float ts = g_TempSpaliny < g_TempCO - EXHAUST_TEMP_DELTA_BELOW_CO ? g_TempCO - EXHAUST_TEMP_DELTA_BELOW_CO : g_TempSpaliny;
-    g_lastExhaustReads.Enqueue({ms, ts});
-  }
-  const TReading* lastCo = g_lastCOReads.GetLast();
-  if (lastCo == NULL || (ms - lastCo->Ms) >= 30000) 
-  {
-    g_lastCOReads.Enqueue({ms, g_TempCO});
+  if (ms - prevMs >= TEMP_HISTORY_SAMPLE_TIME_MS) {
+    prevMs = ms;
+    //float ts = g_TempSpaliny < g_TempCO - EXHAUST_TEMP_DELTA_BELOW_CO ? g_TempCO - EXHAUST_TEMP_DELTA_BELOW_CO : g_TempSpaliny;
+    g_lastExhaustReads.Enqueue(g_TempSpaliny);
+    g_lastCOReads.Enqueue(g_TempCO);
   }
   g_lastFlows.Enqueue(g_AirFlow);
-  int n = g_lastFlows.GetCount();
+  n = g_lastFlows.GetCount();
   float f0 = 0.0;
   for (int i=0; i<n; i++) {
     f0 += *g_lastFlows.GetAt(i);
   }
   f0 /= n;
-  float f1 = (float) g_DeviceConfig.AirFlowCoeff * 4.0 + 3.0;
+  f1 = (float) g_DeviceConfig.AirFlowCoeff * 4.0 + 3.0;
   g_AirFlowNormal = (uint8_t) ((f0 * 255.0) / f1);
 
-  TReading nw;
-  nw.Ms = ms;
-  nw.Val = g_TempSpaliny;
-  //g_dTExh = CalcDtPerMinute(&g_lastExhaustReads, 2, &nw);
-  //g_dTExhLong = CalcDtPerMinute(&g_lastExhaustReads, 6, NULL);
-  g_dTExh = g_lastExhaustReads.GetCount() >= 3 ? CalcLinearRegression(&g_lastExhaustReads, 3, &nw) : 0.0;
-
-  nw.Val = g_TempCO;
-  //g_dTl3 = CalcDtPerMinute(&g_lastCOReads, 1, &nw);
-  //g_dT60 =  CalcDtPerMinute(&g_lastCOReads, 3, &nw);
-  g_dTl3 = CalcLinearRegression(&g_lastCOReads, 3, &nw);
-  g_dT60 = CalcLinearRegression(&g_lastCOReads, g_lastCOReads.GetCount() < 7 ? g_lastCOReads.GetCount() - 1 : 6, &nw);
-
-  
-  
+  g_dTExh = CalcIncreaseRatio(g_lastExhaustReads, 4) * 2.0;
+  g_dTl3 = CalcIncreaseRatio(g_lastCOReads, 4) * 2.0;
+  g_dT60 = CalcIncreaseRatio(g_lastCOReads, 8) * 4.0;
 }
 
 
@@ -894,14 +887,17 @@ bool isAlarm_feederOnFire() {
   return false;
 }
 
+#define NMIN 6
+
 int firestartIsBurningCheck() {
   bool isFirestart =  g_BurnState == STATE_FIRESTART;
   unsigned long tRun = millis() - g_CurStateStart;
   if (isFirestart && tRun < FIRESTART_STABILIZE_TIME) return 0;
+
   
-  float crate = g_CurrentConfig.FireDetExhDt10 / 10.0;
-  float ctd = g_CurrentConfig.FireDetExhIncrD10 / 10.0;
-  float ctd2 = g_CurrentConfig.FireDetCOIncr10 / 10.0;
+  float crate = g_CurrentConfig.FireDetExhDt10 / 10.0;  //exhaust temp over CO temp
+  float ctd = g_CurrentConfig.FireDetExhIncrD10 / 10.0; //exhaust temp increase by degrees
+  float ctd2 = g_CurrentConfig.FireDetCOIncr10 / 10.0;  //CO temp increase by degrees
 
   float exhStart = g_InitialTempExh < g_InitialTempCO - EXHAUST_TEMP_DELTA_BELOW_CO ? g_InitialTempCO - EXHAUST_TEMP_DELTA_BELOW_CO : g_InitialTempExh; //jesli temp spalin jest ponizej temp kotla to znaczy ze komin sie wychlodzil bardziej niz kociol - nieprawidl. wartosc
   
@@ -910,19 +906,24 @@ int firestartIsBurningCheck() {
   float f = g_TempSpaliny - g_TempCO;
   
   if (ctd > 0) {
-    if (g_TempSpaliny >= g_InitialTempCO - EXHAUST_TEMP_DELTA_BELOW_CO) { //exh temp high enough
+    if (g_TempSpaliny >= g_TempCO - EXHAUST_TEMP_DELTA_BELOW_CO) { //exh temp high enough
       if (d >= ctd) return 1;
-      if (exhStart > g_InitialTempCO - EXHAUST_TEMP_DELTA_BELOW_CO && g_dTExh > 0.5 && d + g_dTExh > ctd) return 2;  
+      
+      if (exhStart > g_InitialTempCO - EXHAUST_TEMP_DELTA_BELOW_CO && g_dTExh > 0.5 && d + g_dTExh > ctd && tRun > 2*FIRESTART_STABILIZE_TIME) return 2;  
+      if (g_lastExhaustReads.GetCount() >= NMIN && tRun >= NMIN * TEMP_HISTORY_SAMPLE_TIME_MS) {
+        float dif = *g_lastExhaustReads.GetAt(-1) - *g_lastExhaustReads.GetAt(-NMIN);
+        if (dif > ctd) return 3;
+      }
     }
     
   }
 
-  if (ctd2 > 0 && e >= ctd2) return 3;
+  if (ctd2 > 0 && e >= ctd2) return 4;
   
   
   if (crate > 0 && (tRun >= (isFirestart ? 2 : 1) * FIRESTART_STABILIZE_TIME)) { 
       if (f >= crate) {
-        return 4;
+        return 5;
       }
   }
 
