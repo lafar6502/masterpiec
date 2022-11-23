@@ -10,7 +10,7 @@
 #include <pid.h>
 
 #define MAX_TEMP 90
-#define FIRESTART_STABILIZE_TIME 30000 //30 sec
+#define FIRESTART_STABILIZE_TIME 30000
 
 
 
@@ -142,7 +142,7 @@ float CalcIncreaseRatio2(const CircularBuffer<float>& buf, uint8_t numSamples) {
 }
 
 
-#define AVG_CNT 10
+#define AVG_CNT 4
 float _tempCoAvg[AVG_CNT];
 float _tempExhAvg[AVG_CNT];
 uint16_t _avgIdx = 0;
@@ -188,6 +188,8 @@ void processSensorValues() {
     //float ts = g_TempSpaliny < g_TempCO - EXHAUST_TEMP_DELTA_BELOW_CO ? g_TempCO - EXHAUST_TEMP_DELTA_BELOW_CO : g_TempSpaliny;
     g_lastExhaustReads.Enqueue(g_TempSpaliny);
     g_lastCOReads.Enqueue(g_TempCO);
+    Serial.print("Q:");
+    Serial.println(g_lastCOReads.GetCount());
   }
   g_lastFlows.Enqueue(g_AirFlow);
   n = g_lastFlows.GetCount();
@@ -201,7 +203,7 @@ void processSensorValues() {
 
   g_dTExh = CalcIncreaseRatio(g_lastExhaustReads, 4) * 2.0;
   g_dTl3 = CalcIncreaseRatio(g_lastCOReads, 4) * 2.0;
-  g_dT60 = CalcIncreaseRatio(g_lastCOReads, 8) * 4.0;
+  g_dT60 = CalcIncreaseRatio(g_lastCOReads, 8) * 2.0;
 }
 
 
@@ -895,21 +897,43 @@ int firestartIsBurningCheck() {
   if (isFirestart && tRun < FIRESTART_STABILIZE_TIME) return 0;
 
   
-  float crate = g_CurrentConfig.FireDetExhDt10 / 10.0;  //exhaust temp over CO temp
+  float fm = g_CurrentConfig.FireDetExhDt10 / 10.0;  //exhaust temp over CO temp
   float ctd = g_CurrentConfig.FireDetExhIncrD10 / 10.0; //exhaust temp increase by degrees
-  float ctd2 = g_CurrentConfig.FireDetCOIncr10 / 10.0;  //CO temp increase by degrees
+  float cte = g_CurrentConfig.FireDetCOIncr10 / 10.0;  //CO temp increase by degrees
 
   float exhStart = g_InitialTempExh < g_InitialTempCO - EXHAUST_TEMP_DELTA_BELOW_CO ? g_InitialTempCO - EXHAUST_TEMP_DELTA_BELOW_CO : g_InitialTempExh; //jesli temp spalin jest ponizej temp kotla to znaczy ze komin sie wychlodzil bardziej niz kociol - nieprawidl. wartosc
   
   float d = g_TempSpaliny  - exhStart;
   float e = g_TempCO - g_InitialTempCO;
   float f = g_TempSpaliny - g_TempCO;
-  
+  bool cond1 = g_TempSpaliny >= g_TempCO - EXHAUST_TEMP_DELTA_BELOW_CO;
+  bool cond3 = tRun > 2UL*FIRESTART_STABILIZE_TIME;
+  if (isDebugTime()) {
+    Serial.print("FC T:");
+    Serial.print(tRun/1000);
+    Serial.print(",d:");
+    Serial.print(d);
+    Serial.print(",ctd:");
+    Serial.print(ctd);
+    Serial.print(",C1:");
+    Serial.print(cond1);
+    Serial.print(",e:");
+    Serial.print(e);
+    Serial.print(",cte:");
+    Serial.print(cte);
+    Serial.print(",f:");
+    Serial.print(f);
+    Serial.print(",fm:");
+    Serial.print(fm);
+    Serial.print(",C3:");
+    Serial.print(cond3);
+    Serial.println();
+  }
   if (ctd > 0) {
-    if (g_TempSpaliny >= g_TempCO - EXHAUST_TEMP_DELTA_BELOW_CO) { //exh temp high enough
+    if (cond1) { //exh temp high enough
       if (d >= ctd) return 1;
       
-      if (exhStart > g_InitialTempCO - EXHAUST_TEMP_DELTA_BELOW_CO && g_dTExh > 0.5 && d + g_dTExh > ctd && tRun > 2*FIRESTART_STABILIZE_TIME) return 2;  
+      if (cond3 && exhStart > g_InitialTempCO - EXHAUST_TEMP_DELTA_BELOW_CO && g_dTExh > 0.5 && d + g_dTExh > ctd) return 2;  
       if (g_lastExhaustReads.GetCount() >= NMIN && tRun >= NMIN * TEMP_HISTORY_SAMPLE_TIME_MS) {
         float dif = *g_lastExhaustReads.GetAt(-1) - *g_lastExhaustReads.GetAt(-NMIN);
         if (dif > ctd) return 3;
@@ -918,11 +942,11 @@ int firestartIsBurningCheck() {
     
   }
 
-  if (ctd2 > 0 && e >= ctd2) return 4;
+  if (cte > 0 && e >= cte) return 4;
   
   
-  if (crate > 0 && (tRun >= (isFirestart ? 2 : 1) * FIRESTART_STABILIZE_TIME)) { 
-      if (f >= crate) {
+  if (fm > 0 && cond3) { 
+      if (f >= fm) {
         return 5;
       }
   }
@@ -934,6 +958,10 @@ int firestartIsBurningCheck() {
 bool cond_firestartIsBurning() {
 
   int n = firestartIsBurningCheck();
+  if (isDebugTime()) {
+    Serial.print("FC:");
+    Serial.println(n);
+  }
   return n != 0;
 }
 

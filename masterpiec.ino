@@ -22,6 +22,9 @@ void updateDallasSensorAssignmentFromConfig();
  * pompa CWU wyłącza się gdy temp bojlera osiągnie docelową (wtedy tez przywracamy temp zadana pieca) albo gdy temp spadnie poniżej tBojler+delta cwu.
  * 
  */
+unsigned long _lastDebugTime = 0;
+uint8_t _debugTime = 0;
+
 void setup() {
   //initialize interrupts etc
   //initialize hardware
@@ -61,19 +64,23 @@ void setup() {
   
   updateDallasSensorAssignmentFromConfig();
   
-  for(int i=0;i<3;i++) {
+  for(int i=0;i<6;i++) {
     delay(500);
     refreshSensorReadings();
-    delay(500);
-    processSensorValues();
   }
   initializeBurningLoop();
   changeUIState('0');
+  _lastDebugTime = millis();
 }
 
 
 void loop() {
   uint64_t m = millis();
+  _debugTime = 0;
+  if (m - _lastDebugTime >= 30000) {
+    _debugTime = 1;
+    _lastDebugTime = m;
+  }
   void (*pf)(void*) = g_uiBottomHalf;
   if (pf != NULL) 
   {
@@ -113,16 +120,19 @@ void loop() {
 
 extern uint32_t counter;
 
+bool isDebugTime() {
+  return _debugTime != 0;
+}
+
 void periodicDumpControlState() {
-  static unsigned long lastDump = 0;
   static TSTATE pstate = STATE_UNDEFINED;
-  
   unsigned long t = millis();
-  if (t - lastDump > 30000 || g_BurnState != pstate)
+  if (isDebugTime() || g_BurnState != pstate)
   {
-    lastDump = t;
     pstate = g_BurnState;
-    Serial.print(F("s:"));
+    Serial.print("T+");
+    Serial.print(t / 1000);
+    Serial.print(F(" s:"));
     Serial.print(BURN_STATES[g_BurnState].Code);
     Serial.print(F(", dm:"));
     Serial.print(getCurrentBlowerPower());
@@ -148,6 +158,8 @@ void periodicDumpControlState() {
     Serial.print(g_dT60);
     Serial.print(F(", dTl3:"));
     Serial.print(g_dTl3);
+    Serial.print(F(", dTEx:"));
+    Serial.print(g_dTExh);
     Serial.print(F(", floV:"));
     Serial.print(g_AirFlow);
     Serial.print(F(":"));

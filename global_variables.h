@@ -42,4 +42,5 @@ bool updateVariableFromString(uint8_t varIdx, const char* str);
 bool getManualControlMode();
 
 bool isFlowTooHigh();
+bool isDebugTime();
 #endif
