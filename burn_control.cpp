@@ -1005,7 +1005,7 @@ bool isAlarm_Any() {
 void alarmStateInitialize(TSTATE prev) {
   setHeater(0);
   changeUIState('0');
-  
+  setBlowerPower(0);
 }
 
 // kiedy przechodzimy z P0 do P2
@@ -1158,10 +1158,20 @@ bool cond_A_needSuddenHeatAndBelowTargetTemp() {
 
 void alertStateLoop() {
   static unsigned long _feederStart = 0;
-  unsigned long t = millis();
+  unsigned long tNow = millis();
   setHeater(0);
+  setBlowerPower(0);
+  unsigned long burnCycleLen = 60 * 4 * 1000; //4 min
+  
   if (isAlarm_feederOnFire()) {
-   
+    if (tNow - g_CurBurnCycleStart < burnCycleLen) 
+    {
+      setFeederOn();
+    }
+    else 
+    {
+      setFeederOff();
+    } 
   }
 }
 
