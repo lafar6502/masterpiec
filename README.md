@@ -1,4 +1,8 @@
 # masterpiec
+
+## Summary
+Masterpiec is an arduino-based pellet and coal burner controller. It automates the burning process and controls temperatures of central heating and hot water boiler. 
+The software runs on Arduino Mega 2560 and drives the fuel feeder, blower fan and water pumps (central heating, hot water boiler and hot water circulation). The control is optimized for fuel efficiency. Masterpiec can be adapted to multiple types of pellet and coal burners with automatic fuel feed, and is pretty simple to build as a DIY project. 
 ## 
 ## Aktualizacje
 
