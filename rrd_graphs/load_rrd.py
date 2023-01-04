@@ -7,8 +7,10 @@ if len(sys.argv) <= 2:
     print("no args. [input] [output]");
     exit()
 
-print('input file', sys.argv[1])
-print('out file', sys.argv[2]);
+#print('input file', sys.argv[1])
+#print('out file', sys.argv[2]);
+
+maxpoints = 20
 
 rrdpath = 'c:\\tools\\rrdtool\\rrdtool.exe'
 
@@ -32,7 +34,7 @@ fn = os.path.basename(sys.argv[1])
 mon = int(fn[1:3])
 day = int(fn[3:5])
 
-print('base name', fn, mon, day)
+#print(';base name', fn, mon, day)
 
 stm = io.open(file=sys.argv[1], mode='+rt');
 
@@ -64,6 +66,15 @@ for dd in ds:
     stempl += ':' + dd[0]
 stempl = stempl[1:]
 
+dataps = []
+
+def writecmd(dps):
+    print(rrdpath, 'update', sys.argv[2], '-t', stempl, end=' ')
+    for p in dps:
+        print(p, end=' ')
+    print()
+
+
 while True:
     ln = stm.readline()
     num+=1
@@ -77,10 +88,12 @@ while True:
     hh = int(d0[0])
     mm = int(d0[1])
     dnow = datetime.date.today()
-    y = dnow.year if mm < dnow.month or (mon == dnow.month and day <= dnow.day) else dnow.year - 1
+    y = dnow.year if mon < dnow.month or (mon == dnow.month and day <= dnow.day) else dnow.year - 1
     tstamp = datetime.datetime(year=y, month=mon, day=day, hour=hh, minute=mm)
     unixts = int(tstamp.timestamp())
+    #print(num, tstamp, unixts)
     #print(num, tstamp, dt[0], unixts)
+
 
     s = str(unixts)
     for dd in ds:
@@ -92,6 +105,12 @@ while True:
         s += ':'
         s += str(v)
 
-    
-    print(rrdpath, 'update ', sys.argv[2], '-t', stempl, s)
+    dataps.append(s)
+
+    if len(dataps) >= maxpoints:
+        writecmd(dataps)
+        dataps=[]
+
+if len(dataps) >= maxpoints:
+    writecmd(dataps)
 
