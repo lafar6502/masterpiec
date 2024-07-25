@@ -828,30 +828,32 @@ void updatePumpStatus() {
     uint8_t minTemp = max(g_CurrentConfig.TMinPomp, g_TempCWU + g_CurrentConfig.TDeltaCWU);
     if (g_TempCO >= minTemp) {
       setPumpOn(PUMP_CWU1);
-      setPumpOff(PUMP_CO1);
     } 
     else {
       setPumpOff(PUMP_CWU1);
       //Serial.println(F("too low to heat cwu"));
     }
+    setPumpOff(PUMP_CO1);
     return;
   }
+  
   bool pco = isPumpOn(PUMP_CO1);
-  if (g_needHeat == NEED_HEAT_CO && !cond_willFallBelowHysteresisSoon(pco ? -0.1 : 0.1)) { //co pump on - thermostat on or thermostat disabled (co pump always on)
-    setPumpOn(PUMP_CO1);
+  if (g_needHeat == NEED_HEAT_CO) { //co pump on - thermostat on or thermostat disabled (co pump always on)
+    if (!cond_willFallBelowHysteresisSoon(pco ? -0.1 : 0.1)) {
+      setPumpOn(PUMP_CO1);  
+    } else {
+      setPumpOff(PUMP_CO1);  
+    }
     setPumpOff(PUMP_CWU1); //just to be sure
     return;
   }
   
+  //no need to heat from now...
   uint8_t cl = cond_needCooling();
+  
+  bool cw = g_CurrentConfig.SummerMode && isPumpEnabled(PUMP_CWU1) && isDallasEnabled(TSENS_CWU) && cl == 2;
+  
   if (cl != 0) {
-    bool cw = false;
-    if (g_CurrentConfig.SummerMode && isPumpEnabled(PUMP_CWU1) && isDallasEnabled(TSENS_CWU)) {
-       cw = true;
-    }
-    if (cl == 2) {
-      cw = true;
-    }
     setPumpOn(cw ? PUMP_CWU1 : PUMP_CO1);
     setPumpOff(cw ? PUMP_CO1 : PUMP_CWU1);
     return;
@@ -1101,14 +1103,23 @@ bool cond_canCoolWithCWU() {
 //0 = no need to cool, 1 - should cool, 2 - should cool, possibly with CWU
 uint8_t cond_needCooling() {
   static uint8_t _cwCnt = 0;
+  
   bool cw = ((_cwCnt % 2) == 0 || g_CurrentConfig.SummerMode) && cond_canCoolWithCWU();
   
   if (g_TempCO >= MAX_TEMP) {_coolState = 0; return cw ? 2 : 1;} //always
+  
   bool hot = g_CurrentConfig.CooloffMode == COOLOFF_NONE ? false : g_CurrentConfig.CooloffMode == COOLOFF_LOWER ? (g_TempCO > g_TargetTemp + (_coolState == 1 ? 0.1 : 0.4)) : (g_TempCO > g_TargetTemp + g_CurrentConfig.TDeltaCO);
 
+ 
+  
   if (!hot && g_CurrentConfig.FireStartMode != FIRESTART_MODE_DISABLED  && g_BurnState == STATE_OFF && g_CurrentConfig.CooloffMode != COOLOFF_NONE) {
     //standby, we can go lower
-    hot = g_CurrentConfig.CooloffMode == COOLOFF_LOWER ? g_TempCO >= g_CurrentConfig.TMinPomp : g_TempCO >= g_TargetTemp - g_CurrentConfig.THistCO;
+    if (cw) {
+      hot = g_TempCO  > g_TempCWU + (g_CurrentConfig.TDeltaCWU / 2);
+    }
+    else if (!g_CurrentConfig.SummerMode) {
+      hot = g_CurrentConfig.CooloffMode == COOLOFF_LOWER ? g_TempCO >= g_CurrentConfig.TMinPomp : g_TempCO >= g_TargetTemp - g_CurrentConfig.THistCO;  
+    }
   }
   
   
