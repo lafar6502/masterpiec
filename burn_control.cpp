@@ -1095,7 +1095,7 @@ unsigned long _coolTs = 0;
 
 bool cond_canCoolWithCWU() {
   if (!isPumpEnabled(PUMP_CWU1)) return false;
-  if (g_TempCO  <= g_TempCWU + (g_CurrentConfig.TDeltaCWU / 2)) return false;
+  if (g_TempCO  <= g_TempCWU) return false;
   if (g_TempCWU >= g_CurrentConfig.TCWU + 2 * g_CurrentConfig.THistCwu) return false; //cwu too hot
   return true;
 }
@@ -1111,11 +1111,17 @@ uint8_t cond_needCooling() {
   bool hot = g_CurrentConfig.CooloffMode == COOLOFF_NONE ? false : g_CurrentConfig.CooloffMode == COOLOFF_LOWER ? (g_TempCO > g_TargetTemp + (_coolState == 1 ? 0.1 : 0.4)) : (g_TempCO > g_TargetTemp + g_CurrentConfig.TDeltaCO);
 
  
+  unsigned long t = millis();
   
   if (!hot && g_CurrentConfig.FireStartMode != FIRESTART_MODE_DISABLED  && g_BurnState == STATE_OFF && g_CurrentConfig.CooloffMode != COOLOFF_NONE) {
     //standby, we can go lower
     if (cw) {
-      hot = g_TempCO  > g_TempCWU + (g_CurrentConfig.TDeltaCWU / 2);
+      hot = g_TempCO  > g_TempCWU + (g_CurrentConfig.TDeltaCWU / 4.0);
+
+      //g_TempPowrot = getLastDallasValue(TSENS_RETURN)
+      if (!hot && _coolState == 1 && (t - _coolTs) > 30000L && g_TempPowrot > 0 && g_TempCO >= g_TempCWU && g_TempPowrot < (g_TempCO - g_CurrentConfig.TDeltaCWU / 2.0) && isDallasEnabled(TSENS_RETURN)) {
+        hot = true; //boiler reached the temp, but return temp still lower and boiler can be heated up a little
+      }
     }
     else if (!g_CurrentConfig.SummerMode) {
       hot = g_CurrentConfig.CooloffMode == COOLOFF_LOWER ? g_TempCO >= g_CurrentConfig.TMinPomp : g_TempCO >= g_TargetTemp - g_CurrentConfig.THistCO;  
@@ -1128,8 +1134,8 @@ uint8_t cond_needCooling() {
     return 0;
   }
 
-  //hot now!
-  unsigned long t = millis();
+  //hot! hot! 
+  
   switch(_coolState) {
     case 1:
       if ((t - _coolTs) > (unsigned long) g_CurrentConfig.CooloffTimeM10 * 6L * 1000) {//pause
