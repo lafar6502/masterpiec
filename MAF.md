@@ -90,4 +90,5 @@ MAF Skala należy dobrać doswiadczalnie zależnie od posiadanego MAFa
 
 --
 * https://www.msextra.com/doc/pdf/html/MS3baseV30_Hardware-1.5.pdf/MS3baseV30_Hardware-1.5.html
+* [Bosch HFM5 Sensors.pdf](./Bosch%20HFM5%20Sensors.pdf)
   
