@@ -86,3 +86,9 @@ Parametr "MAF Skala" określa skalowanie - Flow = odczyt napięcia * 255 / (4 * 
 Np MAF Skala=160 oznacza że masterpiec będzie widział maksymalny przepływ (Flow = 255) gdy odczyt z pinu A0 da wartość 160*4 + 3 = 643. Co odpowiada napięciu ok 3.15V z MAFa. Dobieramy MAF Skala tak żeby wartość Flow = 255 była maksymalnym możliwym do uzyskania na naszej dmuchawie przepływem.
 
 MAF Skala należy dobrać doswiadczalnie zależnie od posiadanego MAFa
+
+
+--
+* https://www.msextra.com/doc/pdf/html/MS3baseV30_Hardware-1.5.pdf/MS3baseV30_Hardware-1.5.html
+* [Bosch HFM5 Sensors.pdf](./Bosch%20HFM5%20Sensors.pdf)
+  
