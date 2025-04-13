@@ -185,7 +185,7 @@ void processSensorValues() {
   g_AirFlow = getCurrentFlowRate();
   if (g_CurrentConfig.EnableThermostat) 
   {
-    g_HomeThermostatOn = isThermostatOn();
+    g_HomeThermostatOn = isThermostatOn() && g_furnaceEnabled;
   }
   if (ms - prevMs >= TEMP_HISTORY_SAMPLE_TIME_MS) {
     prevMs = ms;
