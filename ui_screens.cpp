@@ -977,6 +977,8 @@ const TUIVarEntry UI_VARIABLES[] = {
   
   {MPSTR("Temp.min.pomp"), VAR_ADVANCED, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {MPSTR("Zewn. termostat"), VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 2, printUint8, adjustUint8, NULL, commitConfig},
+  {MPSTR("Zewn ster pomp"), VAR_ADVANCED, &g_CurrentConfig.ExtPumpControlMode, 0, 2, printUint8, adjustUint8, NULL, commitConfig},
+  {MPSTR("Zewn ster pieca"), VAR_ADVANCED, &g_CurrentConfig.ExtFurnaceControlMode, 0, 2, printUint8, adjustUint8, NULL, commitConfig},
   {MPSTR("Chlodz. praca m"), VAR_ADVANCED, &g_CurrentConfig.CooloffTimeM10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig},
   {MPSTR("Chlodz.przerwa m"), VAR_ADVANCED, &g_CurrentConfig.CooloffPauseM10, 0, 1200, printUint16_10, adjustUint16, copyU16, commitConfig},
   {MPSTR("Chlodz. tryb"), VAR_ADVANCED, &g_CurrentConfig.CooloffMode, 0, 2, printUint8_values, adjustUint8, copyU8, commitConfig, {.strings = values_cool_mode}},

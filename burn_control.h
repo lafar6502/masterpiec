@@ -106,6 +106,8 @@ typedef struct ControlConfiguration {
   uint8_t FireDetCOIncr10; //how much has CO temp to increase
   uint8_t P0CyclesBeforeStandby;
   uint8_t AirControlMode; //0 - just blower %, 1 - flow meter (both % and then flow for adjustment) 2 - just the flow value is used 
+  uint8_t ExtPumpControlMode; //0 disable, 1 - low signal, 2 - high signal
+  uint8_t ExtFurnaceControlMode; //0 disable, 1 -low, 2 -high
 } TControlConfiguration;
 
 #define CFG_SLOT_SIZE 140 //size of single config settings struct (with some extra space for future) - utility.cpp
@@ -209,6 +211,9 @@ extern bool   g_HomeThermostatOn;  //true - termostat pokojowy kazaÅ‚ zaprzestaÄ
 extern unsigned long g_P1Time; //accumulated P1 time
 extern unsigned long g_P2Time; //accumulated P2 time
 extern unsigned long g_P0Time; //accumulated P0 time
+extern uint8_t g_furnaceEnabled; //furnace is enabled
+extern uint8_t g_coPumpOverride; //co pump force
+extern uint8_t g_cwuPumpOverride; //cwu pump force
 
 extern float g_TempZewn; //aktualna temp. zewn
 extern char* g_Alarm;

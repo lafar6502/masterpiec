@@ -65,7 +65,9 @@
 #define MAX6675_1_CS_PIN 44  //PL5
 #define MAX6675_1_SO_PIN 46  //PL3
 
-
+#define PUMP_CO_EXT_CTRL_PIN 41 //external control of pump 
+#define PUMP_CW_EXT_CTRL_PIN 42 //external control of pump
+#define FURNACE_ENABLE_PIN 43   //external enable/disable the furnace
 
 //#define MASK_PUMP_CIRC  0b00000001
 #define MASK_PUMP_CO1   0b10000000

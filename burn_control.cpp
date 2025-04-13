@@ -43,6 +43,10 @@ unsigned long g_P0Time = 0;
 float lastCOTemperatures[21];
 float lastExhaustTemperatures[21]; //every 30 sec => 10 minutes
 float lastFlows[11];
+uint8_t g_furnaceEnabled = 1;
+uint8_t g_coPumpOverride = 0;
+uint8_t g_cwuPumpOverride = 0;
+
 epid_t g_flow_pid_ctx;
 
 CircularBuffer<float> g_lastCOReads(lastCOTemperatures, sizeof(lastCOTemperatures)/sizeof(float));
@@ -503,9 +507,30 @@ void handleHeatNeedStatus();
 //to nasza procedura aktualizacji stanu hardware-u
 //wolana cyklicznie.
 void burnControlTask() {
+  //read
+  g_furnaceEnabled = 1;
+  g_coPumpOverride = 0;
+  g_cwuPumpOverride = 0;
+  int st;
+  if (g_CurrentConfig.ExtFurnaceControlMode != 0) {
+    st = digitalRead(FURNACE_ENABLE_PIN);
+    g_furnaceEnabled = st == (g_CurrentConfig.ExtFurnaceControlMode == 1 ? HIGH : LOW);
+  }
+  if (g_CurrentConfig.ExtPumpControlMode != 0) {
+    st = digitalRead(PUMP_CO_EXT_CTRL_PIN);
+    g_coPumpOverride = st == (g_CurrentConfig.ExtFurnaceControlMode == 1 ? HIGH : LOW);
+    st = digitalRead(PUMP_CW_EXT_CTRL_PIN);
+    g_cwuPumpOverride = st == (g_CurrentConfig.ExtFurnaceControlMode == 1 ? HIGH : LOW);
+  }
   
   processSensorValues();
-  handleHeatNeedStatus();
+  if (g_furnaceEnabled == 0) {
+    g_needHeat = NEED_HEAT_NONE;
+  }
+  else {
+    handleHeatNeedStatus();  
+  }
+  
   updatePumpStatus();
   burningProc();
 }
@@ -813,14 +838,22 @@ void updatePumpStatus() {
     return;
   }
   if (getManualControlMode()) return; //all below only in automatic mode.
+  
+  if (g_coPumpOverride != 0) {
+    setPumpOn(PUMP_CO1);
+  }
+  if (g_cwuPumpOverride != 0) {
+    setPumpOn(PUMP_CWU1);
+  }
+  
   if (g_BurnState == STATE_FIRESTART) {
-    setPumpOff(PUMP_CO1);
-    setPumpOff(PUMP_CWU1);
+    if (!g_coPumpOverride) setPumpOff(PUMP_CO1);
+    if (!g_cwuPumpOverride) setPumpOff(PUMP_CWU1);
     return;
   }
   if (g_TempCO < g_CurrentConfig.TMinPomp) {
-    setPumpOff(PUMP_CO1);
-    setPumpOff(PUMP_CWU1);
+    if (!g_coPumpOverride) setPumpOff(PUMP_CO1);
+    if (!g_cwuPumpOverride) setPumpOff(PUMP_CWU1);
     return;
   }
   
@@ -830,10 +863,10 @@ void updatePumpStatus() {
       setPumpOn(PUMP_CWU1);
     } 
     else {
-      setPumpOff(PUMP_CWU1);
+      if (!g_cwuPumpOverride) setPumpOff(PUMP_CWU1);
       //Serial.println(F("too low to heat cwu"));
     }
-    setPumpOff(PUMP_CO1);
+    if (!g_coPumpOverride) setPumpOff(PUMP_CO1);
     return;
   }
   
@@ -842,9 +875,9 @@ void updatePumpStatus() {
     if (!cond_willFallBelowHysteresisSoon(pco ? -0.1 : 0.1)) {
       setPumpOn(PUMP_CO1);  
     } else {
-      setPumpOff(PUMP_CO1);  
+      if (!g_coPumpOverride) setPumpOff(PUMP_CO1);  
     }
-    setPumpOff(PUMP_CWU1); //just to be sure
+    if (!g_cwuPumpOverride) setPumpOff(PUMP_CWU1); //just to be sure
     return;
   }
   
@@ -853,13 +886,13 @@ void updatePumpStatus() {
   
   bool cw = g_CurrentConfig.SummerMode && isPumpEnabled(PUMP_CWU1) && isDallasEnabled(TSENS_CWU) && cl == 2;
   
-  if (cl != 0) {
+  if (cl != 0 && !g_coPumpOverride && !g_cwuPumpOverride) {
     setPumpOn(cw ? PUMP_CWU1 : PUMP_CO1);
     setPumpOff(cw ? PUMP_CO1 : PUMP_CWU1);
     return;
   }
-  setPumpOff(PUMP_CWU1);
-  setPumpOff(PUMP_CO1);
+  if (!g_cwuPumpOverride) setPumpOff(PUMP_CWU1);
+  if (!g_coPumpOverride) setPumpOff(PUMP_CO1);
 }
 
 
@@ -1017,6 +1050,7 @@ void alarmStateInitialize(TSTATE prev) {
 
 
 bool cond_B_belowHysteresisAndNeedHeat() {
+  if (g_furnaceEnabled == 0) return false;
   if (g_needHeat != NEED_HEAT_NONE && g_TempCO < g_TargetTemp - g_CurrentConfig.THistCO) return true;
   if (g_needHeat == NEED_HEAT_CWU) {
     //we're below min temp to heat the cwu
@@ -1041,6 +1075,7 @@ bool cond_C_belowHysteresisAndNoNeedToHeat_NoAutoStop() {
 
 
 bool cond_D_belowTargetTempAndNeedHeat() {
+  if (g_furnaceEnabled == 0) return false;
   if (g_needHeat != NEED_HEAT_NONE && g_TempCO < g_TargetTemp - 0.5) return true;
   return false;
 }
@@ -1169,6 +1204,7 @@ uint8_t needHeatingNow() {
 }
 //heating is needed and temp is below the target
 bool cond_A_needSuddenHeatAndBelowTargetTemp() {
+  if (g_furnaceEnabled == 0) return false;
   if (g_TempCO >= g_TargetTemp) return false;
   return g_needHeat != NEED_HEAT_NONE && g_initialNeedHeat == NEED_HEAT_NONE;
 }
@@ -1236,6 +1272,10 @@ bool cond_shouldGoToStandby() {
   return true;
 }
 
+bool cond_furnaceDisabled() {
+  return g_furnaceEnabled == 0;
+}
+
 void onSwitchToReduction(int trans) {
   assert(g_BurnState == STATE_P1 || g_BurnState == STATE_P2);
   unsigned long t = millis();
@@ -1280,6 +1320,7 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_P0, STATE_P1, cond_D_belowTargetTempAndNeedHeat, NULL},
   {STATE_P0, STATE_OFF, cond_shouldGoToStandby, NULL}, //wygaszenie
   
+  {STATE_P1, STATE_REDUCE1, cond_furnaceDisabled, onSwitchToReduction}, //E. P1 -> P0
   {STATE_P1, STATE_REDUCE1, cond_boilerOverheated, onSwitchToReduction}, //E. P1 -> P0
   {STATE_P1, STATE_REDUCE1, cond_targetTempReachedAndHeatingNotNeeded, onSwitchToReduction}, //F. P1 -> P0
   {STATE_P1, STATE_REDUCE1, cond_autoFire_minTempReachedAndHeatingNotNeeded, onSwitchToReduction}, //F. P1 -> P0
@@ -1294,7 +1335,8 @@ const TBurnTransition  BURN_TRANSITIONS[]   =
   {STATE_REDUCE1, STATE_P1, cond_D_belowTargetTempAndNeedHeat, NULL},
   {STATE_REDUCE1, STATE_P0, cond_cycleEnded, onReductionCycleEnded},
 
-  
+
+  {STATE_P2, STATE_REDUCE2, cond_furnaceDisabled, onSwitchToReduction}, //10 P2 -> P1
   {STATE_P2, STATE_REDUCE2, cond_targetTempReached, onSwitchToReduction}, //10 P2 -> P1
   {STATE_P2, STATE_REDUCE2, cond_willReachTargetSoon, onSwitchToReduction}, //10 P2 -> P1
   {STATE_P2, STATE_REDUCE2, cond_autoFire_minTempReachedAndHeatingNotNeeded, onSwitchToReduction}, //10 P2 -> P1

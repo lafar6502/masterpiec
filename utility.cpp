@@ -90,7 +90,10 @@ TControlConfiguration defaultConfig() {
    5 * 10,  //FireDetExhDt10; //exhaust above co temp - times 10
    5 * 10, //uint8_t FireDetExhIncrD10; //how much has exh temp to increase
    5 * 10, //FireDetCOIncr10; //how much has CO temp to increase
-   3,      //P0CyclesBeforeStandby;
+   3,      //P0CyclesBeforeStandby,
+   0,     //AirControlMode,
+   0,   //ExtPumpControlMode
+   0    //ExtFurnaceControlMode
   };
 }
 
