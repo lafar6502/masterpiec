@@ -45,6 +45,7 @@ Oba moduły komunikują się przez I2C i korzystają z tych samych pinów. Modu�
 Dodatkowo VCC i GND. Między VCC a Data należy dać rezystor 3.3K
 
 ## Podłączenie termopary MAX 6675
+Wykorzystuje interfejs SPI wbudowany w Arduino
 Czasami konieczne jest dodatkowe połączenie '-' termopary z gnd - gdy brak odczytu lub dostajemy jakieś bezsensowne odczyty.
 
 ## Zestawienie Modułów
