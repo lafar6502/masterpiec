@@ -35,7 +35,7 @@ void scrDefault(uint8_t idx, char* lines[])
   dtostrf(g_dTl3, 3, 1, buf1);
   buf2[0] = 0;
   if (g_BurnState == STATE_STOP) sprintf(buf2, "STOP");
-  sprintf(lines[1], "%c%c %d %s %s", nh == NEED_HEAT_NONE ? '_' : nh == NEED_HEAT_CO ? '!' : '@', BURN_STATES[g_BurnState].Code, getCurrentBlowerPower(), buf1, buf2); 
+  sprintf(lines[1], "%c%c %d %s %s", g_furnaceEnabled == 0 ? '|' : (nh == NEED_HEAT_NONE ? '_' : nh == NEED_HEAT_CO ? '!' : '@'), BURN_STATES[g_BurnState].Code, getCurrentBlowerPower(), buf1, buf2); 
   
 }
 
@@ -111,6 +111,12 @@ void scrBurnInfo(uint8_t idx, char* lines[]) {
     sprintf(lines[0], "STANDBY");
     sprintf(lines[1], "T:%ld", tt);
   }
+}
+
+void scrOverrides(uint8_t idx, char* lines[] ) {
+  char buf1[10], buf2[10];
+  sprintf(lines[0], "E|C|W|PC|PW");
+  sprintf(lines[1], "%d|%d|%d|%d|%d", g_furnaceEnabled, g_coPumpOverride, g_cwuPumpOverride, digitalRead(PUMP_CO_EXT_CTRL_PIN), digitalRead(PUMP_CW_EXT_CTRL_PIN));
 }
 
 uint16_t findNextView(uint16_t currentView, bool increment, bool (*f)(uint16_t))
@@ -920,6 +926,7 @@ const TUIScreenEntry UI_SCREENS[] PROGMEM = {
     {'0', NULL, scrSensors1},
     {'0', NULL, scrSensors2},
     {'0', NULL, scrSensors3},
+    {'0', NULL, scrOverrides},
     {'L', NULL, scrLog},
 };
 

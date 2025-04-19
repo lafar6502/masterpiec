@@ -240,6 +240,8 @@ void   setBlowerPowerCorrection(int8_t c) {
 
 
 void initializeBlowerControl() {
+  Serial.println("init gpio");
+  delay(2000);
   brese_cycle = g_DeviceConfig.DefaultBlowerCycle;
   pinModeFast(HW_BLOWER_CTRL_PIN, OUTPUT);
   triacOff();
@@ -267,7 +269,37 @@ void initializeBlowerControl() {
     pinMode(HW_THERMOSTAT_PIN_ALT, INPUT); 
   }
   attachInterrupt(digitalPinToInterrupt(HW_ZERO_DETECT_PIN), zeroCrossHandler2, RISING);  
-  
+  if (g_CurrentConfig.ExtFurnaceControlMode != 0 && FURNACE_ENABLE_PIN != 0) {
+    int mode = g_CurrentConfig.ExtFurnaceControlMode % 2 == 0 ? INPUT_PULLUP : INPUT;
+    pinMode(FURNACE_ENABLE_PIN, mode);
+    Serial.print("pin piec:");
+    Serial.print(FURNACE_ENABLE_PIN);
+    Serial.print(" mode:");
+    Serial.print(mode);
+    Serial.println();
+  }
+  if (g_CurrentConfig.ExtPumpControlMode != 0) {
+    int mode = g_CurrentConfig.ExtPumpControlMode % 2 == 0 ? INPUT_PULLUP : INPUT;
+    if (PUMP_CO_EXT_CTRL_PIN != 0) {
+      pinMode(PUMP_CO_EXT_CTRL_PIN, mode);
+      Serial.print("pin co: ");
+      Serial.print(FURNACE_ENABLE_PIN);
+      Serial.print(" mode:");
+      Serial.print(mode);
+      Serial.println();
+    }
+    if (PUMP_CW_EXT_CTRL_PIN != 0) {
+      pinMode(PUMP_CW_EXT_CTRL_PIN, mode);
+      Serial.print("pin cw: ");
+      Serial.print(PUMP_CW_EXT_CTRL_PIN);
+      Serial.print(" mode:");
+      Serial.print(mode);
+      Serial.println();
+    }
+    Serial.print("pullup:");
+    Serial.print(INPUT_PULLUP);
+    Serial.println();
+  }
 }
 
 

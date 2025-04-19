@@ -28,7 +28,7 @@ uint8_t _debugTime = 0;
 void setup() {
   //initialize interrupts etc
   //initialize hardware
-  delay(500);
+  delay(1000);
   Serial.begin(115200);
   if (!RTC.isRunning()) {
     //Serial.println("RTC not runnning, starting the clock");
@@ -166,9 +166,17 @@ void periodicDumpControlState() {
     Serial.print(g_AirFlowNormal);
     Serial.print(F(", lastT:"));
     Serial.print(g_lastCOReads.IsEmpty() ? 0.0f : *g_lastCOReads.GetAt(-1));
-	Serial.print(F(", CNT:"));
+	  Serial.print(F(", CNT:"));
     Serial.print(counter);
-	Serial.println();
+    if (g_CurrentConfig.ExtFurnaceControlMode != 0 || g_CurrentConfig.ExtPumpControlMode != 0) {
+      Serial.print(", OVR PO/PW/EN:");
+      Serial.print(g_coPumpOverride);
+      Serial.print(" ");
+      Serial.print(g_cwuPumpOverride);
+      Serial.print(" ");
+      Serial.print(g_furnaceEnabled);   
+    }
+    Serial.println();
   }
 }
 

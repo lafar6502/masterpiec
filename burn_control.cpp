@@ -518,9 +518,9 @@ void burnControlTask() {
   }
   if (g_CurrentConfig.ExtPumpControlMode != 0) {
     st = digitalRead(PUMP_CO_EXT_CTRL_PIN);
-    g_coPumpOverride = st == (g_CurrentConfig.ExtFurnaceControlMode == 1 ? HIGH : LOW);
+    g_coPumpOverride = st == (g_CurrentConfig.ExtPumpControlMode == 1 ? HIGH : LOW);
     st = digitalRead(PUMP_CW_EXT_CTRL_PIN);
-    g_cwuPumpOverride = st == (g_CurrentConfig.ExtFurnaceControlMode == 1 ? HIGH : LOW);
+    g_cwuPumpOverride = st == (g_CurrentConfig.ExtPumpControlMode == 1 ? HIGH : LOW);
   }
   
   processSensorValues();
