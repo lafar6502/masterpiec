@@ -35,9 +35,11 @@ Kod źródłowy jest udostępniony publicznie dla wszystkich którzy są zainter
 * dmuchawa - sterowanie algorytmem grupowym 
 * obsługa zewnętrznego termostatu
 * tryb letni (tylko CWU)
+* wygaszanie i rozpalanie
 
 ## Hardware - kocioł
-Masterpiec działa z kotłami z podajnikiem ślimakowym (testowany z palnikiem SV200). Dmuchawa - dowolny typ, 230V. Pompy - dowolne, 230V, z tym że nie należy używać pomp tzw 'elektronicznych', które są przeznaczone do pracy ciągłej i źle znoszą wyłączanie i załączanie (potrafią też uszkodzić przekaźnik SSR).
+Masterpiec działa z kotłami z podajnikiem ślimakowym (testowany z palnikiem SV200). Dmuchawa - dowolny typ, 230V. Pompy - dowolne, 230V. Zapalarka 230V ceramiczna, dowolny model.
+Niektóre pompy elektroniczne źle znoszą zewnętrzne sterowanie zasilaniem i mogą uszkodzić układ sterujący SSR (miałem jeden model Wilo który nie lubił być włączany i wyłączany przekaźnikiem, powodował uszkodzenia układu sterującego zasilaniem). Ale np 'inteligentne' pompy Grundfos pracują bezproblemowo.
 
 ## komponenty sterownika
 * Arduino Mega
@@ -46,6 +48,7 @@ Masterpiec działa z kotłami z podajnikiem ślimakowym (testowany z palnikiem S
 * wyświetlacz i2c, enkoder
 * moduł RTC
 * czujniki temperatury (3 szt DS18B20 oraz 1 lub 2szt MAX6675)
+* przepływomierz samochodowy (MAF) - opcjonalnie
 
 Sterownik jest zbudowany z gotowych modułów, nie wymaga robienia własnych płytek drukowanych ani wykonywania skomplikowanych układów elektronicznych. Potrzebna jest podstawowa umiejętność używania lutownicy i innych narzędzi oraz zrozumienie zasad łączenia urządzeń elektrycznych.
 
@@ -58,6 +61,15 @@ Sterownik jest zbudowany z gotowych modułów, nie wymaga robienia własnych pł
 - dobra współpraca z termostatem pokojowym, algorytm jest dostosowany do zewnętrznego sterowania i nie destabilizuje się przy niespodziewanych zmianach zapotrzebowania na ciepło
 - zabezpieczenie przed przekraczaniem temp zadanej (poprzez zmniejszenie mocy z wyprzedzeniem)
 - cyrkulacja w trybie ciągłym lub załączanie cykliczne w celu ograniczenia strat ciepła
+- utrzymywanie stałego przepływu powietrza na podstawie wskazań czujnika MAF
+
+## Funkcje planowane, do realizacji lub rozważenia
+- zewnętrzne sterowanie załączeniem kotła, do współpracy z pompą ciepła (kocioł załącza się gdy temperatura powietrza jest za niska dla efektywnej pracy pompy, dzięki czemu pompa ciepła nie musi używać grzałek elektrycznych)
+- zewnętrzne sterowanie pompami CO i CWU, też w celu współpracy z pompą ciepła zasilającą instalację przez wymiennik płytowy (gdy pompa ciepła działa to masterpiec załącza pompę CO lub CWU żeby był przepływ w obu obiegach wymiennika).
+- sterowanie zaworem mieszającym
+- sterowanie zaworem przełączającym trójdrożnym (CO/CWU) - dla instalacji posiadającej tylko jedną pompę obiegową.
+- obsługa bufora ciepła
+- sterowanie prędkością pracy pompy CO za pomocą PWM, w celu kontroli ilości ciepła odbieranego z kotła/wymiennika płytowego
 
 ## MAF - wykorzystanie samochodowego przepływomierza
 

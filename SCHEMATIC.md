@@ -45,6 +45,7 @@ Oba moduły komunikują się przez I2C i korzystają z tych samych pinów. Modu�
 Dodatkowo VCC i GND. Między VCC a Data należy dać rezystor 3.3K
 
 ## Podłączenie termopary MAX 6675
+Wykorzystuje interfejs SPI wbudowany w Arduino
 Czasami konieczne jest dodatkowe połączenie '-' termopary z gnd - gdy brak odczytu lub dostajemy jakieś bezsensowne odczyty.
 
 ## Zestawienie Modułów
@@ -53,7 +54,7 @@ Czasami konieczne jest dodatkowe połączenie '-' termopary z gnd - gdy brak odc
 | --- | --- | --- |
 | Arduino 2560 Mega | 1 | klon zupełnie wystarcza |
 | Ethernet shield W5100 | 1 | Aktualnie nie używamy ethernetu, wyłącznie karty SD. Ale warto mieć możliwość podłączenia sieci |
-| Moduł Przekaźnika 8x SSR Triaki Detekcja 0 ARDUINO | 1 | z firmy Fast Electronic (dostępne z Allegro) wybrać z optotriakiem MOC3021 choć druga wersja MOC3041 też powinna działać |
+| Moduł Przekaźnika 8x SSR Triaki Detekcja 0 ARDUINO | 1 | z firmy Fast Electronic (dostępne z Allegro) wybrać z optotriakiem MOC3021 choć druga wersja MOC3041 też powinna działać  ![moduł ssr](fast_ssr.png). Istotna jest funkcja detekcji zera do sterowania dmuchawą, dlatego został wybrany ten moduł. Można użyć innego ale wtedy trzeba zapewnić detekcję zera osobnym modułem.  |
 | Zegar RTC DS1307 | 1 | |
 | Wyświetlacz LCD 2x16 I2C | 1 | komplet z konwerterem i2c |
 | Enkoder | 1 | Dowolny z przyciskiem |
