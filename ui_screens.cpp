@@ -115,8 +115,8 @@ void scrBurnInfo(uint8_t idx, char* lines[]) {
 
 void scrOverrides(uint8_t idx, char* lines[] ) {
   char buf1[10], buf2[10];
-  sprintf(lines[0], "E|C|W|PC|PW");
-  sprintf(lines[1], "%d|%d|%d|%d|%d", g_furnaceEnabled, g_coPumpOverride, g_cwuPumpOverride, digitalRead(PUMP_CO_EXT_CTRL_PIN), digitalRead(PUMP_CW_EXT_CTRL_PIN));
+  sprintf(lines[0], "E|C|W||PE|PC|PW");
+  sprintf(lines[1], "%d|%d|%d||%d |%d |%d", g_furnaceEnabled, g_coPumpOverride, g_cwuPumpOverride, digitalRead(FURNACE_ENABLE_PIN), digitalRead(PUMP_CO_EXT_CTRL_PIN), digitalRead(PUMP_CW_EXT_CTRL_PIN));
 }
 
 uint16_t findNextView(uint16_t currentView, bool increment, bool (*f)(uint16_t))
@@ -984,8 +984,8 @@ const TUIVarEntry UI_VARIABLES[] = {
   
   {MPSTR("Temp.min.pomp"), VAR_ADVANCED, &g_CurrentConfig.TMinPomp, 30, 80, printUint8, adjustUint8, copyU8, commitConfig},
   {MPSTR("Zewn. termostat"), VAR_ADVANCED, &g_CurrentConfig.EnableThermostat, 0, 2, printUint8, adjustUint8, NULL, commitConfig},
-  {MPSTR("Zewn ster pomp"), VAR_ADVANCED, &g_CurrentConfig.ExtPumpControlMode, 0, 2, printUint8, adjustUint8, NULL, commitConfig},
-  {MPSTR("Zewn ster pieca"), VAR_ADVANCED, &g_CurrentConfig.ExtFurnaceControlMode, 0, 2, printUint8, adjustUint8, NULL, commitConfig},
+  {MPSTR("Zewn ster pomp"), VAR_ADVANCED, &g_CurrentConfig.ExtPumpControlMode, 0, 4, printUint8, adjustUint8, copyU8, commitConfig},
+  {MPSTR("Zewn ster pieca"), VAR_ADVANCED, &g_CurrentConfig.ExtFurnaceControlMode, 0, 4, printUint8, adjustUint8, copyU8, commitConfig},
   {MPSTR("Chlodz. praca m"), VAR_ADVANCED, &g_CurrentConfig.CooloffTimeM10, 0, 250, printUint8_10, adjustUint8, copyU8, commitConfig},
   {MPSTR("Chlodz.przerwa m"), VAR_ADVANCED, &g_CurrentConfig.CooloffPauseM10, 0, 1200, printUint16_10, adjustUint16, copyU16, commitConfig},
   {MPSTR("Chlodz. tryb"), VAR_ADVANCED, &g_CurrentConfig.CooloffMode, 0, 2, printUint8_values, adjustUint8, copyU8, commitConfig, {.strings = values_cool_mode}},

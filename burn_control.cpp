@@ -512,15 +512,32 @@ void burnControlTask() {
   g_coPumpOverride = 0;
   g_cwuPumpOverride = 0;
   int st;
-  if (g_CurrentConfig.ExtFurnaceControlMode != 0) {
+  if (g_CurrentConfig.ExtFurnaceControlMode != 0 && FURNACE_ENABLE_PIN != 0) {
     st = digitalRead(FURNACE_ENABLE_PIN);
-    g_furnaceEnabled = st == (g_CurrentConfig.ExtFurnaceControlMode == 1 ? HIGH : LOW);
+    g_furnaceEnabled = st == ((g_CurrentConfig.ExtFurnaceControlMode == 1 || g_CurrentConfig.ExtFurnaceControlMode == 4) ? HIGH : LOW);
   }
-  if (g_CurrentConfig.ExtPumpControlMode != 0) {
+  
+  if (g_CurrentConfig.ExtPumpControlMode != 0 && PUMP_CO_EXT_CTRL_PIN != 0) {
+    //0 - none, 1 - high active, 2 - low active
+    //3, 4: furnace enable pin is information if compressor is running.. so if pump co is not active
+
     st = digitalRead(PUMP_CO_EXT_CTRL_PIN);
-    g_coPumpOverride = st == (g_CurrentConfig.ExtPumpControlMode == 1 ? HIGH : LOW);
-    st = digitalRead(PUMP_CW_EXT_CTRL_PIN);
-    g_cwuPumpOverride = st == (g_CurrentConfig.ExtPumpControlMode == 1 ? HIGH : LOW);
+    g_coPumpOverride = st == ((g_CurrentConfig.ExtPumpControlMode % 2) == 1 ? HIGH : LOW);
+    if (g_coPumpOverride == 0 && PUMP_CW_EXT_CTRL_PIN != 0) {
+      
+      st = digitalRead(PUMP_CW_EXT_CTRL_PIN); //if this is on, we enable cwu. otherwise - 
+      g_cwuPumpOverride = st == ((g_CurrentConfig.ExtPumpControlMode % 2) == 1 ? HIGH : LOW);
+      
+      if (g_cwuPumpOverride && g_CurrentConfig.ExtPumpControlMode > 2) {
+        //we need to check if compressor is running too
+        st = digitalRead(FURNACE_ENABLE_PIN);
+        bool compressor = st == ((g_CurrentConfig.ExtFurnaceControlMode % 2) == 1 ? HIGH : LOW);
+        if (!compressor) 
+        {
+          g_cwuPumpOverride = 0;
+        }
+      }
+    }
   }
   
   processSensorValues();
