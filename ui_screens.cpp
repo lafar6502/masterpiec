@@ -115,8 +115,8 @@ void scrBurnInfo(uint8_t idx, char* lines[]) {
 
 void scrOverrides(uint8_t idx, char* lines[] ) {
   char buf1[10], buf2[10];
-  sprintf(lines[0], "E|C|W||PE|PC|PW");
-  sprintf(lines[1], "%d|%d|%d||%d |%d |%d", g_furnaceEnabled, g_coPumpOverride, g_cwuPumpOverride, digitalRead(FURNACE_ENABLE_PIN), digitalRead(PUMP_CO_EXT_CTRL_PIN), digitalRead(PUMP_CW_EXT_CTRL_PIN));
+  sprintf(lines[0], "E|C|W|e|c|w|t");
+  sprintf(lines[1], "%d|%d|%d|%d|%d|%d|%d%d%d", g_furnaceEnabled, g_coPumpOverride, g_cwuPumpOverride, digitalRead(FURNACE_ENABLE_PIN), digitalRead(PUMP_CO_EXT_CTRL_PIN), digitalRead(PUMP_CW_EXT_CTRL_PIN), digitalRead(HW_THERMOSTAT_PIN), digitalRead(HW_THERMOSTAT_PIN_ALT), isThermostatOn());
 }
 
 uint16_t findNextView(uint16_t currentView, bool increment, bool (*f)(uint16_t))

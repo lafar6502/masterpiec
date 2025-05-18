@@ -260,9 +260,10 @@ void initializeBlowerControl() {
   digitalWrite(HW_FEEDER_CTRL_PIN, LOW);
   digitalWrite(HW_HEATER_CTRL_PIN, LOW);
   digitalWrite(HF_FLOW_SENSOR_POWER_PIN, LOW);
+  
   if (HW_THERMOSTAT_PIN != 0) 
   {
-    pinMode(HW_THERMOSTAT_PIN, INPUT_PULLUP);  
+    pinMode(HW_THERMOSTAT_PIN, g_CurrentConfig.EnableThermostat == 2 ? INPUT : INPUT_PULLUP);  
   }
   if (HW_THERMOSTAT_PIN_ALT != 0) 
   {
@@ -308,8 +309,8 @@ void initializeBlowerControl() {
 
 
 bool isThermostatOn() {
-  if (HW_THERMOSTAT_PIN != 0 && g_CurrentConfig.EnableThermostat == 1 && digitalReadFast(HW_THERMOSTAT_PIN) == LOW) return true;
-  if (HW_THERMOSTAT_PIN_ALT != 0 && g_CurrentConfig.EnableThermostat == 2 && digitalReadFast(HW_THERMOSTAT_PIN_ALT) == HIGH) return true;
+  if (HW_THERMOSTAT_PIN != 0 && (g_CurrentConfig.EnableThermostat & 0x01) != 0 && digitalReadFast(HW_THERMOSTAT_PIN) == LOW) return true;  //NO - low
+  if (HW_THERMOSTAT_PIN_ALT != 0 && (g_CurrentConfig.EnableThermostat & 0x02) != 0 && digitalReadFast(HW_THERMOSTAT_PIN_ALT) == HIGH) return true; //NC
   return false;
 }
 
