@@ -93,7 +93,8 @@ TControlConfiguration defaultConfig() {
    3,      //P0CyclesBeforeStandby,
    0,     //AirControlMode,
    0,   //ExtPumpControlMode
-   0    //ExtFurnaceControlMode
+   0,    //ExtFurnaceControlMode
+   15,   //ExtCWPumpOffDelay -2.5min
   };
 }
 

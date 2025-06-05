@@ -68,6 +68,7 @@
 #define PUMP_CO_EXT_CTRL_PIN 4 //external control of pump 
 #define PUMP_CW_EXT_CTRL_PIN 5 //external control of pump
 #define FURNACE_ENABLE_PIN 6   //external enable/disable the furnace
+#define ALERT_STATE_PIN 7      //turn this on when ALERT
 
 //#define MASK_PUMP_CIRC  0b00000001
 #define MASK_PUMP_CO1   0b10000000

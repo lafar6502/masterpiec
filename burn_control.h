@@ -108,6 +108,7 @@ typedef struct ControlConfiguration {
   uint8_t AirControlMode; //0 - just blower %, 1 - flow meter (both % and then flow for adjustment) 2 - just the flow value is used 
   uint8_t ExtPumpControlMode; //0 disable, 1 - low signal, 2 - high signal
   uint8_t ExtFurnaceControlMode; //0 disable, 1 -low, 2 -high
+  uint8_t ExtCWPumpOffDelay; //delay to switch off ext pump, * 10 sec
 } TControlConfiguration;
 
 #define CFG_SLOT_SIZE 140 //size of single config settings struct (with some extra space for future) - utility.cpp

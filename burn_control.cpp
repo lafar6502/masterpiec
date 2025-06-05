@@ -46,6 +46,7 @@ float lastFlows[11];
 uint8_t g_furnaceEnabled = 1;
 uint8_t g_coPumpOverride = 0;
 uint8_t g_cwuPumpOverride = 0;
+unsigned long g_cwuOverrideOffTime = 0; //planned cwu override OFF time (delay..)
 
 epid_t g_flow_pid_ctx;
 
@@ -510,7 +511,7 @@ void burnControlTask() {
   //read
   g_furnaceEnabled = 1;
   g_coPumpOverride = 0;
-  g_cwuPumpOverride = 0;
+  //g_cwuPumpOverride = 0;
   int st;
   if (g_CurrentConfig.ExtFurnaceControlMode != 0 && FURNACE_ENABLE_PIN != 0) {
     st = digitalRead(FURNACE_ENABLE_PIN);
@@ -526,20 +527,53 @@ void burnControlTask() {
     if (g_coPumpOverride == 0 && PUMP_CW_EXT_CTRL_PIN != 0) {
       
       st = digitalRead(PUMP_CW_EXT_CTRL_PIN); //if this is on, we enable cwu. otherwise - 
-      g_cwuPumpOverride = st == ((g_CurrentConfig.ExtPumpControlMode % 2) == 1 ? HIGH : LOW);
+
+      uint8_t ovr = st == ((g_CurrentConfig.ExtPumpControlMode % 2) == 1 ? HIGH : LOW);
       
-      if (g_cwuPumpOverride && g_CurrentConfig.ExtPumpControlMode > 2) {
+      if (ovr && g_CurrentConfig.ExtPumpControlMode > 2) {
         //we need to check if compressor is running too
         st = digitalRead(FURNACE_ENABLE_PIN);
         bool compressor = st == ((g_CurrentConfig.ExtFurnaceControlMode % 2) == 1 ? HIGH : LOW);
         if (!compressor) 
         {
-          g_cwuPumpOverride = 0;
+          ovr = 0;
         }
+      }
+      if (g_CurrentConfig.ExtCWPumpOffDelay > 0) {
+        unsigned long t0 = millis();
+        if (ovr == 0) {
+          if (g_cwuPumpOverride != 0) {
+            long dif = t0 - g_cwuOverrideOffTime;
+            if (dif >= g_CurrentConfig.ExtCWPumpOffDelay * 10000L) {
+              g_cwuPumpOverride = 0;
+              Serial.print(F("CW over end "));
+              Serial.println(g_cwuOverrideOffTime);
+              g_cwuOverrideOffTime = 0;
+            }
+            else {
+              //do nothing.. delay
+              Serial.println(dif);
+            }
+          }
+        }
+        else {
+          if (g_cwuPumpOverride == 0) {
+            Serial.print(F("CW over start"));
+            Serial.println(t0);
+          }
+          g_cwuPumpOverride = ovr;
+          g_cwuOverrideOffTime = t0;
+        }  
+      }
+      else {
+        g_cwuPumpOverride = ovr;
       }
     }
   }
-  
+  else {
+    g_cwuPumpOverride = 0;
+    g_coPumpOverride = 0;
+  }
   processSensorValues();
   if (g_furnaceEnabled == 0) {
     g_needHeat = NEED_HEAT_NONE;
@@ -1232,16 +1266,20 @@ void alertStateLoop() {
   setHeater(0);
   setBlowerPower(0);
   unsigned long burnCycleLen = 60 * 4 * 1000; //4 min
-  
+  uint8_t sig = 1;
   if (isAlarm_feederOnFire()) {
     if (tNow - g_CurBurnCycleStart < burnCycleLen) 
     {
       setFeederOn();
+      sig = 0;
     }
     else 
     {
       setFeederOff();
     } 
+  }
+  if (ALERT_STATE_PIN != 0) {
+    digitalWrite(ALERT_STATE_PIN, sig ? HIGH : LOW);
   }
 }
 
