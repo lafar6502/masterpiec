@@ -13,3 +13,7 @@
 * ulepszone wykrywanie wygasnięcia ognia<br>Z uwzględnieniem temperatury spalin
 * Wykrywanie rozpalenia ognia<br>W oparciu o wzrost temperatury spalin
 
+2025-wiosna
+* dodana możliwość zewnętrznego sterowania pompami CO i CWU
+  To realizuje scenariusz gdy do instalacji jest wpięta pompa ciepła za pośrednictwem wymiennika płytowego (czyli pompa ciepła ma własny obieg. Na podstawie sygnałów pracy z pompy ciepła załączana jest albo pompa CO, albo pompa CWU, tak żeby     był przepływ wody przez wymiennik.
+
