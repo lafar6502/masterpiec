@@ -524,7 +524,10 @@ void burnControlTask() {
 
     st = digitalRead(PUMP_CO_EXT_CTRL_PIN);
     g_coPumpOverride = st == ((g_CurrentConfig.ExtPumpControlMode % 2) == 1 ? HIGH : LOW);
-    if (g_coPumpOverride == 0 && PUMP_CW_EXT_CTRL_PIN != 0) {
+    if (g_coPumpOverride != 0) {
+      g_cwuPumpOverride = 0;
+    }
+    else if (PUMP_CW_EXT_CTRL_PIN != 0) {
       
       st = digitalRead(PUMP_CW_EXT_CTRL_PIN); //if this is on, we enable cwu. otherwise - 
 
@@ -584,6 +587,7 @@ void burnControlTask() {
   
   updatePumpStatus();
   burningProc();
+  setSV2HeatingPin(g_BurnState == STATE_P1 || g_BurnState == STATE_P2 || g_BurnState == STATE_P0);
 }
 
 
@@ -843,32 +847,43 @@ void manualStateLoop() {
 
 void handleHeatNeedStatus() {
 
-  if (g_CWState == CWSTATE_OK) {
-      if (g_TempCWU < g_CurrentConfig.TCWU - g_CurrentConfig.THistCwu) {
-        g_CWState = CWSTATE_HEAT; //start heating cwu
-        g_TargetTemp = max(g_CurrentConfig.TCO, g_CurrentConfig.TCWU + g_CurrentConfig.TDeltaCWU);
-        Serial.print(F("CWU heat - adjusted target temp to "));
-        Serial.println(g_TargetTemp);
-      } else g_TargetTemp = g_CurrentConfig.TCO;
+  if (g_CurrentConfig.SummerMode == 2) 
+  {  
+    g_CWState = CWSTATE_OK;
+    g_TargetTemp = g_CurrentConfig.TCO;
   }
-  else if (g_CWState == CWSTATE_HEAT) {
-    if (g_TempCWU >= g_CurrentConfig.TCWU) {
-      g_CWState = CWSTATE_OK;
-      g_TargetTemp = g_CurrentConfig.TCO;
-      Serial.print(F("CWU ready - adjusted target temp to "));
-      Serial.println(g_TargetTemp);
-    } else {
-      g_TargetTemp = max(g_CurrentConfig.TCO, g_CurrentConfig.TCWU + g_CurrentConfig.TDeltaCWU);
+  else 
+  {
+    if (g_CWState == CWSTATE_OK) {
+        if (g_TempCWU < g_CurrentConfig.TCWU - g_CurrentConfig.THistCwu) {
+          g_CWState = CWSTATE_HEAT; //start heating cwu
+          g_TargetTemp = max(g_CurrentConfig.TCO, g_CurrentConfig.TCWU + g_CurrentConfig.TDeltaCWU);
+          Serial.print(F("CWU heat - adjusted target temp to "));
+          Serial.println(g_TargetTemp);
+        } else g_TargetTemp = g_CurrentConfig.TCO;
     }
+    else if (g_CWState == CWSTATE_HEAT) {
+      if (g_TempCWU >= g_CurrentConfig.TCWU) {
+        g_CWState = CWSTATE_OK;
+        g_TargetTemp = g_CurrentConfig.TCO;
+        Serial.print(F("CWU ready - adjusted target temp to "));
+        Serial.println(g_TargetTemp);
+      } else {
+        g_TargetTemp = max(g_CurrentConfig.TCO, g_CurrentConfig.TCWU + g_CurrentConfig.TDeltaCWU);
+      }
+    }
+    else assert(false);
   }
-  else assert(false);
-
+  
   HEATNEED prev = g_needHeat;
   g_needHeat = NEED_HEAT_NONE;
-  if (g_CWState == CWSTATE_HEAT) g_needHeat = NEED_HEAT_CWU;
-  if (!g_CurrentConfig.SummerMode && g_needHeat == NEED_HEAT_NONE)
+  if (g_CurrentConfig.SummerMode != 2) 
   {
-    if (!g_CurrentConfig.EnableThermostat || g_HomeThermostatOn) g_needHeat = NEED_HEAT_CO;
+    if (g_CWState == CWSTATE_HEAT) g_needHeat = NEED_HEAT_CWU;
+    if (g_CurrentConfig.SummerMode == 0 && g_needHeat == NEED_HEAT_NONE)
+    {
+      if (!g_CurrentConfig.EnableThermostat || g_HomeThermostatOn) g_needHeat = NEED_HEAT_CO;
+    }  
   }
   if (g_needHeat != prev) {
     Serial.print(F("Heat needs changed:"));
@@ -935,7 +950,7 @@ void updatePumpStatus() {
   //no need to heat from now...
   uint8_t cl = cond_needCooling();
   
-  bool cw = g_CurrentConfig.SummerMode && isPumpEnabled(PUMP_CWU1) && isDallasEnabled(TSENS_CWU) && cl == 2;
+  bool cw = g_CurrentConfig.SummerMode == 1 && isPumpEnabled(PUMP_CWU1) && isDallasEnabled(TSENS_CWU) && cl == 2;
   
   if (cl != 0 && !g_coPumpOverride && !g_cwuPumpOverride) {
     setPumpOn(cw ? PUMP_CWU1 : PUMP_CO1);
@@ -1190,7 +1205,7 @@ bool cond_canCoolWithCWU() {
 uint8_t cond_needCooling() {
   static uint8_t _cwCnt = 0;
   
-  bool cw = ((_cwCnt % 2) == 0 || g_CurrentConfig.SummerMode) && cond_canCoolWithCWU();
+  bool cw = ((_cwCnt % 2) == 0 || g_CurrentConfig.SummerMode != 0) && cond_canCoolWithCWU();
   
   if (g_TempCO >= MAX_TEMP) {_coolState = 0; return cw ? 2 : 1;} //always
   
@@ -1209,7 +1224,7 @@ uint8_t cond_needCooling() {
         hot = true; //boiler reached the temp, but return temp still lower and boiler can be heated up a little
       }
     }
-    else if (!g_CurrentConfig.SummerMode) {
+    else if (g_CurrentConfig.SummerMode == 0) {
       hot = g_CurrentConfig.CooloffMode == COOLOFF_LOWER ? g_TempCO >= g_CurrentConfig.TMinPomp : g_TempCO >= g_TargetTemp - g_CurrentConfig.THistCO;  
     }
   }

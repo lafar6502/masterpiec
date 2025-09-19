@@ -42,7 +42,7 @@
 #define HW_FEEDER_CTRL_PIN 34      //PC6 portk 2
 #define HW_PUMP_CWU1_CTRL_PIN  36  //PC1 portk 7
 #define HW_HEATER_CTRL_PIN  37     //PC0 
-
+#define HW_SV2_HEATING_PIN  38     //przelaczanie obiegu gdy piec grzeje cokolwiek
 //#define HW_PUMP_CIRC_CTRL_PIN  32  //PC5 portk 3
 
 //#define HW_BLOWER_CTRL_PIN 33      //PC4 portk 4 remember mask

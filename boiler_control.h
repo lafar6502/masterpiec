@@ -15,9 +15,12 @@ void setFeederOff();
 void setFeeder(bool b);
 //czy podajnik działa
 bool isFeederOn();
-
+//fire igniter / heater
 bool isHeaterOn();
+//control igniter state
 void setHeater(bool b);
+//HW_SV2_HEATING_PIN
+void setSV2HeatingPin(bool b);
 unsigned long getHeaterRunningTimeMs();
 
 ///set blower power 0..255 (255 = 100%)

@@ -81,7 +81,7 @@ typedef struct ControlConfiguration {
   uint8_t P0BlowerTime; //czas pracy dmuchawy w podtrzymaniu
   uint8_t P0FuelFreq; //podawanie wegla co x cykli przedmuchu
   bool    _delHomeThermostat;
-  bool    SummerMode; //tryb letni
+  uint8_t SummerMode; //tryb letni = 1, tryb OFF = 2
   
   TBurnParams BurnConfigs[MAX_POWER_STATES]; //first one [0] is the podtrzymanie
   uint8_t FeederTempLimit;
