@@ -996,7 +996,7 @@ const TUIVarEntry UI_VARIABLES[] = {
   
   {MPSTR("DeltaT"), VAR_ADVANCED, &g_CurrentConfig.TDeltaCO, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
   {MPSTR("DeltaCWU"), VAR_ADVANCED, &g_CurrentConfig.TDeltaCWU, 0, 15, printUint8, adjustUint8, copyU8, commitConfig},
-  {MPSTR("Tryb letni"), VAR_ADVANCED, &g_CurrentConfig.SummerMode, 0, 2, printUint8, printUint8, copyU8, commitConfig, {.strings=values_onoff}},
+  {MPSTR("Tryb letni"), VAR_ADVANCED, &g_CurrentConfig.SummerMode, 0, 2, printUint8, adjustUint8, copyU8, commitConfig},
   {MPSTR("Max T podajnika"), VAR_ADVANCED, &g_CurrentConfig.FeederTempLimit, 0, 200, printUint8, adjustUint8, copyU8, commitConfig}, 
   {MPSTR("Wygasniecie po"), VAR_ADVANCED, &g_CurrentConfig.NoHeatAlarmCycles, 0, 60, printUint8, adjustUint8, copyU8, commitConfig}, 
   {MPSTR("Dmuchawa CZ"), VAR_ADVANCED, &g_DeviceConfig.DefaultBlowerCycle, 0, 100, printUint8, adjustUint8, copyU8, commitDevConfig},
