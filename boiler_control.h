@@ -21,6 +21,7 @@ bool isHeaterOn();
 void setHeater(bool b);
 //HW_SV2_HEATING_PIN
 void setSV2HeatingPin(bool b);
+bool getSV2HeatingPin();
 unsigned long getHeaterRunningTimeMs();
 
 ///set blower power 0..255 (255 = 100%)

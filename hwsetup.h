@@ -42,7 +42,6 @@
 #define HW_FEEDER_CTRL_PIN 34      //PC6 portk 2
 #define HW_PUMP_CWU1_CTRL_PIN  36  //PC1 portk 7
 #define HW_HEATER_CTRL_PIN  37     //PC0 
-#define HW_SV2_HEATING_PIN  38     //przelaczanie obiegu gdy piec grzeje cokolwiek
 //#define HW_PUMP_CIRC_CTRL_PIN  32  //PC5 portk 3
 
 //#define HW_BLOWER_CTRL_PIN 33      //PC4 portk 4 remember mask
@@ -64,7 +63,8 @@
 #define MAX6675_1_SCK_PIN 0 //disable
 #define MAX6675_1_CS_PIN 44  //PL5
 #define MAX6675_1_SO_PIN 46  //PL3
-
+#define HW_SV2_HEATING_PIN  12     //przelaczanie obiegu gdy piec grzeje cokolwiek
+#define HW_SV2_PIN_ACTIVELOW 1 //sv2 zalaczany niskim
 #define PUMP_CO_EXT_CTRL_PIN 4 //external control of pump 
 #define PUMP_CW_EXT_CTRL_PIN 5 //external control of pump
 #define FURNACE_ENABLE_PIN 6   //external enable/disable the furnace

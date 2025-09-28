@@ -176,6 +176,8 @@ void periodicDumpControlState() {
       Serial.print(" ");
       Serial.print(g_furnaceEnabled);   
     }
+    Serial.print(", SV2:");
+    Serial.print(getSV2HeatingPin());
     Serial.println();
   }
 }

@@ -116,7 +116,11 @@ bool isFeederOn() {
 
 void setSV2HeatingPin(bool b) {
   if (HW_SV2_HEATING_PIN == 0) return;
-  digitalWriteFast(HW_SV2_HEATING_PIN, b);
+  digitalWriteFast(HW_SV2_HEATING_PIN, HW_SV2_PIN_ACTIVELOW ? !b : b);
+}
+
+bool getSV2HeatingPin() {
+  return digitalReadFast(HW_SV2_HEATING_PIN) != LOW;
 }
 
 unsigned long g_heaterStartTimeMs = 0;
@@ -266,7 +270,7 @@ void initializeBlowerControl() {
   digitalWrite(HW_FEEDER_CTRL_PIN, LOW);
   digitalWrite(HW_HEATER_CTRL_PIN, LOW);
   digitalWrite(HF_FLOW_SENSOR_POWER_PIN, LOW);
-  digitalWrite(HW_SV2_HEATING_PIN, LOW);
+  digitalWrite(HW_SV2_HEATING_PIN, HW_SV2_PIN_ACTIVELOW ? HIGH : LOW);
   
   
   if (HW_THERMOSTAT_PIN != 0) 

@@ -587,7 +587,35 @@ void burnControlTask() {
   
   updatePumpStatus();
   burningProc();
-  setSV2HeatingPin(g_BurnState == STATE_P1 || g_BurnState == STATE_P2 || g_BurnState == STATE_P0);
+  uint8_t sv2Pin = 0; //to będzie 1 gdy grzejemy, albo nie grzejemy ale pracują pompy
+  if (false) {
+    if (g_BurnState == STATE_P1 || g_BurnState == STATE_P2 || g_BurnState == STATE_P0)
+    {
+      sv2Pin = 1;
+    }
+    else 
+    {
+      if (g_cwuPumpOverride == 0 && g_coPumpOverride == 0) {
+        //czy jakas pompa działa?
+         if (isPumpOn(PUMP_CO1) || isPumpOn(PUMP_CWU1)) {
+          sv2Pin = 1;
+         }
+      }
+    }  
+  }
+  else { //druga wersja
+    if (g_BurnState == STATE_P1 || g_BurnState == STATE_P2 || g_BurnState == STATE_P0 || g_BurnState == STATE_FIRESTART || g_BurnState == STATE_REDUCE1 || g_BurnState == STATE_REDUCE2)
+    {
+      sv2Pin = 1;
+    }
+    else {
+      if (g_cwuPumpOverride != 0 || g_coPumpOverride != 0) {
+        sv2Pin = 1;  
+      }  
+    }
+  }
+  
+  setSV2HeatingPin(sv2Pin); 
 }
 
 
