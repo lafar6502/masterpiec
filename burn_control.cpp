@@ -604,14 +604,15 @@ void burnControlTask() {
     }  
   }
   else { //druga wersja
-    if (g_BurnState == STATE_P1 || g_BurnState == STATE_P2 || g_BurnState == STATE_P0 || g_BurnState == STATE_FIRESTART || g_BurnState == STATE_REDUCE1 || g_BurnState == STATE_REDUCE2)
-    {
-      sv2Pin = 1;
-    }
-    else {
+    if (g_BurnState == STATE_OFF || g_BurnState == STATE_STOP) {
       if (g_cwuPumpOverride != 0 || g_coPumpOverride != 0) {
         sv2Pin = 1;  
-      }  
+      }
+      else if (g_CurrentConfig.SummerMode == 2) {
+        if (!isPumpOn(PUMP_CO1) && !isPumpOn(PUMP_CWU1)) { //gdy dzialaja pompy to byc moze sie chlodzi - nie przelaczaj
+          sv2Pin = 1;
+         }
+      }
     }
   }
   
