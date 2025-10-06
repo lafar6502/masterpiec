@@ -75,6 +75,18 @@ Sterownik jest zbudowany z gotowych modułów, nie wymaga robienia własnych pł
 
 [Poradnik MAF](MAF.md)
 
+## Ekrany
+
+Ekr 1.
+```
+ ; jesli termostat 
+ v
+T:45.3/50 B:42.1
+_1 25 0.2
+^
+| _ - brak grzania, ! - CO, @ - bojler, | - blokada pieca  
+```
+
 ## Podziękowania, inspiracje
 
 Główną inspiracją dla masterpieca był Lucjan - czyli sterownik kotła w wersji DIY udostępniony przez UZI18 
