@@ -143,14 +143,17 @@ void refreshSensorReadings() {
   {
     for(int i=0; i<sizeof(g_dallasSensors) / sizeof(TDallasSensor); i++) {
       if (g_dallasSensors[i].Active) {
-        g_dallasSensors[i].LastValue = sensors.getTempC(g_dallasSensors[i].Addr);
-        if (g_dallasSensors[i].LastValue == DEVICE_DISCONNECTED_C) {
-          g_dallasSensors[i].Active = false;
-          Serial.print(F("Dallas sensor disconnected "));
+        float vv = sensors.getTempC(g_dallasSensors[i].Addr);
+        if (vv != DEVICE_DISCONNECTED_C) {
+          g_dallasSensors[i].LastValue = vv;
+          g_dallasSensors[i].LastReadMs = m0;
+        }
+        else {
+          //g_dallasSensors[i].Active = false;
+          Serial.print(F("DS sensor disconnected "));
           Serial.print(i);
           printAddress(g_dallasSensors[i].Addr);
         }
-        g_dallasSensors[i].LastReadMs = m0;
       }
     }
     sensors.requestTemperatures();
