@@ -33,6 +33,7 @@ HEATNEED g_needHeat = NEED_HEAT_NONE; //0, 1 or 2
 HEATNEED g_initialNeedHeat = NEED_HEAT_NONE; //heat needs at the beginning of current state
 uint16_t g_burnCycleNum = 0; //number of burning cycles in current state
 bool   g_HomeThermostatOn = true;  //true - termostat pokojowy kazał zaprzestać grzania
+bool g_SV2 = false;
 bool g_overrideBurning = false; //set to true to have system think fire is started
 float g_TempZewn = 0.0; //aktualna temp. zewn
 char* g_Alarm;
@@ -513,6 +514,8 @@ void burnControlTask() {
   g_coPumpOverride = 0;
   //g_cwuPumpOverride = 0;
   int st;
+  unsigned long t0 = millis();
+        
   if (g_CurrentConfig.ExtFurnaceControlMode != 0 && FURNACE_ENABLE_PIN != 0) {
     st = digitalRead(FURNACE_ENABLE_PIN);
     g_furnaceEnabled = st == ((g_CurrentConfig.ExtFurnaceControlMode == 1 || g_CurrentConfig.ExtFurnaceControlMode == 4) ? HIGH : LOW);
@@ -543,7 +546,6 @@ void burnControlTask() {
         }
       }
       if (g_CurrentConfig.ExtCWPumpOffDelay > 0) {
-        unsigned long t0 = millis();
         if (ovr == 0) {
           if (g_cwuPumpOverride != 0) {
             long dif = t0 - g_cwuOverrideOffTime;
@@ -587,36 +589,19 @@ void burnControlTask() {
   
   updatePumpStatus();
   burningProc();
-  uint8_t sv2Pin = 0; //to będzie 1 gdy grzejemy, albo nie grzejemy ale pracują pompy
-  if (false) {
-    if (g_BurnState == STATE_P1 || g_BurnState == STATE_P2 || g_BurnState == STATE_P0)
-    {
-      sv2Pin = 1;
+  g_SV2 = false;
+  if (g_BurnState == STATE_OFF || g_BurnState == STATE_STOP) {
+    if (g_cwuPumpOverride != 0 || g_coPumpOverride != 0) {
+      g_SV2 = true;  
     }
-    else 
-    {
-      if (g_cwuPumpOverride == 0 && g_coPumpOverride == 0) {
-        //czy jakas pompa działa?
-         if (isPumpOn(PUMP_CO1) || isPumpOn(PUMP_CWU1)) {
-          sv2Pin = 1;
-         }
-      }
-    }  
-  }
-  else { //druga wersja
-    if (g_BurnState == STATE_OFF || g_BurnState == STATE_STOP) {
-      if (g_cwuPumpOverride != 0 || g_coPumpOverride != 0) {
-        sv2Pin = 1;  
-      }
-      else if (g_CurrentConfig.SummerMode == 2) {
-        if (!isPumpOn(PUMP_CO1) && !isPumpOn(PUMP_CWU1)) { //gdy dzialaja pompy to byc moze sie chlodzi - nie przelaczaj
-          sv2Pin = 1;
-         }
-      }
+    else if (g_CurrentConfig.SummerMode == 2) {
+      if (!isPumpOn(PUMP_CO1) && !isPumpOn(PUMP_CWU1)) { //gdy dzialaja pompy to byc moze sie chlodzi - nie przelaczaj
+        g_SV2 = true;
+       }
     }
   }
   
-  setSV2HeatingPin(sv2Pin); 
+  setSV2HeatingPin(g_SV2); 
 }
 
 

@@ -209,6 +209,7 @@ extern uint16_t g_burnCycleNum; //nr cyklu spalania w biez stanie
 extern uint8_t g_TargetFlow;
 extern TSTATE g_BurnState;  //aktualny stan grzania
 extern bool   g_HomeThermostatOn;  //true - termostat pokojowy kazał zaprzestać grzania
+extern bool g_SV2; //zawor przelaczajacy
 extern unsigned long g_P1Time; //accumulated P1 time
 extern unsigned long g_P2Time; //accumulated P2 time
 extern unsigned long g_P0Time; //accumulated P0 time

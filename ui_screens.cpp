@@ -31,7 +31,7 @@ void scrDefault(uint8_t idx, char* lines[])
   sprintf(buf3, "CW:");
   dtostrf(g_TempCWU,3, 1, buf3);
   uint8_t nh = needHeatingNow(); 
-  sprintf(lines[0], "T%c%s/%s B:%s",g_HomeThermostatOn ? ';' : ':', buf2, buf1, buf3);
+  sprintf(lines[0], "T%c%s/%s B%c%s",g_HomeThermostatOn ? ';' : ':', buf2, buf1, g_SV2 ? ';' : ':', buf3);
   dtostrf(g_dTl3, 3, 1, buf1);
   buf2[0] = 0;
   if (g_BurnState == STATE_STOP) sprintf(buf2, "STOP");
