@@ -263,6 +263,7 @@ void initializeBlowerControl() {
   pinMode(HW_HEATER_CTRL_PIN, OUTPUT);
   pinMode(HF_FLOW_SENSOR_POWER_PIN, OUTPUT);
   pinMode(HW_SV2_HEATING_PIN, OUTPUT);
+  
   digitalWrite(HW_PUMP_CO1_CTRL_PIN, LOW);
   digitalWrite(HW_PUMP_CWU1_CTRL_PIN, LOW);
   digitalWrite(HW_PUMP_CO2_CTRL_PIN, LOW);
@@ -271,7 +272,10 @@ void initializeBlowerControl() {
   digitalWrite(HW_HEATER_CTRL_PIN, LOW);
   digitalWrite(HF_FLOW_SENSOR_POWER_PIN, LOW);
   digitalWrite(HW_SV2_HEATING_PIN, HW_SV2_PIN_ACTIVELOW ? HIGH : LOW);
-  
+  if (ALERT_STATE_PIN != 0) {
+    pinMode(ALERT_STATE_PIN, OUTPUT); //low: alert state
+    digitalWrite(ALERT_STATE_PIN, LOW);
+  }
   
   if (HW_THERMOSTAT_PIN != 0) 
   {

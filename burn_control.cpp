@@ -597,11 +597,21 @@ void burnControlTask() {
     else if (g_CurrentConfig.SummerMode == 2) {
       if (!isPumpOn(PUMP_CO1) && !isPumpOn(PUMP_CWU1)) { //gdy dzialaja pompy to byc moze sie chlodzi - nie przelaczaj
         g_SV2 = true;
-       }
+      }
+    }
+  }
+  else if (g_BurnState == STATE_ALARM) {
+    if (!isPumpOn(PUMP_CO1) && !isPumpOn(PUMP_CWU1)) { //gdy dzialaja pompy to byc moze sie chlodzi - nie przelaczaj
+      g_SV2 = true;
     }
   }
   
-  setSV2HeatingPin(g_SV2); 
+  setSV2HeatingPin(g_SV2);
+  
+  if (ALERT_STATE_PIN != 0) {
+     bool sig = g_BurnState == STATE_ALARM;
+     digitalWrite(ALERT_STATE_PIN, sig ? HIGH : LOW);
+  }
 }
 
 
@@ -1307,9 +1317,7 @@ void alertStateLoop() {
       setFeederOff();
     } 
   }
-  if (ALERT_STATE_PIN != 0) {
-    digitalWrite(ALERT_STATE_PIN, sig ? HIGH : LOW);
-  }
+  
 }
 
 
